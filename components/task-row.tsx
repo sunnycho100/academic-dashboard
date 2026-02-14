@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { GripVertical, MoreVertical, Pencil, Copy, Trash2, StickyNote, ChevronRight, ChevronLeft, Target } from 'lucide-react'
+import { GripVertical, MoreVertical, Pencil, Copy, Trash2, StickyNote, ChevronRight, ChevronLeft, Target, Clock, TrendingUp, TrendingDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -372,6 +372,37 @@ export function TaskRow({
           >
             {dueDateLabel}
           </Badge>
+          {/* Completed time info */}
+          {task.status === 'done' && task.actualTimeSpent != null && task.actualTimeSpent > 0 && (
+            <>
+              <span className="text-muted-foreground/40 text-xs">·</span>
+              <span className="inline-flex items-center gap-1 text-xs text-primary font-medium">
+                <Clock className="h-3 w-3" />
+                {task.actualTimeSpent >= 60
+                  ? `${Math.floor(task.actualTimeSpent / 60)}h ${task.actualTimeSpent % 60 > 0 ? `${task.actualTimeSpent % 60}m` : ''}`
+                  : `${task.actualTimeSpent}m`}
+              </span>
+              {task.estimatedDuration != null && (
+                (() => {
+                  const diff = task.estimatedDuration - task.actualTimeSpent
+                  if (diff === 0) return null
+                  const absDiff = Math.abs(diff)
+                  const label = absDiff >= 60
+                    ? `${Math.floor(absDiff / 60)}h ${absDiff % 60 > 0 ? `${absDiff % 60}m` : ''}`
+                    : `${absDiff}m`
+                  return (
+                    <span className={cn(
+                      'inline-flex items-center gap-0.5 text-xs font-medium',
+                      diff > 0 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'
+                    )}>
+                      {diff > 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
+                      {diff > 0 ? `Saved ${label}` : `${label} over`}
+                    </span>
+                  )
+                })()
+              )}
+            </>
+          )}
         </div>
       </div>
 

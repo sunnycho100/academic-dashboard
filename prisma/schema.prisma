@@ -1,0 +1,30 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model CompletedTask {
+  id                String   @id @default(uuid())
+  taskTitle         String
+  categoryName      String
+  categoryColor     String
+  taskType          String
+  dueAt             DateTime
+  completedAt       DateTime @default(now())
+  actualTimeSpent   Int?     // in minutes
+  estimatedDuration Int?     // in minutes
+  timeDifference    Int?     // estimated - actual (positive = saved, negative = over)
+  notes             String?
+  createdAt         DateTime @default(now())
+
+  @@index([completedAt])
+  @@index([categoryName])
+  @@index([taskType])
+}

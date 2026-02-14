@@ -135,20 +135,45 @@ export default function Home() {
   }
 
   const handleToggleTask = (id: string, timeSpentSeconds?: number) => {
+    const task = tasks.find((t) => t.id === id)
+    if (!task) return
+
+    const isCompletingTask = task.status === 'todo'
+    const actualMinutes =
+      timeSpentSeconds !== undefined ? Math.round(timeSpentSeconds / 60) : undefined
+
     setTasks(
-      tasks.map((task) =>
-        task.id === id
+      tasks.map((t) =>
+        t.id === id
           ? {
-              ...task,
-              status: task.status === 'done' ? 'todo' : 'done',
-              // Save time spent when marking as done (convert seconds to minutes)
-              ...(task.status === 'todo' && timeSpentSeconds !== undefined
-                ? { actualTimeSpent: Math.round(timeSpentSeconds / 60) }
+              ...t,
+              status: t.status === 'done' ? 'todo' : 'done',
+              ...(isCompletingTask && actualMinutes !== undefined
+                ? { actualTimeSpent: actualMinutes }
                 : {}),
             }
-          : task
+          : t
       )
     )
+
+    // Persist to PostgreSQL when completing a task
+    if (isCompletingTask) {
+      const category = categories.find((c) => c.id === task.categoryId)
+      fetch('/api/completed-tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          taskTitle: task.title,
+          categoryName: category?.name ?? 'Unknown',
+          categoryColor: category?.color ?? '#888',
+          taskType: task.type,
+          dueAt: task.dueAt,
+          actualTimeSpent: actualMinutes ?? task.actualTimeSpent ?? null,
+          estimatedDuration: task.estimatedDuration ?? null,
+          notes: task.notes ?? null,
+        }),
+      }).catch((err) => console.error('Failed to persist completed task:', err))
+    }
   }
 
   const handleEditTask = (task: Task) => {
@@ -331,7 +356,6 @@ export default function Home() {
         onRemoveCategory={handleRemoveCategory}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        tasks={tasks}
       />
 
       {/* Main Content */}

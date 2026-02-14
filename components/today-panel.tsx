@@ -86,6 +86,12 @@ export function TodayPanel({
     getTotalStudyTime,
   } = useTaskTimers(tasks.map(t => t.id))
 
+  // Total study time = live timer seconds + completed tasks' saved time (converted to seconds)
+  const completedStudySeconds = tasks
+    .filter(t => t.status === 'done' && t.actualTimeSpent)
+    .reduce((sum, t) => sum + (t.actualTimeSpent! * 60), 0)
+  const totalStudySeconds = getTotalStudyTime() + completedStudySeconds
+
   const totalMinutes = tasks.reduce(
     (acc, t) => acc + (t.estimatedDuration || 0),
     0
@@ -330,7 +336,7 @@ export function TodayPanel({
                 <div>
                   <p className="text-xs font-medium text-muted-foreground">Total Study Time</p>
                   <p className="text-base font-bold tabular-nums text-foreground">
-                    {formatTime(getTotalStudyTime())}
+                    {formatTime(totalStudySeconds)}
                   </p>
                 </div>
               </div>
@@ -756,7 +762,7 @@ export function TodayPanel({
               <div>
                 <p className="text-xs font-medium text-muted-foreground">Study Time</p>
                 <p className="text-sm font-bold tabular-nums text-foreground">
-                  {formatTime(getTotalStudyTime())}
+                  {formatTime(totalStudySeconds)}
                 </p>
               </div>
             </div>

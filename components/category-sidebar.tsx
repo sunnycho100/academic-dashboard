@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Category, Task } from '@/lib/types'
+import { Category } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -18,7 +18,6 @@ interface CategorySidebarProps {
   onRemoveCategory?: (categoryId: string) => void
   searchQuery: string
   onSearchChange: (query: string) => void
-  tasks: Task[]
 }
 
 export function CategorySidebar({
@@ -29,7 +28,6 @@ export function CategorySidebar({
   onRemoveCategory,
   searchQuery,
   onSearchChange,
-  tasks,
 }: CategorySidebarProps) {
   const [removeMode, setRemoveMode] = useState(false)
   const [summaryOpen, setSummaryOpen] = useState(false)
@@ -158,6 +156,8 @@ export function CategorySidebar({
               </AnimatePresence>
             </motion.div>
           ))}
+        </div>
+      </ScrollArea>
 
       {/* Activity Summary Button */}
       <div className="p-3 border-t border-border/50">
@@ -178,11 +178,7 @@ export function CategorySidebar({
       <ActivitySummaryDialog
         open={summaryOpen}
         onOpenChange={setSummaryOpen}
-        tasks={tasks}
-        categories={categories}
       />
-        </div>
-      </ScrollArea>
     </div>
   )
 }
