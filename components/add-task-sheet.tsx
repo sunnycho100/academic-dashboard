@@ -79,7 +79,7 @@ export function AddTaskDialog({
         title: title.trim(),
         categoryId,
         type,
-        dueAt: new Date(dueDate).toISOString(),
+        dueAt: new Date(dueDate + 'T00:00:00').toISOString(),
         notes: notes.trim() || undefined,
         estimatedDuration: (durationHours || durationMinutes)
           ? (parseInt(durationHours || '0') * 60) + parseInt(durationMinutes || '0') || undefined

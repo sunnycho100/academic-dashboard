@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Task, Category, SortOption, ViewMode, TaskType } from '@/lib/types'
-import { loadState, saveState } from '@/lib/store'
+import { loadState } from '@/lib/store'
 import { CategorySidebar } from '@/components/category-sidebar'
 import { AddCategoryDialog } from '@/components/add-category-dialog'
 import { AddTaskDialog } from '@/components/add-task-sheet'
@@ -81,24 +81,86 @@ export default function Home() {
   const [mounted, setMounted] = useState(false)
   const [todayTaskIds, setTodayTaskIds] = useState<string[]>([])
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
+  const completingRef = useRef<Set<string>>(new Set())
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   )
 
   useEffect(() => {
-    const state = loadState()
-    setCategories(state.categories)
-    setTasks(state.tasks)
-    setTodayTaskIds(loadTodayIds())
-    setMounted(true)
-  }, [])
+    async function loadData() {
+      try {
+        // Try loading from database first
+        const [catRes, taskRes] = await Promise.all([
+          fetch('/api/categories'),
+          fetch('/api/tasks'),
+        ])
+        const dbCategories = await catRes.json()
+        const dbTasks = await taskRes.json()
 
-  useEffect(() => {
-    if (mounted) {
-      saveState({ categories, tasks })
+        if (dbCategories.length > 0 || dbTasks.length > 0) {
+          // DB has data — use it
+          setCategories(dbCategories)
+          setTasks(
+            dbTasks.map((t: Record<string, unknown>) => ({
+              ...t,
+              dueAt: typeof t.dueAt === 'string' ? t.dueAt : new Date(t.dueAt as number).toISOString(),
+              createdAt: typeof t.createdAt === 'string' ? t.createdAt : new Date(t.createdAt as number).toISOString(),
+            }))
+          )
+        } else {
+          // DB empty — seed from localStorage if available
+          const localState = loadState()
+          if (localState.categories.length > 0 || localState.tasks.length > 0) {
+            const seedRes = await fetch('/api/seed', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                categories: localState.categories,
+                tasks: localState.tasks,
+              }),
+            })
+            const seedData = await seedRes.json()
+            if (seedData.seeded) {
+              // Map todayTaskIds from old IDs to new IDs
+              const oldTodayIds = loadTodayIds()
+              const idMap = seedData.categoryIdMap as Record<string, string>
+              // We need to map task IDs too — build from title+category matching
+              const taskIdMap: Record<string, string> = {}
+              localState.tasks.forEach((oldTask) => {
+                const newTask = (seedData.tasks as Array<{ id: string; title: string; categoryId: string }>)
+                  .find((nt) => nt.title === oldTask.title && nt.categoryId === (idMap[oldTask.categoryId] ?? oldTask.categoryId))
+                if (newTask) taskIdMap[oldTask.id] = newTask.id
+              })
+              const newTodayIds = oldTodayIds
+                .map((oldId) => taskIdMap[oldId])
+                .filter(Boolean)
+              setTodayTaskIds(newTodayIds)
+              saveTodayIds(newTodayIds)
+
+              setCategories(seedData.categories)
+              setTasks(seedData.tasks)
+            } else {
+              setCategories(localState.categories)
+              setTasks(localState.tasks)
+            }
+          }
+        }
+
+        // Auto-cleanup: permanently delete tasks soft-deleted >3 days ago
+        fetch('/api/completed-tasks/cleanup', { method: 'DELETE' })
+          .catch((err) => console.error('Auto-cleanup failed:', err))
+      } catch (err) {
+        console.error('Failed to load from DB, falling back to localStorage:', err)
+        const state = loadState()
+        setCategories(state.categories)
+        setTasks(state.tasks)
+      }
+      setTodayTaskIds(loadTodayIds())
+      setMounted(true)
     }
-  }, [categories, tasks, mounted])
+    loadData()
+  }, [])
 
   useEffect(() => {
     if (mounted) {
@@ -106,17 +168,23 @@ export default function Home() {
     }
   }, [todayTaskIds, mounted])
 
-  const handleAddCategory = (name: string) => {
-    const newCategory: Category = {
-      id: Date.now().toString(),
-      name,
-      color: `hsl(${Math.random() * 360}, 70%, 50%)`,
-      order: categories.length,
+  const handleAddCategory = async (name: string) => {
+    const color = `hsl(${Math.random() * 360}, 70%, 50%)`
+    const order = categories.length
+    try {
+      const res = await fetch('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, color, order }),
+      })
+      const newCategory = await res.json()
+      setCategories([...categories, newCategory])
+    } catch (err) {
+      console.error('Failed to create category:', err)
     }
-    setCategories([...categories, newCategory])
   }
 
-  const handleAddTask = (taskData: {
+  const handleAddTask = async (taskData: {
     title: string
     categoryId: string
     type: TaskType
@@ -124,55 +192,82 @@ export default function Home() {
     notes?: string
     estimatedDuration?: number
   }) => {
-    const newTask: Task = {
-      id: Date.now().toString(),
-      ...taskData,
-      status: 'todo',
-      priorityOrder: tasks.length,
-      createdAt: new Date().toISOString(),
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...taskData,
+          priorityOrder: tasks.length,
+        }),
+      })
+      const newTask = await res.json()
+      setTasks([...tasks, newTask])
+    } catch (err) {
+      console.error('Failed to create task:', err)
     }
-    setTasks([...tasks, newTask])
   }
 
-  const handleToggleTask = (id: string, timeSpentSeconds?: number) => {
+  const handleToggleTask = async (id: string, timeSpentSeconds?: number) => {
     const task = tasks.find((t) => t.id === id)
     if (!task) return
 
+    // Guard: prevent double-click from creating duplicate completions
+    if (task.status === 'todo' && completingRef.current.has(id)) return
+    
     const isCompletingTask = task.status === 'todo'
     const actualMinutes =
       timeSpentSeconds !== undefined ? Math.round(timeSpentSeconds / 60) : undefined
 
-    setTasks(
-      tasks.map((t) =>
-        t.id === id
-          ? {
-              ...t,
-              status: t.status === 'done' ? 'todo' : 'done',
-              ...(isCompletingTask && actualMinutes !== undefined
-                ? { actualTimeSpent: actualMinutes }
-                : {}),
-            }
-          : t
-      )
-    )
-
-    // Persist to PostgreSQL when completing a task
     if (isCompletingTask) {
+      // Mark as in-progress to prevent double-click
+      completingRef.current.add(id)
+
+      // Optimistic: remove from UI immediately
+      setTasks((prev) => prev.filter((t) => t.id !== id))
+      setTodayTaskIds((prev) => prev.filter((tid) => tid !== id))
+
+      // Archive to CompletedTask table
       const category = categories.find((c) => c.id === task.categoryId)
-      fetch('/api/completed-tasks', {
-        method: 'POST',
+      try {
+        await fetch('/api/completed-tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            taskTitle: task.title,
+            categoryName: category?.name ?? 'Unknown',
+            categoryColor: category?.color ?? '#888',
+            taskType: task.type,
+            dueAt: task.dueAt,
+            actualTimeSpent: actualMinutes ?? task.actualTimeSpent ?? null,
+            estimatedDuration: task.estimatedDuration ?? null,
+            notes: task.notes ?? null,
+          }),
+        })
+      } catch (err) {
+        console.error('Failed to archive completed task:', err)
+      }
+
+      // Delete from active Task table
+      try {
+        await fetch(`/api/tasks/${id}`, { method: 'DELETE' })
+      } catch (err) {
+        console.error('Failed to delete completed task from active table:', err)
+      }
+
+      completingRef.current.delete(id)
+    } else {
+      // Un-completing (done → todo) — just toggle status
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === id ? { ...t, status: 'todo' as const } : t
+        )
+      )
+      fetch(`/api/tasks/${id}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          taskTitle: task.title,
-          categoryName: category?.name ?? 'Unknown',
-          categoryColor: category?.color ?? '#888',
-          taskType: task.type,
-          dueAt: task.dueAt,
-          actualTimeSpent: actualMinutes ?? task.actualTimeSpent ?? null,
-          estimatedDuration: task.estimatedDuration ?? null,
-          notes: task.notes ?? null,
-        }),
-      }).catch((err) => console.error('Failed to persist completed task:', err))
+        body: JSON.stringify({ status: 'todo' }),
+      }).catch((err) => console.error('Failed to update task status:', err))
     }
   }
 
@@ -182,38 +277,70 @@ export default function Home() {
   }
 
   const handleSaveTask = (updatedTask: Task) => {
-    setTasks(
-      tasks.map((task) =>
+    // Optimistic update
+    setTasks((prev) =>
+      prev.map((task) =>
         task.id === updatedTask.id ? updatedTask : task
       )
     )
+    // Persist to DB
+    fetch(`/api/tasks/${updatedTask.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: updatedTask.title,
+        categoryId: updatedTask.categoryId,
+        type: updatedTask.type,
+        dueAt: updatedTask.dueAt,
+        notes: updatedTask.notes ?? null,
+        estimatedDuration: updatedTask.estimatedDuration ?? null,
+      }),
+    }).catch((err) => console.error('Failed to update task:', err))
   }
 
-  const handleDuplicateTask = (task: Task) => {
-    const newTask: Task = {
-      ...task,
-      id: Date.now().toString(),
-      title: `${task.title} (Copy)`,
-      status: 'todo',
-      priorityOrder: tasks.length,
-      createdAt: new Date().toISOString(),
+  const handleDuplicateTask = async (task: Task) => {
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `${task.title} (Copy)`,
+          categoryId: task.categoryId,
+          type: task.type,
+          dueAt: task.dueAt,
+          notes: task.notes,
+          estimatedDuration: task.estimatedDuration,
+          priorityOrder: tasks.length,
+        }),
+      })
+      const newTask = await res.json()
+      setTasks([...tasks, newTask])
+    } catch (err) {
+      console.error('Failed to duplicate task:', err)
     }
-    setTasks([...tasks, newTask])
   }
 
   const handleDeleteTask = (id: string) => {
-    setTasks(tasks.filter((task) => task.id !== id))
-    setTodayTaskIds(todayTaskIds.filter((tid) => tid !== id))
+    // Optimistic update
+    setTasks((prev) => prev.filter((task) => task.id !== id))
+    setTodayTaskIds((prev) => prev.filter((tid) => tid !== id))
+    // Persist
+    fetch(`/api/tasks/${id}`, { method: 'DELETE' })
+      .catch((err) => console.error('Failed to delete task:', err))
   }
 
   const handleRemoveCategory = (categoryId: string) => {
     const removedTaskIds = tasks.filter((t) => t.categoryId === categoryId).map((t) => t.id)
+    // Optimistic update
     setCategories(categories.filter((c) => c.id !== categoryId))
-    setTasks(tasks.filter((t) => t.categoryId !== categoryId))
-    setTodayTaskIds(todayTaskIds.filter((id) => !removedTaskIds.includes(id)))
+    setTasks((prev) => prev.filter((t) => t.categoryId !== categoryId))
+    setTodayTaskIds((prev) => prev.filter((id) => !removedTaskIds.includes(id)))
     if (selectedCategoryId === categoryId) {
       setSelectedCategoryId(null)
     }
+    // Persist (cascade deletes tasks in DB)
+    fetch(`/api/categories/${categoryId}`, { method: 'DELETE' })
+      .catch((err) => console.error('Failed to delete category:', err))
   }
 
   const handleAddToToday = (taskId: string) => {
@@ -224,6 +351,10 @@ export default function Home() {
 
   const handleRemoveFromToday = (taskId: string) => {
     setTodayTaskIds(todayTaskIds.filter((id) => id !== taskId))
+  }
+
+  const handleReorderToday = (reorderedIds: string[]) => {
+    setTodayTaskIds(reorderedIds)
   }
 
   const handleGlobalDragStart = (event: DragStartEvent) => {
@@ -255,6 +386,14 @@ export default function Home() {
           priorityOrder: index,
         }))
         setTasks(reorderedTasks)
+        // Persist new order to DB
+        fetch('/api/tasks/reorder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orders: reorderedTasks.map((t) => ({ id: t.id, priorityOrder: t.priorityOrder })),
+          }),
+        }).catch((err) => console.error('Failed to persist reorder:', err))
       }
     }
   }
@@ -279,13 +418,43 @@ export default function Home() {
   const handleClearData = () => {
     setCategories([])
     setTasks([])
+    setTodayTaskIds([])
     localStorage.removeItem('class-catchup-data')
+    localStorage.removeItem(TODAY_STORAGE_KEY)
     setClearDataOpen(false)
+    // Clear DB
+    fetch('/api/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'clear' }),
+    }).catch((err) => console.error('Failed to clear DB:', err))
   }
 
-  const handleImportData = (data: { categories: Category[]; tasks: Task[] }) => {
-    setCategories(data.categories)
-    setTasks(data.tasks)
+  const handleImportData = async (data: { categories: Category[]; tasks: Task[] }) => {
+    try {
+      const res = await fetch('/api/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'import',
+          categories: data.categories,
+          tasks: data.tasks,
+        }),
+      })
+      const result = await res.json()
+      if (result.categories && result.tasks) {
+        setCategories(result.categories)
+        setTasks(result.tasks)
+      } else {
+        // Fallback to provided data
+        setCategories(data.categories)
+        setTasks(data.tasks)
+      }
+    } catch (err) {
+      console.error('Failed to import:', err)
+      setCategories(data.categories)
+      setTasks(data.tasks)
+    }
   }
 
   // Filter tasks by view mode
@@ -307,9 +476,9 @@ export default function Home() {
     dueDate.setHours(0, 0, 0, 0)
 
     if (viewMode === 'due-soon') {
-      return dueDate >= today
+      return dueDate.getTime() >= today.getTime()
     } else {
-      return dueDate < today
+      return dueDate.getTime() < today.getTime()
     }
   })
 
@@ -482,7 +651,7 @@ export default function Home() {
               </div>
 
               {/* Bento Grid: Task List + Today's Plan */}
-              <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-6 items-stretch">
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-6 items-start">
                 {/* Task List */}
                 <div className="min-w-0">
                   <TaskList
@@ -503,13 +672,14 @@ export default function Home() {
                 </div>
 
                 {/* Today's Plan — sticky Bento card */}
-                <div className="lg:self-stretch">
+                <div className="lg:sticky lg:top-4">
                   <TodayPanel
                     tasks={todayTaskIds.map((id) => tasks.find((t) => t.id === id)).filter(Boolean) as Task[]}
                     allTasks={tasks}
                     categories={categories}
                     onRemoveFromToday={handleRemoveFromToday}
                     onToggleTask={handleToggleTask}
+                    onReorderToday={handleReorderToday}
                     isDragging={!!activeDragId}
                   />
                 </div>
@@ -569,6 +739,7 @@ export default function Home() {
         onAdd={handleAddTask}
       />
       <EditTaskSheet
+        key={taskToEdit?.id ?? 'no-task'}
         open={editTaskOpen}
         onOpenChange={setEditTaskOpen}
         task={taskToEdit}

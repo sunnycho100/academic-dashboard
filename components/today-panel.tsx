@@ -5,11 +5,25 @@ import { Task, Category } from '@/lib/types'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
-import { Clock, Target, Sparkles, Maximize2, Minimize2, ChevronLeft, Play, Pause, Check } from 'lucide-react'
+import { Clock, Target, Sparkles, Maximize2, Minimize2, ChevronLeft, Play, Pause, Check, GripVertical } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useDroppable } from '@dnd-kit/core'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { useTaskTimers } from '@/hooks/use-task-timer'
 
 interface TodayPanelProps {
@@ -18,6 +32,7 @@ interface TodayPanelProps {
   categories: Category[]
   onRemoveFromToday: (taskId: string) => void
   onToggleTask: (id: string, timeSpentSeconds?: number) => void
+  onReorderToday: (reorderedIds: string[]) => void
   isDragging?: boolean
 }
 
@@ -64,16 +79,69 @@ function RollingCounter({ value, label }: { value: number; label: string }) {
   )
 }
 
+/* Sortable wrapper for individual today task items */
+function SortableTodayItem({
+  id,
+  children,
+}: {
+  id: string
+  children: (
+    listeners: ReturnType<typeof useSortable>['listeners'],
+    attributes: ReturnType<typeof useSortable>['attributes']
+  ) => React.ReactNode
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : 'auto' as const,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      {children(listeners, attributes)}
+    </div>
+  )
+}
+
 export function TodayPanel({
   tasks,
   allTasks,
   categories,
   onRemoveFromToday,
   onToggleTask,
+  onReorderToday,
   isDragging = false,
 }: TodayPanelProps) {
   const { isOver, setNodeRef } = useDroppable({ id: 'today-drop-zone' })
   const [focusMode, setFocusMode] = useState(false)
+  const [dbStudyMinutes, setDbStudyMinutes] = useState(0)
+
+  // dnd-kit sensors for internal reordering (separate from main list DnD)
+  const todaySensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  )
+
+  const handleTodayDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = tasks.findIndex((t) => t.id === String(active.id))
+    const newIndex = tasks.findIndex((t) => t.id === String(over.id))
+    if (oldIndex === -1 || newIndex === -1) return
+    const newOrder = tasks.map((t) => t.id)
+    const [moved] = newOrder.splice(oldIndex, 1)
+    newOrder.splice(newIndex, 0, moved)
+    onReorderToday(newOrder)
+  }
   
   const {
     timerStates,
@@ -86,11 +154,23 @@ export function TodayPanel({
     getTotalStudyTime,
   } = useTaskTimers(tasks.map(t => t.id))
 
-  // Total study time = live timer seconds + completed tasks' saved time (converted to seconds)
-  const completedStudySeconds = tasks
-    .filter(t => t.status === 'done' && t.actualTimeSpent)
-    .reduce((sum, t) => sum + (t.actualTimeSpent! * 60), 0)
-  const totalStudySeconds = getTotalStudyTime() + completedStudySeconds
+  // Fetch today's total study time from the DB (completed tasks archive)
+  useEffect(() => {
+    fetch('/api/completed-tasks')
+      .then((res) => res.json())
+      .then((data: { completedAt: string; actualTimeSpent: number | null }[]) => {
+        const now = new Date()
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        const todayMinutes = data
+          .filter((r) => new Date(r.completedAt) >= todayStart && r.actualTimeSpent)
+          .reduce((sum, r) => sum + (r.actualTimeSpent ?? 0), 0)
+        setDbStudyMinutes(todayMinutes)
+      })
+      .catch(() => {})
+  }, [tasks]) // re-fetch when tasks change (e.g. after completing one)
+
+  // Total study time = live timers (seconds) + DB completed-today (converted to seconds)
+  const totalStudySeconds = getTotalStudyTime() + (dbStudyMinutes * 60)
 
   const totalMinutes = tasks.reduce(
     (acc, t) => acc + (t.estimatedDuration || 0),
@@ -358,10 +438,11 @@ export function TodayPanel({
   // ── Normal (inline Bento card) ──
   return (
     <motion.div
+      layout
       layoutId="today-panel-card"
       ref={setNodeRef}
       className={cn(
-        'relative rounded-2xl flex flex-col overflow-hidden transition-all duration-500 h-full',
+        'relative rounded-2xl flex flex-col overflow-hidden',
         // Glassmorphism
         'bg-card/50 backdrop-blur-xl',
         'border',
@@ -373,7 +454,7 @@ export function TodayPanel({
             : 'border-border/40 shadow-sm',
       )}
       animate={isOver ? { scale: 1.01 } : { scale: 1 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 28 }}
       style={{ minHeight: 0 }}
     >
       {/* Radial inner glow on drag-over */}
@@ -488,7 +569,7 @@ export function TodayPanel({
       <div className="mx-4 border-t border-border/10" />
 
       {/* Task list / Drop zone */}
-      <div className="relative z-10 flex-1 overflow-y-auto px-3 py-2" style={{ maxHeight: 'calc(100vh - 340px)' }}>
+      <div className="relative z-10 px-3 py-2">
         {tasks.length === 0 ? (
           /* ── Empty State ── */
           <motion.div
@@ -556,227 +637,255 @@ export function TodayPanel({
             </AnimatePresence>
           </motion.div>
         ) : (
-          /* ── Task list ── */
-          <AnimatePresence mode="popLayout">
-            <div className="space-y-1">
-              {/* Ghost placeholder at top when dragging over populated list */}
-              <AnimatePresence>
-                {isOver && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 32 }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-                    className="rounded-xl border-2 border-dashed border-primary/20 bg-primary/[0.03] flex items-center justify-center"
-                  >
-                    <span className="text-[9px] text-primary/40 font-medium">Drop here</span>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+          /* ── Task list with sortable reordering ── */
+          <DndContext
+            sensors={todaySensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleTodayDragEnd}
+          >
+            <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-1">
+                {/* Ghost placeholder at top when dragging over populated list */}
+                <AnimatePresence>
+                  {isOver && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 32 }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+                      className="rounded-xl border-2 border-dashed border-primary/20 bg-primary/[0.03] flex items-center justify-center"
+                    >
+                      <span className="text-[9px] text-primary/40 font-medium">Drop here</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-              {tasks.map((task, index) => {
-                const cat = getCat(task.categoryId)
-                const due = getDueInfo(task.dueAt)
-                const timerState = timerStates[task.id]
-                const isRunning = timerState?.isRunning && !timerState?.isPaused
-                const isPaused = timerState?.isPaused
-                const elapsedSeconds = getElapsedSeconds(task.id)
-                const hasStarted = timerState?.isRunning
-                
-                return (
-                  <motion.div
-                    key={task.id}
-                    layout
-                    layoutId={`today-task-${task.id}`}
-                    initial={{ opacity: 0, x: 40, scale: 0.95 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: -40, scale: 0.95, filter: 'blur(4px)' }}
-                    transition={{
-                      type: 'spring',
-                      stiffness: 400,
-                      damping: 28,
-                      delay: index * 0.02,
-                    }}
-                    whileHover={{ y: -2, transition: { duration: 0.15 } }}
-                    whileTap={{ scale: 0.98 }}
-                    className={cn(
-                      'group relative flex items-center gap-3 p-3 rounded-xl transition-all duration-200',
-                      'bg-background/60 hover:bg-background/90 backdrop-blur-sm',
-                      'border border-border/30 hover:border-border/50',
-                      'hover:shadow-md',
-                      task.status === 'done' && 'opacity-40',
-                      isRunning && 'ring-2 ring-primary/20'
-                    )}
-                  >
-                    {/* Play/Pause Button (replaces checkbox) */}
-                    <AnimatePresence mode="wait">
-                      {!hasStarted ? (
-                        <motion.button
-                          key="play"
-                          initial={{ scale: 0.8, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          exit={{ scale: 0.8, opacity: 0 }}
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={() => startTimer(task.id)}
-                          className="flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
-                          title="Start timer"
-                        >
-                          <Play className="h-4 w-4 fill-current" />
-                        </motion.button>
-                      ) : isPaused ? (
-                        <motion.button
-                          key="resume"
-                          initial={{ scale: 0.8, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          exit={{ scale: 0.8, opacity: 0 }}
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={() => resumeTimer(task.id)}
-                          className="flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
-                          title="Resume timer"
-                        >
-                          <Play className="h-4 w-4 fill-current" />
-                        </motion.button>
-                      ) : (
-                        <motion.button
-                          key="pause"
-                          initial={{ scale: 0.8, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          exit={{ scale: 0.8, opacity: 0 }}
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={() => pauseTimer(task.id)}
-                          className="flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center bg-primary hover:bg-primary/90 text-primary-foreground transition-colors"
-                          title="Pause timer"
-                        >
-                          <Pause className="h-4 w-4 fill-current" />
-                        </motion.button>
-                      )}
-                    </AnimatePresence>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className={cn(
-                          'font-medium text-sm text-foreground leading-snug',
-                          task.status === 'done' && 'line-through text-muted-foreground'
-                        )}>
-                          {task.title}
-                        </p>
-                        {/* Timer Display */}
-                        <AnimatePresence>
-                          {hasStarted && (
-                            <motion.span
-                              initial={{ scale: 0, opacity: 0 }}
-                              animate={{ scale: 1, opacity: 1 }}
-                              exit={{ scale: 0, opacity: 0 }}
-                              className={cn(
-                                'text-xs font-mono font-semibold tabular-nums px-2 py-0.5 rounded-md',
-                                isRunning
-                                  ? 'bg-primary/10 text-primary animate-pulse'
-                                  : 'bg-muted/60 text-muted-foreground'
-                              )}
-                            >
-                              {formatTime(elapsedSeconds)}
-                            </motion.span>
+                {tasks.map((task, index) => {
+                  const cat = getCat(task.categoryId)
+                  const due = getDueInfo(task.dueAt)
+                  const timerState = timerStates[task.id]
+                  const isRunning = timerState?.isRunning && !timerState?.isPaused
+                  const isPaused = timerState?.isPaused
+                  const elapsedSeconds = getElapsedSeconds(task.id)
+                  const hasStarted = timerState?.isRunning
+                  
+                  return (
+                    <SortableTodayItem key={task.id} id={task.id}>
+                      {(dragHandleListeners, dragHandleAttributes) => (
+                        <motion.div
+                          layout
+                          layoutId={`today-task-${task.id}`}
+                          initial={{ opacity: 0, x: 40, scale: 0.95 }}
+                          animate={{ opacity: 1, x: 0, scale: 1 }}
+                          exit={{ opacity: 0, x: -40, scale: 0.95, filter: 'blur(4px)' }}
+                          transition={{
+                            type: 'spring',
+                            stiffness: 400,
+                            damping: 28,
+                            delay: index * 0.02,
+                          }}
+                          className={cn(
+                            'group relative flex items-center gap-3 p-3 rounded-xl transition-all duration-200',
+                            'bg-background/60 hover:bg-background/90 backdrop-blur-sm',
+                            'border border-border/30 hover:border-border/50',
+                            'hover:shadow-md',
+                            task.status === 'done' && 'opacity-40',
+                            isRunning && 'ring-2 ring-primary/20'
                           )}
-                        </AnimatePresence>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        {cat && (
-                          <div className="flex items-center gap-1.5 text-xs" style={{ color: cat.color }}>
-                            <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cat.color }} />
-                            {cat.name}
+                        >
+                          {/* Drag handle */}
+                          <button
+                            {...dragHandleListeners}
+                            {...dragHandleAttributes}
+                            className="flex-shrink-0 h-9 w-5 rounded flex items-center justify-center text-muted-foreground/30 hover:text-muted-foreground/60 cursor-grab active:cursor-grabbing transition-colors touch-none"
+                            title="Drag to reorder"
+                          >
+                            <GripVertical className="h-4 w-4" />
+                          </button>
+
+                          {/* Play/Pause Button */}
+                          <AnimatePresence mode="wait">
+                            {!hasStarted ? (
+                              <motion.button
+                                key="play"
+                                initial={{ scale: 0.8, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.8, opacity: 0 }}
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => startTimer(task.id)}
+                                className="flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
+                                title="Start timer"
+                              >
+                                <Play className="h-4 w-4 fill-current" />
+                              </motion.button>
+                            ) : isPaused ? (
+                              <motion.button
+                                key="resume"
+                                initial={{ scale: 0.8, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.8, opacity: 0 }}
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => resumeTimer(task.id)}
+                                className="flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
+                                title="Resume timer"
+                              >
+                                <Play className="h-4 w-4 fill-current" />
+                              </motion.button>
+                            ) : (
+                              <motion.button
+                                key="pause"
+                                initial={{ scale: 0.8, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.8, opacity: 0 }}
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => pauseTimer(task.id)}
+                                className="flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center bg-primary hover:bg-primary/90 text-primary-foreground transition-colors"
+                                title="Pause timer"
+                              >
+                                <Pause className="h-4 w-4 fill-current" />
+                              </motion.button>
+                            )}
+                          </AnimatePresence>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className={cn(
+                                'font-medium text-sm text-foreground leading-snug',
+                                task.status === 'done' && 'line-through text-muted-foreground'
+                              )}>
+                                {task.title}
+                              </p>
+                              {/* Timer Display */}
+                              <AnimatePresence>
+                                {hasStarted && (
+                                  <motion.span
+                                    initial={{ scale: 0, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    exit={{ scale: 0, opacity: 0 }}
+                                    className={cn(
+                                      'text-xs font-mono font-semibold tabular-nums px-2 py-0.5 rounded-md',
+                                      isRunning
+                                        ? 'bg-primary/10 text-primary animate-pulse'
+                                        : 'bg-muted/60 text-muted-foreground'
+                                    )}
+                                  >
+                                    {formatTime(elapsedSeconds)}
+                                  </motion.span>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              {cat && (
+                                <div className="flex items-center gap-1.5 text-xs" style={{ color: cat.color }}>
+                                  <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cat.color }} />
+                                  {cat.name}
+                                </div>
+                              )}
+                              <span className="text-muted-foreground/40 text-xs">&middot;</span>
+                              <span className="text-xs text-muted-foreground/70">{task.type}</span>
+                              {task.estimatedDuration && task.estimatedDuration > 0 && (
+                                <>
+                                  <span className="text-muted-foreground/40 text-xs">&middot;</span>
+                                  <span className="text-xs text-muted-foreground/70 tabular-nums">
+                                    {formatDuration(task.estimatedDuration)}
+                                  </span>
+                                </>
+                              )}
+                              <span className="text-muted-foreground/40 text-xs">&middot;</span>
+                              <Badge variant={due.variant} className="text-xs font-normal">
+                                {due.label}
+                              </Badge>
+                            </div>
                           </div>
-                        )}
-                        <span className="text-muted-foreground/40 text-xs">&middot;</span>
-                        <span className="text-xs text-muted-foreground/70">{task.type}</span>
-                        {task.estimatedDuration && task.estimatedDuration > 0 && (
-                          <>
-                            <span className="text-muted-foreground/40 text-xs">&middot;</span>
-                            <span className="text-xs text-muted-foreground/70 tabular-nums">
-                              {formatDuration(task.estimatedDuration)}
-                            </span>
-                          </>
-                        )}
-                        <span className="text-muted-foreground/40 text-xs">&middot;</span>
-                        <Badge variant={due.variant} className="text-xs font-normal">
-                          {due.label}
-                        </Badge>
-                      </div>
-                    </div>
 
-                    {/* Complete Button (right side) */}
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => {
-                        const elapsedSeconds = getElapsedSeconds(task.id)
-                        if (hasStarted) {
-                          stopTimer(task.id)
-                        }
-                        onToggleTask(task.id, elapsedSeconds)
-                      }}
-                      className={cn(
-                        'flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center transition-all',
-                        task.status === 'done'
-                          ? 'bg-green-500/20 text-green-600 dark:text-green-400'
-                          : 'opacity-0 group-hover:opacity-100 bg-muted/60 hover:bg-green-500/20 text-muted-foreground hover:text-green-600'
+                          {/* Complete Button (right side) */}
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => {
+                              const elapsedSeconds = getElapsedSeconds(task.id)
+                              if (hasStarted) {
+                                stopTimer(task.id)
+                              }
+                              onToggleTask(task.id, elapsedSeconds)
+                            }}
+                            className={cn(
+                              'flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center transition-all',
+                              task.status === 'done'
+                                ? 'bg-green-500/20 text-green-600 dark:text-green-400'
+                                : 'opacity-0 group-hover:opacity-100 bg-muted/60 hover:bg-green-500/20 text-muted-foreground hover:text-green-600'
+                            )}
+                            title={task.status === 'done' ? 'Completed' : 'Mark as complete'}
+                          >
+                            <Check className="h-4 w-4" />
+                          </motion.button>
+
+                          {/* Return to backlog (top-right corner) */}
+                          <motion.button
+                            whileHover={{ scale: 1.15, x: 2 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => {
+                              if (hasStarted) {
+                                stopTimer(task.id)
+                              }
+                              onRemoveFromToday(task.id)
+                            }}
+                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-200 h-6 w-6 rounded-md flex items-center justify-center hover:bg-muted/60 text-muted-foreground/50 hover:text-foreground/70"
+                            title="Return to backlog"
+                          >
+                            <ChevronLeft className="h-3.5 w-3.5" />
+                          </motion.button>
+                        </motion.div>
                       )}
-                      title={task.status === 'done' ? 'Completed' : 'Mark as complete'}
-                    >
-                      <Check className="h-4 w-4" />
-                    </motion.button>
-
-                    {/* Return to backlog (top-right corner) */}
-                    <motion.button
-                      whileHover={{ scale: 1.15, x: 2 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => {
-                        if (hasStarted) {
-                          stopTimer(task.id)
-                        }
-                        onRemoveFromToday(task.id)
-                      }}
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-200 h-6 w-6 rounded-md flex items-center justify-center hover:bg-muted/60 text-muted-foreground/50 hover:text-foreground/70"
-                      title="Return to backlog"
-                    >
-                      <ChevronLeft className="h-3.5 w-3.5" />
-                    </motion.button>
-                  </motion.div>
-                )
-              })}
-            </div>
-          </AnimatePresence>
+                    </SortableTodayItem>
+                  )
+                })}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
 
       {/* Global Study Time Footer */}
-      {tasks.length > 0 && (
-        <div className="relative z-10 mt-auto border-t border-border/20 px-4 py-3 bg-background/30 backdrop-blur-sm">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Clock className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">Study Time</p>
-                <p className="text-sm font-bold tabular-nums text-foreground">
-                  {formatTime(totalStudySeconds)}
-                </p>
+      <AnimatePresence>
+        {tasks.length > 0 && (
+          <motion.div
+            layout
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+            className="relative z-10 border-t border-border/20 overflow-hidden"
+          >
+            <div className="px-4 py-3 bg-background/30 backdrop-blur-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Clock className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Study Time</p>
+                    <p className="text-sm font-bold tabular-nums text-foreground">
+                      {formatTime(totalStudySeconds)}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground/60">
+                  {Object.values(timerStates).filter(s => s.isRunning && !s.isPaused).length > 0 && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                      Active
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-            <div className="text-xs text-muted-foreground/60">
-              {Object.values(timerStates).filter(s => s.isRunning && !s.isPaused).length > 0 && (
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                  Active
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }

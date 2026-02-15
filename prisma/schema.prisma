@@ -10,6 +10,40 @@ datasource db {
   provider = "postgresql"
 }
 
+model Category {
+  id    String @id @default(uuid())
+  name  String
+  color String
+  order Int    @default(0)
+
+  tasks Task[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Task {
+  id                String   @id @default(uuid())
+  title             String
+  type              String   // Lecture, Discussion, Lab, Assignment, Exam Prep
+  dueAt             DateTime
+  status            String   @default("todo") // todo | done
+  priorityOrder     Int      @default(0)
+  notes             String?
+  estimatedDuration Int?     // in minutes
+  actualTimeSpent   Int?     // in minutes
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([status])
+  @@index([dueAt])
+}
+
 model CompletedTask {
   id                String   @id @default(uuid())
   taskTitle         String
@@ -22,9 +56,11 @@ model CompletedTask {
   estimatedDuration Int?     // in minutes
   timeDifference    Int?     // estimated - actual (positive = saved, negative = over)
   notes             String?
+  deletedAt         DateTime? // soft delete timestamp
   createdAt         DateTime @default(now())
 
   @@index([completedAt])
   @@index([categoryName])
   @@index([taskType])
+  @@index([deletedAt])
 }

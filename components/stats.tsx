@@ -80,7 +80,7 @@ export function Stats({ tasks }: StatsProps) {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     dueDate.setHours(0, 0, 0, 0)
-    return dueDate < today && t.status === 'todo'
+    return dueDate.getTime() < today.getTime() && t.status === 'todo'
   }).length
 
   const stats = [

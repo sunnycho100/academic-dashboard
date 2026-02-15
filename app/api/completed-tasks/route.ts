@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 export async function GET() {
   try {
     const tasks = await prisma.completedTask.findMany({
+      where: { deletedAt: null },
       orderBy: { completedAt: 'desc' },
     })
     return NextResponse.json(tasks)

@@ -14,8 +14,9 @@ A modern academic task management system built with Next.js, TypeScript, and sha
 ### Deep Work Timer
 - **Stopwatch Integration**: Track time spent on each task with play/pause controls
 - **Persistent Timers**: Timer state saved across sessions via localStorage
-- **Activity Summary**: View completed tasks with actual time spent on deep work
-- **Study Time Analytics**: Monitor total study time and productivity patterns
+- **Activity Summary**: View completed tasks with Today / All tabs, grouped by day
+- **Study Time Analytics**: Live study time footer combining active timers + today's completed sessions from PostgreSQL
+- **Time Difference Tracking**: Compare estimated vs actual time (saved / over indicators)
 
 ### Task Management
 - **Create Tasks**: Add tasks with title, category, type, due date, estimated duration, and notes
@@ -121,22 +122,27 @@ pnpm start
 - **Animations**: [Framer Motion](https://www.framer.com/motion/)
 - **Theme**: [next-themes](https://github.com/pacocoursey/next-themes)
 - **Date Utilities**: [date-fns](https://date-fns.org/)
+- **Database**: [PostgreSQL 16](https://www.postgresql.org/) via Docker
+- **ORM**: [Prisma 7](https://www.prisma.io/) with `@prisma/adapter-pg`
 
 ## Project Structure
 
 ```
 academic-dashboard/
 ├── app/
+│   ├── api/
+│   │   └── completed-tasks/
+│   │       └── route.ts    # GET/POST API for completed task archive
 │   ├── layout.tsx          # Root layout with theme provider
 │   ├── page.tsx            # Main dashboard with state management
 │   └── globals.css         # Global styles and theme variables
 ├── components/
-│   ├── activity-summary-dialog.tsx
+│   ├── activity-summary-dialog.tsx  # Today/All tabs with day grouping
 │   ├── add-category-dialog.tsx
 │   ├── add-task-sheet.tsx
 │   ├── edit-task-sheet.tsx
 │   ├── category-sidebar.tsx
-│   ├── today-panel.tsx
+│   ├── today-panel.tsx     # Deep work timer + study time footer
 │   ├── task-list.tsx
 │   ├── task-row.tsx
 │   ├── stats.tsx
@@ -149,9 +155,14 @@ academic-dashboard/
 │   ├── use-task-timer.ts   # Stopwatch timer hook
 │   └── use-toast.ts
 ├── lib/
+│   ├── prisma.ts           # Singleton PrismaClient with pg adapter
 │   ├── types.ts            # TypeScript type definitions
 │   ├── store.ts            # Local storage management
 │   └── utils.ts            # Utility functions
+├── prisma/
+│   ├── schema.prisma       # CompletedTask model definition
+│   └── migrations/         # Database migration history
+├── docker-compose.yml      # PostgreSQL 16 container
 └── package.json
 ```
 
@@ -188,21 +199,41 @@ academic-dashboard/
 
 ## Data Storage
 
-All data is stored locally in your browser's localStorage:
+The application uses a hybrid storage architecture:
+
+### localStorage (Active Data)
 - **Tasks & Categories**: Stored under `class-catchup-data`
 - **Today's Plan**: Stored under `class-catchup-today`
 - **Timer States**: Stored under `class-catchup-timers`
 
-Benefits:
-- Complete privacy - data never leaves your device
-- No account or login required
-- Works offline
-- Fast performance
+### PostgreSQL (Completed Task Archive)
+- Completed tasks are persisted to PostgreSQL when marked done
+- Stores actual time spent, estimated duration, and time difference
+- Powers the Activity Summary with Today / All views
+- Feeds the Study Time footer with today's total deep work
 
-Limitations:
-- Browser-specific (doesn't sync across devices)
-- Clearing browser data will delete your tasks
-- Recommended to export data regularly for backup
+### Database Setup
+
+Requires Docker for the PostgreSQL container:
+
+```bash
+# Start the database
+docker compose up -d
+
+# Run migrations (first time only)
+npx prisma migrate deploy
+
+# Generate Prisma client
+npx prisma generate
+```
+
+Connection is configured via `.env` with `DATABASE_URL`.
+
+### Benefits
+- Active tasks stay fast via localStorage with no network latency
+- Completed task history persists across browser clears
+- Time analytics are reliable and queryable
+- Privacy preserved — database runs locally via Docker
 
 ## Customization
 
