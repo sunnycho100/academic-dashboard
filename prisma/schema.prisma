@@ -64,3 +64,19 @@ model CompletedTask {
   @@index([taskType])
   @@index([deletedAt])
 }
+
+model TimeRecord {
+  id            String   @id @default(uuid())
+  taskId        String?  // nullable — task may have been deleted
+  taskTitle     String
+  categoryName  String
+  categoryColor String
+  taskType      String
+  startTime     DateTime
+  endTime       DateTime
+  duration      Int      // in seconds
+  createdAt     DateTime @default(now())
+
+  @@index([startTime])
+  @@index([taskId])
+}

@@ -6,8 +6,9 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import { FileQuestion } from 'lucide-react'
+import { FileQuestion, ListTodo } from 'lucide-react'
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
 interface TaskListProps {
   tasks: Task[]
@@ -40,14 +41,19 @@ export function TaskList({
   sortOption,
   emptyMessage,
 }: TaskListProps) {
+  const getCategoryForTask = (categoryId: string) => {
+    return categories.find((c) => c.id === categoryId)!
+  }
+
+  const isDraggable = sortOption === 'manual'
+  const doneCount = tasks.filter((t) => t.status === 'done').length
+
+  // ── Inner scrollable content ──
+  let content: React.ReactNode
+
   if (tasks.length === 0) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.3 }}
-        className="flex flex-col items-center justify-center py-16 text-center"
-      >
+    content = (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
         <motion.div
           animate={{ y: [0, -6, 0] }}
           transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
@@ -58,23 +64,17 @@ export function TaskList({
           No tasks found
         </h3>
         <p className="text-sm text-muted-foreground max-w-sm">{emptyMessage}</p>
-      </motion.div>
+      </div>
     )
-  }
-
-  const getCategoryForTask = (categoryId: string) => {
-    return categories.find((c) => c.id === categoryId)!
-  }
-
-  if (groupByCategory) {
+  } else if (groupByCategory) {
     const tasksByCategory = categories.map((category) => ({
       category,
       tasks: tasks.filter((t) => t.categoryId === category.id),
     }))
 
-    return (
+    content = (
       <LayoutGroup>
-        <div className="space-y-8">
+        <div className="space-y-6">
           {tasksByCategory.map(
             ({ category, tasks: categoryTasks }) =>
               categoryTasks.length > 0 && (
@@ -127,38 +127,80 @@ export function TaskList({
         </div>
       </LayoutGroup>
     )
+  } else {
+    content = (
+      <LayoutGroup>
+        <SortableContext
+          items={tasks.map((t) => t.id)}
+          strategy={verticalListSortingStrategy}
+          disabled={!isDraggable}
+        >
+          <AnimatePresence mode="popLayout">
+            <div className="space-y-2">
+              {tasks.map((task, index) => (
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  category={getCategoryForTask(task.categoryId)}
+                  animationIndex={index}
+                  onToggle={onToggleTask}
+                  onEdit={onEditTask}
+                  onSave={onSaveTask}
+                  onDuplicate={onDuplicateTask}
+                  onDelete={onDeleteTask}
+                  onAddToToday={onAddToToday}
+                  onRemoveFromToday={onRemoveFromToday}
+                  isInToday={todayTaskIds?.includes(task.id)}
+                />
+              ))}
+            </div>
+          </AnimatePresence>
+        </SortableContext>
+      </LayoutGroup>
+    )
   }
 
-  const isDraggable = sortOption === 'manual'
-
+  // ── Card wrapper matching Today's Plan ──
   return (
-    <LayoutGroup>
-      <SortableContext
-        items={tasks.map((t) => t.id)}
-        strategy={verticalListSortingStrategy}
-        disabled={!isDraggable}
-      >
-        <AnimatePresence mode="popLayout">
-          <div className="space-y-2">
-            {tasks.map((task, index) => (
-              <TaskRow
-                key={task.id}
-                task={task}
-                category={getCategoryForTask(task.categoryId)}
-                animationIndex={index}
-                onToggle={onToggleTask}
-                onEdit={onEditTask}
-                onSave={onSaveTask}
-                onDuplicate={onDuplicateTask}
-                onDelete={onDeleteTask}
-                onAddToToday={onAddToToday}
-                onRemoveFromToday={onRemoveFromToday}
-                isInToday={todayTaskIds?.includes(task.id)}
-              />
-            ))}
+    <motion.div
+      layout
+      className="relative rounded-2xl flex flex-col overflow-hidden bg-card/50 backdrop-blur-xl border border-border/40 shadow-sm"
+    >
+      {/* Header */}
+      <div className="relative z-10 px-4 pt-4 pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <motion.div
+              className="h-7 w-7 rounded-xl bg-primary/10 flex items-center justify-center"
+              whileHover={{ scale: 1.1, rotate: 5 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <ListTodo className="h-3.5 w-3.5 text-primary" />
+            </motion.div>
+            <h2 className="font-semibold text-sm tracking-tight">Tasks</h2>
           </div>
-        </AnimatePresence>
-      </SortableContext>
-    </LayoutGroup>
+          {tasks.length > 0 && (
+            <motion.span
+              key={doneCount}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+              className="text-[10px] font-medium text-muted-foreground/50 bg-secondary/50 px-2 py-0.5 rounded-full tabular-nums"
+            >
+              {doneCount}/{tasks.length}
+            </motion.span>
+          )}
+        </div>
+      </div>
+
+      <div className="mx-4 border-t border-border/10" />
+
+      {/* Scrollable content */}
+      <ScrollArea className="flex-1 max-h-[65vh]">
+        <div className="px-3 py-2">
+          {content}
+        </div>
+      </ScrollArea>
+    </motion.div>
   )
 }

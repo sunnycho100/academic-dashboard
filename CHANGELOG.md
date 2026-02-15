@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-02-15
+Personal Development tracker and Task List redesign
+
+### Added
+- Personal Development tracker with 3 activity timers (Reading, Project, Job Application)
+- Independent timers with start/pause functionality that save segments to time records
+- HH:MM format timer display (no seconds)
+- Time records integration — personal dev activities appear in Time Records timeline
+
+### Changed
+- Task List redesigned as card container with header and scroll area (matching Today's Plan style)
+- Task List now scrolls within fixed container instead of expanding infinitely
+
 ## [1.3.0] - 2026-02-15
 Soft delete for completed tasks with 3-day grace period
 

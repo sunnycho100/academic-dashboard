@@ -25,6 +25,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useTaskTimers } from '@/hooks/use-task-timer'
+import { PersonalDevTracker } from '@/components/personal-dev-tracker'
 
 interface TodayPanelProps {
   tasks: Task[]
@@ -152,7 +153,22 @@ export function TodayPanel({
     resumeTimer,
     stopTimer,
     getTotalStudyTime,
+    registerTaskMeta,
   } = useTaskTimers(tasks.map(t => t.id))
+
+  // Register task metadata so time records include category info
+  useEffect(() => {
+    tasks.forEach((task) => {
+      const cat = categories.find((c) => c.id === task.categoryId)
+      registerTaskMeta({
+        taskId: task.id,
+        taskTitle: task.title,
+        categoryName: cat?.name ?? 'Unknown',
+        categoryColor: cat?.color ?? '#888',
+        taskType: task.type,
+      })
+    })
+  }, [tasks, categories, registerTaskMeta])
 
   // Fetch today's total study time from the DB (completed tasks archive)
   useEffect(() => {
@@ -886,6 +902,9 @@ export function TodayPanel({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Personal Development Tracker */}
+      <PersonalDevTracker />
     </motion.div>
   )
 }

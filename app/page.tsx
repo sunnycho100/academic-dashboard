@@ -14,6 +14,7 @@ import { Stats } from '@/components/stats'
 import { ClearDataDialog } from '@/components/clear-data-dialog'
 import { ImportDataDialog } from '@/components/import-data-dialog'
 import { EmptyState } from '@/components/empty-state'
+import { TimeRecordsDialog } from '@/components/time-records-dialog'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -78,6 +79,7 @@ export default function Home() {
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null)
   const [clearDataOpen, setClearDataOpen] = useState(false)
   const [importDataOpen, setImportDataOpen] = useState(false)
+  const [timeRecordsOpen, setTimeRecordsOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [todayTaskIds, setTodayTaskIds] = useState<string[]>([])
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
@@ -541,6 +543,7 @@ export default function Home() {
         onRemoveCategory={handleRemoveCategory}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        onOpenTimeRecords={() => setTimeRecordsOpen(true)}
       />
 
       {/* Main Content */}
@@ -771,6 +774,10 @@ export default function Home() {
         open={importDataOpen}
         onOpenChange={setImportDataOpen}
         onImport={handleImportData}
+      />
+      <TimeRecordsDialog
+        open={timeRecordsOpen}
+        onOpenChange={setTimeRecordsOpen}
       />
     </div>
     </DndContext>

@@ -6,10 +6,20 @@ export interface TimerState {
   isRunning: boolean
   isPaused: boolean
   elapsedSeconds: number
+  /** ISO string — when the current active segment started */
+  segmentStartedAt: string | null
 }
 
 interface TaskTimerData {
   [taskId: string]: TimerState
+}
+
+export interface TaskMeta {
+  taskId: string
+  taskTitle: string
+  categoryName: string
+  categoryColor: string
+  taskType: string
 }
 
 const STORAGE_KEY = 'class-catchup-timers'
@@ -31,9 +41,38 @@ function saveTimerData(data: TaskTimerData) {
   } catch {}
 }
 
+/** Persist a time record segment to the backend */
+async function saveTimeRecord(
+  meta: TaskMeta,
+  startTime: string,
+  endTime: string,
+  durationSeconds: number
+) {
+  try {
+    await fetch('/api/time-records', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        taskId: meta.taskId,
+        taskTitle: meta.taskTitle,
+        categoryName: meta.categoryName,
+        categoryColor: meta.categoryColor,
+        taskType: meta.taskType,
+        startTime,
+        endTime,
+        duration: durationSeconds,
+      }),
+    })
+  } catch (err) {
+    console.error('Failed to save time record:', err)
+  }
+}
+
 export function useTaskTimers(taskIds: string[]) {
   const [timerStates, setTimerStates] = useState<TaskTimerData>({})
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  // Map of taskId → TaskMeta for persisting records
+  const taskMetaRef = useRef<Record<string, TaskMeta>>({})
 
   // Load timer states on mount
   useEffect(() => {
@@ -80,6 +119,11 @@ export function useTaskTimers(taskIds: string[]) {
     }
   }, [timerStates])
 
+  /** Register metadata for a task so time records can include it */
+  const registerTaskMeta = useCallback((meta: TaskMeta) => {
+    taskMetaRef.current[meta.taskId] = meta
+  }, [])
+
   const getElapsedSeconds = useCallback(
     (taskId: string): number => {
       const state = timerStates[taskId]
@@ -102,6 +146,7 @@ export function useTaskTimers(taskIds: string[]) {
         isRunning: true,
         isPaused: false,
         elapsedSeconds: 0,
+        segmentStartedAt: new Date().toISOString(),
       },
     }))
   }, [])
@@ -111,11 +156,24 @@ export function useTaskTimers(taskIds: string[]) {
       const state = prev[taskId]
       if (!state || !state.isRunning || state.isPaused) return prev
 
+      // Save segment record
+      const endTime = new Date().toISOString()
+      if (state.segmentStartedAt) {
+        const segmentDuration = Math.round(
+          (new Date(endTime).getTime() - new Date(state.segmentStartedAt).getTime()) / 1000
+        )
+        const meta = taskMetaRef.current[taskId]
+        if (meta && segmentDuration > 0) {
+          saveTimeRecord(meta, state.segmentStartedAt, endTime, segmentDuration)
+        }
+      }
+
       return {
         ...prev,
         [taskId]: {
           ...state,
           isPaused: true,
+          segmentStartedAt: null,
         },
       }
     })
@@ -131,6 +189,7 @@ export function useTaskTimers(taskIds: string[]) {
         [taskId]: {
           ...state,
           isPaused: false,
+          segmentStartedAt: new Date().toISOString(),
         },
       }
     })
@@ -138,6 +197,19 @@ export function useTaskTimers(taskIds: string[]) {
 
   const stopTimer = useCallback((taskId: string) => {
     setTimerStates((prev) => {
+      const state = prev[taskId]
+      // Save the last active segment if still running
+      if (state?.isRunning && !state.isPaused && state.segmentStartedAt) {
+        const endTime = new Date().toISOString()
+        const segmentDuration = Math.round(
+          (new Date(endTime).getTime() - new Date(state.segmentStartedAt).getTime()) / 1000
+        )
+        const meta = taskMetaRef.current[taskId]
+        if (meta && segmentDuration > 0) {
+          saveTimeRecord(meta, state.segmentStartedAt, endTime, segmentDuration)
+        }
+      }
+
       const newState = { ...prev }
       delete newState[taskId]
       return newState
@@ -168,5 +240,6 @@ export function useTaskTimers(taskIds: string[]) {
     stopTimer,
     resetTimer,
     getTotalStudyTime,
+    registerTaskMeta,
   }
 }

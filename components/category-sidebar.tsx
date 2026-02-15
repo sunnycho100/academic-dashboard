@@ -5,7 +5,7 @@ import { Category } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Plus, Search, Minus, BarChart3 } from 'lucide-react'
+import { Plus, Search, Minus, BarChart3, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ActivitySummaryDialog } from './activity-summary-dialog'
@@ -18,6 +18,7 @@ interface CategorySidebarProps {
   onRemoveCategory?: (categoryId: string) => void
   searchQuery: string
   onSearchChange: (query: string) => void
+  onOpenTimeRecords?: () => void
 }
 
 export function CategorySidebar({
@@ -28,6 +29,7 @@ export function CategorySidebar({
   onRemoveCategory,
   searchQuery,
   onSearchChange,
+  onOpenTimeRecords,
 }: CategorySidebarProps) {
   const [removeMode, setRemoveMode] = useState(false)
   const [summaryOpen, setSummaryOpen] = useState(false)
@@ -127,10 +129,12 @@ export function CategorySidebar({
                   />
                 )}
                 <div
-                  className="relative z-10 w-2 h-2 rounded-full flex-shrink-0 ring-2 ring-offset-1 ring-offset-transparent"
+                  className="relative z-10 w-2 h-2 rounded-full flex-shrink-0"
                   style={{
                     backgroundColor: category.color,
-                    ringColor: selectedCategoryId === category.id ? category.color : 'transparent',
+                    boxShadow: selectedCategoryId === category.id
+                      ? `0 0 0 2px ${category.color}40, 0 0 0 4px ${category.color}20`
+                      : 'none',
                   }}
                 />
                 <span className="relative z-10 truncate">{category.name}</span>
@@ -159,8 +163,19 @@ export function CategorySidebar({
         </div>
       </ScrollArea>
 
-      {/* Activity Summary Button */}
-      <div className="p-3 border-t border-border/50">
+      {/* Time Records & Activity Summary Buttons */}
+      <div className="p-3 border-t border-border/50 space-y-2">
+        <motion.div whileTap={{ scale: 0.97 }}>
+          <Button
+            onClick={onOpenTimeRecords}
+            variant="outline"
+            size="sm"
+            className="w-full rounded-lg border-border/50 hover:border-border hover:bg-secondary/50 transition-all duration-200"
+          >
+            <Clock className="h-4 w-4 mr-2" />
+            Time Records
+          </Button>
+        </motion.div>
         <motion.div whileTap={{ scale: 0.97 }}>
           <Button
             onClick={() => setSummaryOpen(true)}
