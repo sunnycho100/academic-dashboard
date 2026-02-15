@@ -81,6 +81,7 @@ export default function Home() {
   const [mounted, setMounted] = useState(false)
   const [todayTaskIds, setTodayTaskIds] = useState<string[]>([])
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
+  const [completedTodayCount, setCompletedTodayCount] = useState(0)
   const completingRef = useRef<Set<string>>(new Set())
 
   const sensors = useSensors(
@@ -150,6 +151,20 @@ export default function Home() {
         // Auto-cleanup: permanently delete tasks soft-deleted >3 days ago
         fetch('/api/completed-tasks/cleanup', { method: 'DELETE' })
           .catch((err) => console.error('Auto-cleanup failed:', err))
+
+        // Fetch today's completed count
+        try {
+          const completedRes = await fetch('/api/completed-tasks')
+          const completedAll = await completedRes.json()
+          const todayStart = new Date()
+          todayStart.setHours(0, 0, 0, 0)
+          const todayCount = completedAll.filter(
+            (ct: { completedAt: string }) => new Date(ct.completedAt) >= todayStart
+          ).length
+          setCompletedTodayCount(todayCount)
+        } catch (err) {
+          console.error('Failed to fetch completed tasks count:', err)
+        }
       } catch (err) {
         console.error('Failed to load from DB, falling back to localStorage:', err)
         const state = loadState()
@@ -226,6 +241,7 @@ export default function Home() {
       // Optimistic: remove from UI immediately
       setTasks((prev) => prev.filter((t) => t.id !== id))
       setTodayTaskIds((prev) => prev.filter((tid) => tid !== id))
+      setCompletedTodayCount((prev) => prev + 1)
 
       // Archive to CompletedTask table
       const category = categories.find((c) => c.id === task.categoryId)
@@ -583,7 +599,7 @@ export default function Home() {
               transition={{ duration: 0.3 }}
             >
               {/* Stats */}
-              <Stats tasks={tasks} />
+              <Stats tasks={tasks} completedTodayCount={completedTodayCount} todayRemainingCount={todayTaskIds.length} />
 
               {/* View Tabs + Add Task Button */}
               <div className="flex items-center gap-3 mb-6">

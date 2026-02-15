@@ -102,11 +102,12 @@ export function TaskList({
                   >
                     <AnimatePresence mode="popLayout">
                       <div className="space-y-2">
-                        {categoryTasks.map((task) => (
+                        {categoryTasks.map((task, index) => (
                           <TaskRow
                             key={task.id}
                             task={task}
                             category={category}
+                            animationIndex={index}
                             onToggle={onToggleTask}
                             onEdit={onEditTask}
                             onSave={onSaveTask}
@@ -139,11 +140,12 @@ export function TaskList({
       >
         <AnimatePresence mode="popLayout">
           <div className="space-y-2">
-            {tasks.map((task) => (
+            {tasks.map((task, index) => (
               <TaskRow
                 key={task.id}
                 task={task}
                 category={getCategoryForTask(task.categoryId)}
+                animationIndex={index}
                 onToggle={onToggleTask}
                 onEdit={onEditTask}
                 onSave={onSaveTask}

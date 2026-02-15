@@ -36,6 +36,7 @@ interface TaskRowProps {
   onRemoveFromToday?: (id: string) => void
   isInToday?: boolean
   isDragging?: boolean
+  animationIndex?: number
 }
 
 function InlineEdit({
@@ -219,6 +220,7 @@ export function TaskRow({
   onAddToToday,
   onRemoveFromToday,
   isInToday,
+  animationIndex = 0,
 }: TaskRowProps) {
   const {
     attributes,
@@ -270,9 +272,10 @@ export function TaskRow({
       ref={setNodeRef}
       style={style}
       layout
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, x: -20, transition: { duration: 0.2 } }}
+      exit={{ opacity: 0, y: -6, transition: { duration: 0.15 } }}
+      transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
       whileHover={{ y: -2, transition: { duration: 0.15 } }}
       whileTap={{ scale: 0.995 }}
       className={cn(
@@ -341,10 +344,9 @@ export function TaskRow({
             className="flex items-center gap-1.5 text-xs"
             style={{ color: category.color }}
           >
-            <motion.div
+            <div
               className="w-1.5 h-1.5 rounded-full"
               style={{ backgroundColor: category.color }}
-              layoutId={`cat-dot-${task.id}`}
             />
             {category.name}
           </div>

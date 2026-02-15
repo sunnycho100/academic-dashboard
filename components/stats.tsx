@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 interface StatsProps {
   tasks: Task[]
+  completedTodayCount: number
+  todayRemainingCount: number
 }
 
 function ProgressRing({ progress, size = 36, strokeWidth = 3, color }: {
@@ -64,10 +66,10 @@ function AnimatedCounter({ value }: { value: number }) {
   )
 }
 
-export function Stats({ tasks }: StatsProps) {
+export function Stats({ tasks, completedTodayCount, todayRemainingCount }: StatsProps) {
   const totalTasks = tasks.length
-  const completedTasks = tasks.filter((t) => t.status === 'done').length
-  const completionPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
+  const todayTotal = completedTodayCount + todayRemainingCount
+  const completionPercent = todayTotal > 0 ? Math.round((completedTodayCount / todayTotal) * 100) : 0
   const dueSoonTasks = tasks.filter((t) => {
     const dueDate = new Date(t.dueAt)
     const today = new Date()
@@ -93,7 +95,7 @@ export function Stats({ tasks }: StatsProps) {
     },
     {
       label: 'Completed',
-      value: completedTasks,
+      value: completedTodayCount,
       icon: CheckCircle2,
       color: '#22c55e',
       bgGlow: 'hover:shadow-green-500/20',
