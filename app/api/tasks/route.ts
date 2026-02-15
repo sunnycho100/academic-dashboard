@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       data: {
         title: body.title,
         type: body.type,
-        dueAt: new Date(body.dueAt),
+        dueAt: body.dueAt ? new Date(body.dueAt) : null,
         status: body.status ?? 'todo',
         priorityOrder: body.priorityOrder ?? 0,
         notes: body.notes ?? null,

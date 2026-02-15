@@ -43,7 +43,7 @@ export function EditTaskSheet({
   const [title, setTitle] = useState(task?.title ?? '')
   const [categoryId, setCategoryId] = useState(task?.categoryId ?? '')
   const [type, setType] = useState<TaskType>(task?.type ?? 'Lecture')
-  const [dueDate, setDueDate] = useState(task ? new Date(task.dueAt).toISOString().split('T')[0] : '')
+  const [dueDate, setDueDate] = useState(task?.dueAt ? new Date(task.dueAt).toISOString().split('T')[0] : '')
   const [notes, setNotes] = useState(task?.notes ?? '')
   const [isOverdue, setIsOverdue] = useState(() => {
     if (!task?.dueAt) return false
@@ -64,17 +64,21 @@ export function EditTaskSheet({
       setTitle(task.title)
       setCategoryId(task.categoryId)
       setType(task.type)
-      setDueDate(new Date(task.dueAt).toISOString().split('T')[0])
+      setDueDate(task.dueAt ? new Date(task.dueAt).toISOString().split('T')[0] : '')
       setNotes(task.notes || '')
       setDurationHours(task.estimatedDuration ? String(Math.floor(task.estimatedDuration / 60)) : '')
       setDurationMinutes(task.estimatedDuration ? String(task.estimatedDuration % 60) : '')
       setActiveField(null)
       // Compute overdue from dueAt
-      const dueDay = new Date(task.dueAt)
-      dueDay.setHours(0, 0, 0, 0)
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      setIsOverdue(dueDay.getTime() < today.getTime())
+      if (task.dueAt) {
+        const dueDay = new Date(task.dueAt)
+        dueDay.setHours(0, 0, 0, 0)
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        setIsOverdue(dueDay.getTime() < today.getTime())
+      } else {
+        setIsOverdue(false)
+      }
     }
   }, [open, task])
 
@@ -93,13 +97,13 @@ export function EditTaskSheet({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (task && title.trim() && categoryId && dueDate) {
+    if (task && title.trim() && categoryId) {
       onSave({
         ...task,
         title: title.trim(),
         categoryId,
         type,
-        dueAt: new Date(dueDate + 'T00:00:00').toISOString(),
+        dueAt: dueDate ? new Date(dueDate + 'T00:00:00').toISOString() : null,
         notes: notes.trim() || undefined,
         estimatedDuration: (durationHours || durationMinutes)
           ? (parseInt(durationHours || '0') * 60) + parseInt(durationMinutes || '0') || undefined
@@ -436,7 +440,7 @@ export function EditTaskSheet({
                       <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
                         <Button
                           type="submit"
-                          disabled={!title.trim() || !categoryId || !dueDate}
+                          disabled={!title.trim() || !categoryId}
                           className="rounded-lg shadow-sm"
                         >
                           <Pencil className="h-4 w-4 mr-1.5" />

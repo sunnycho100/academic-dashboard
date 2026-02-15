@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
         categoryName: body.categoryName,
         categoryColor: body.categoryColor,
         taskType: body.taskType,
-        dueAt: new Date(body.dueAt),
+        dueAt: body.dueAt ? new Date(body.dueAt) : null,
         actualTimeSpent: body.actualTimeSpent ?? null,
         estimatedDuration: body.estimatedDuration ?? null,
         timeDifference,

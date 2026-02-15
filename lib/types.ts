@@ -12,7 +12,7 @@ export interface Task {
   categoryId: string
   title: string
   type: TaskType
-  dueAt: string
+  dueAt: string | null
   status: 'todo' | 'done'
   priorityOrder: number
   notes?: string

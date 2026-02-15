@@ -25,7 +25,7 @@ interface AddTaskDialogProps {
     title: string
     categoryId: string
     type: TaskType
-    dueAt: string
+    dueAt: string | null
     notes?: string
     estimatedDuration?: number
     isOverdue?: boolean
@@ -74,12 +74,12 @@ export function AddTaskDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (title.trim() && categoryId && dueDate) {
+    if (title.trim() && categoryId) {
       onAdd({
         title: title.trim(),
         categoryId,
         type,
-        dueAt: new Date(dueDate + 'T00:00:00').toISOString(),
+        dueAt: dueDate ? new Date(dueDate + 'T00:00:00').toISOString() : null,
         notes: notes.trim() || undefined,
         estimatedDuration: (durationHours || durationMinutes)
           ? (parseInt(durationHours || '0') * 60) + parseInt(durationMinutes || '0') || undefined
@@ -426,7 +426,7 @@ export function AddTaskDialog({
                       <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
                         <Button
                           type="submit"
-                          disabled={!title.trim() || !categoryId || !dueDate}
+                          disabled={!title.trim() || !categoryId}
                           className="rounded-lg shadow-sm"
                         >
                           <Plus className="h-4 w-4 mr-1.5" />

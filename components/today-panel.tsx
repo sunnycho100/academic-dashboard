@@ -458,7 +458,7 @@ export function TodayPanel({
       layoutId="today-panel-card"
       ref={setNodeRef}
       className={cn(
-        'relative rounded-2xl flex flex-col overflow-hidden',
+        'relative rounded-2xl flex flex-col overflow-hidden h-full',
         // Glassmorphism
         'bg-card/50 backdrop-blur-xl',
         'border',

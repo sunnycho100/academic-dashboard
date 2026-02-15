@@ -26,7 +26,7 @@ model Task {
   id                String   @id @default(uuid())
   title             String
   type              String   // Lecture, Discussion, Lab, Assignment, Exam Prep
-  dueAt             DateTime
+  dueAt             DateTime?
   status            String   @default("todo") // todo | done
   priorityOrder     Int      @default(0)
   notes             String?
@@ -50,7 +50,7 @@ model CompletedTask {
   categoryName      String
   categoryColor     String
   taskType          String
-  dueAt             DateTime
+  dueAt             DateTime?
   completedAt       DateTime @default(now())
   actualTimeSpent   Int?     // in minutes
   estimatedDuration Int?     // in minutes

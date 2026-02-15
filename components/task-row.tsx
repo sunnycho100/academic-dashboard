@@ -89,7 +89,7 @@ function InlineEdit({
             setEditing(false)
           }
         }}
-        className={cn('h-6 text-xs px-1.5 py-0 w-auto min-w-0 border-border/50 bg-background', className)}
+        className={cn('h-7 px-1.5 py-0 w-auto min-w-0 border-border/50 bg-background', className)}
       />
     )
   }
@@ -161,7 +161,7 @@ function InlineDurationEdit({
               setEditing(false)
             }
           }}
-          className="h-6 text-xs px-1 py-0 w-10 border-border/50 bg-background"
+          className="h-7 text-xs px-1 py-0 w-10 border-border/50 bg-background"
         />
         <span className="text-[10px] text-muted-foreground">h</span>
         <Input
@@ -179,7 +179,7 @@ function InlineDurationEdit({
               setEditing(false)
             }
           }}
-          className="h-6 text-xs px-1 py-0 w-10 border-border/50 bg-background"
+          className="h-7 text-xs px-1 py-0 w-10 border-border/50 bg-background"
         />
         <span className="text-[10px] text-muted-foreground">m</span>
       </span>
@@ -236,36 +236,43 @@ export function TaskRow({
     transition,
   }
 
-  const dueDate = new Date(task.dueAt)
+  const dueDate = task.dueAt ? new Date(task.dueAt) : null
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  const dueDateOnly = new Date(dueDate)
-  dueDateOnly.setHours(0, 0, 0, 0)
 
-  const daysDiff = Math.floor(
-    (dueDateOnly.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-  )
-
+  let daysDiff: number | null = null
   let dueDateLabel = ''
   let dueDateVariant: 'default' | 'secondary' | 'destructive' | 'outline' =
-    'default'
+    'secondary'
 
-  if (daysDiff < 0) {
-    const daysOverdue = Math.abs(daysDiff)
-    dueDateLabel = `Overdue ${daysOverdue}d`
-    dueDateVariant = 'destructive'
-  } else if (daysDiff === 0) {
-    dueDateLabel = 'Due today'
-    dueDateVariant = 'destructive'
-  } else if (daysDiff === 1) {
-    dueDateLabel = 'Due tomorrow'
-    dueDateVariant = 'default'
+  if (dueDate) {
+    const dueDateOnly = new Date(dueDate)
+    dueDateOnly.setHours(0, 0, 0, 0)
+
+    daysDiff = Math.floor(
+      (dueDateOnly.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+    )
+
+    if (daysDiff < 0) {
+      const daysOverdue = Math.abs(daysDiff)
+      dueDateLabel = `Overdue ${daysOverdue}d`
+      dueDateVariant = 'destructive'
+    } else if (daysDiff === 0) {
+      dueDateLabel = 'Due today'
+      dueDateVariant = 'destructive'
+    } else if (daysDiff === 1) {
+      dueDateLabel = 'Due tomorrow'
+      dueDateVariant = 'default'
+    } else {
+      dueDateLabel = `Due in ${daysDiff}d`
+      dueDateVariant = 'secondary'
+    }
   } else {
-    dueDateLabel = `Due in ${daysDiff}d`
-    dueDateVariant = 'secondary'
+    dueDateLabel = 'No due date'
+    dueDateVariant = 'outline'
   }
 
-  const isOverdue = daysDiff < 0 && task.status !== 'done'
+  const isOverdue = dueDate !== null && daysDiff !== null && daysDiff < 0 && task.status !== 'done'
 
   return (
     <motion.div

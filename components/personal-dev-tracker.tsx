@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Play, Pause, BookOpen, FolderGit2, Briefcase } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
+import { loadPersonalDevColors, DEFAULT_PERSONAL_DEV_COLORS } from '@/components/color-scheme-dialog'
 
 // ── Activity definitions ──────────────────────────────────────────
 
@@ -11,36 +12,12 @@ interface Activity {
   key: string
   label: string
   icon: React.ElementType
-  color: string        // tailwind-compatible accent
-  bgActive: string     // bg class while timer running
-  textColor: string
 }
 
-const ACTIVITIES: Activity[] = [
-  {
-    key: 'reading',
-    label: 'Reading',
-    icon: BookOpen,
-    color: '#f59e0b',
-    bgActive: 'bg-amber-500/15',
-    textColor: 'text-amber-600 dark:text-amber-400',
-  },
-  {
-    key: 'project',
-    label: 'Project',
-    icon: FolderGit2,
-    color: '#8b5cf6',
-    bgActive: 'bg-violet-500/15',
-    textColor: 'text-violet-600 dark:text-violet-400',
-  },
-  {
-    key: 'job-application',
-    label: 'Job App',
-    icon: Briefcase,
-    color: '#06b6d4',
-    bgActive: 'bg-cyan-500/15',
-    textColor: 'text-cyan-600 dark:text-cyan-400',
-  },
+const ACTIVITY_DEFS: Activity[] = [
+  { key: 'reading', label: 'Reading', icon: BookOpen },
+  { key: 'project', label: 'Project', icon: FolderGit2 },
+  { key: 'job-application', label: 'Job App', icon: Briefcase },
 ]
 
 // ── Timer state per activity ──────────────────────────────────────
@@ -114,13 +91,51 @@ function fmt(totalSeconds: number): string {
 
 export function PersonalDevTracker() {
   const [timers, setTimers] = useState<ActivityTimerData>({})
+  const [dbLoaded, setDbLoaded] = useState(false)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  // hydrate from localStorage
-  useEffect(() => { setTimers(load()) }, [])
+  // hydrate from localStorage, then overlay DB totals for today
+  useEffect(() => {
+    const local = load()
+    setTimers(local)
 
-  // persist on every change
-  useEffect(() => { save(timers) }, [timers])
+    // Fetch today's Personal Dev records from DB to compute total elapsed
+    const now = new Date()
+    const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+    const tzOffset = now.getTimezoneOffset()
+    fetch(`/api/time-records?date=${dateStr}&tz=${tzOffset}`)
+      .then((r) => r.json())
+      .then((records: Array<{ taskTitle: string; categoryName: string; duration: number }>) => {
+        if (!Array.isArray(records)) return
+        // Sum duration per activity from DB records tagged as Personal Dev
+        const dbTotals: Record<string, number> = {}
+        for (const rec of records) {
+          if (rec.categoryName !== 'Personal Dev') continue
+          const actKey = ACTIVITY_DEFS.find((a) => a.label === rec.taskTitle)?.key
+          if (actKey) {
+            dbTotals[actKey] = (dbTotals[actKey] || 0) + rec.duration
+          }
+        }
+        // Update timers: DB total is the source of truth for elapsed
+        setTimers((prev) => {
+          const next = { ...prev }
+          for (const key of Object.keys(dbTotals)) {
+            const existing = next[key]
+            next[key] = {
+              isRunning: existing?.isRunning ?? false,
+              elapsedSeconds: dbTotals[key],
+              segmentStartedAt: existing?.segmentStartedAt ?? null,
+            }
+          }
+          return next
+        })
+        setDbLoaded(true)
+      })
+      .catch(() => setDbLoaded(true))
+  }, [])
+
+  // persist on every change (only after DB load to avoid clobbering)
+  useEffect(() => { if (dbLoaded) save(timers) }, [timers, dbLoaded])
 
   // tick running timers every second
   useEffect(() => {
@@ -147,6 +162,8 @@ export function PersonalDevTracker() {
   }, [timers])
 
   const toggle = useCallback((activity: Activity) => {
+    const colors = loadPersonalDevColors()
+    const actColor = colors[activity.key] || DEFAULT_PERSONAL_DEV_COLORS[activity.key]
     setTimers((prev) => {
       const current = prev[activity.key]
 
@@ -161,7 +178,7 @@ export function PersonalDevTracker() {
             saveTimeRecord(
               activity.key,
               activity.label,
-              activity.color,
+              actColor,
               current.segmentStartedAt,
               endTime,
               dur,
@@ -187,6 +204,7 @@ export function PersonalDevTracker() {
   }, [])
 
   const anyRunning = Object.values(timers).some((t) => t.isRunning)
+  const devColors = loadPersonalDevColors()
 
   return (
     <motion.div
@@ -213,11 +231,12 @@ export function PersonalDevTracker() {
 
         {/* 3 activity rows side-by-side */}
         <div className="grid grid-cols-3 gap-2">
-          {ACTIVITIES.map((activity) => {
+          {ACTIVITY_DEFS.map((activity) => {
             const timer = timers[activity.key]
             const running = timer?.isRunning ?? false
             const elapsed = timer?.elapsedSeconds ?? 0
             const Icon = activity.icon
+            const color = devColors[activity.key] || DEFAULT_PERSONAL_DEV_COLORS[activity.key]
 
             return (
               <motion.button
@@ -227,19 +246,19 @@ export function PersonalDevTracker() {
                 className={cn(
                   'flex items-center gap-2 rounded-xl px-2.5 py-2.5 transition-all',
                   'border border-border/30 hover:border-border/60',
-                  running ? activity.bgActive : 'bg-muted/30 hover:bg-muted/50',
+                  !running && 'bg-muted/30 hover:bg-muted/50',
                 )}
+                style={running ? { backgroundColor: color + '18' } : undefined}
               >
                 {/* Icon + Play/Pause overlay */}
                 <div className="relative flex-shrink-0">
                   <div
-                    className={cn(
-                      'h-8 w-8 rounded-lg flex items-center justify-center transition-colors',
-                      running ? activity.bgActive : 'bg-muted/60',
-                    )}
+                    className="h-8 w-8 rounded-lg flex items-center justify-center transition-colors"
+                    style={{ backgroundColor: running ? color + '20' : undefined }}
                   >
                     <Icon
-                      className={cn('h-4 w-4', running ? activity.textColor : 'text-muted-foreground')}
+                      className={cn('h-4 w-4', !running && 'text-muted-foreground')}
+                      style={running ? { color } : undefined}
                     />
                   </div>
                   {/* Play / Pause badge */}
@@ -264,8 +283,9 @@ export function PersonalDevTracker() {
                   <span
                     className={cn(
                       'text-[11px] font-medium leading-tight',
-                      running ? activity.textColor : 'text-muted-foreground',
+                      !running && 'text-muted-foreground',
                     )}
+                    style={running ? { color } : undefined}
                   >
                     {activity.label}
                   </span>
@@ -273,11 +293,12 @@ export function PersonalDevTracker() {
                     className={cn(
                       'text-sm font-bold font-mono tabular-nums leading-tight',
                       running
-                        ? cn(activity.textColor, 'animate-pulse')
+                        ? 'animate-pulse'
                         : elapsed > 0
                           ? 'text-foreground'
                           : 'text-muted-foreground/40',
                     )}
+                    style={running ? { color } : undefined}
                   >
                     {fmt(elapsed)}
                   </span>

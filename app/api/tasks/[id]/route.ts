@@ -9,10 +9,10 @@ export async function PATCH(
     const { id } = await params
     const body = await request.json()
 
-    // Convert dueAt string to Date if provided
+    // Convert dueAt string to Date if provided, or set to null
     const data = { ...body }
-    if (data.dueAt) {
-      data.dueAt = new Date(data.dueAt)
+    if (data.dueAt !== undefined) {
+      data.dueAt = data.dueAt ? new Date(data.dueAt) : null
     }
 
     const task = await prisma.task.update({

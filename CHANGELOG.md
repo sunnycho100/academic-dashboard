@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-02-15
+Optional due dates, manual time entry, color scheme settings, timeline fix
+
+### Added
+- Optional due date — tasks can now be created/edited without a due date (e.g. "Review Notes")
+- Tasks without due dates show "No due date" outline badge, excluded from overdue/due-soon filters, sorted to end
+- Manual time record entry — "Add Record Manually" form in Time Records edit mode with quick-pick presets for Personal Dev activities (Reading, Project, Job App)
+- Manual Personal Dev entries update localStorage timer and reflect in Personal Dev Tracker elapsed time
+- Personal Dev Tracker now hydrates elapsed time from database on mount (source of truth)
+- Color Scheme dialog — accessible from Settings gear menu, allows changing colors for course categories (persisted to DB) and Personal Dev activities (persisted to localStorage)
+- `PATCH /api/time-records/[id]` — update time record fields (title, start/end time, auto-recalculated duration)
+- `DELETE /api/time-records/[id]` — delete individual time records
+
+### Changed
+- `dueAt` field now nullable in both `Task` and `CompletedTask` Prisma models (migration: `make_due_date_optional`)
+- `dueAt` type changed from `string` to `string | null` in TypeScript `Task` interface
+- Add Task / Edit Task forms no longer require due date to submit
+- Personal Dev Tracker colors now dynamic via localStorage instead of hardcoded Tailwind classes
+- Time Records quick-pick presets read colors from Color Scheme settings
+- Removed standalone color picker from Time Records manual add form (managed via Color Scheme dialog instead)
+
+### Fixed
+- Timeline block rendering bug: zero-duration records (e.g. accidental click 3:39 PM → 3:39 PM) no longer expand to fill the rest of the day — changed `endHour <= startHour` to strict `endHour < startHour` in `getBlockPosition`
+- Tasks with null `dueAt` no longer crash `task-row.tsx` (`new Date(null)` guard)
+- API routes handle null `dueAt` in POST/PATCH for tasks and completed-tasks
+- Stale Prisma client cache causing null `dueAt` inserts to fail silently (server restart required after migration)
+
 ## [1.4.0] - 2026-02-15
 Personal Development tracker and Task List redesign
 

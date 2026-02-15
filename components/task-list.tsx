@@ -164,7 +164,7 @@ export function TaskList({
   return (
     <motion.div
       layout
-      className="relative rounded-2xl flex flex-col overflow-hidden bg-card/50 backdrop-blur-xl border border-border/40 shadow-sm"
+      className="relative rounded-2xl flex flex-col overflow-hidden bg-card/50 backdrop-blur-xl border border-border/40 shadow-sm h-full"
     >
       {/* Header */}
       <div className="relative z-10 px-4 pt-4 pb-3">
@@ -196,7 +196,7 @@ export function TaskList({
       <div className="mx-4 border-t border-border/10" />
 
       {/* Scrollable content */}
-      <ScrollArea className="flex-1 max-h-[65vh]">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="px-3 py-2">
           {content}
         </div>

@@ -15,6 +15,7 @@ import { ClearDataDialog } from '@/components/clear-data-dialog'
 import { ImportDataDialog } from '@/components/import-data-dialog'
 import { EmptyState } from '@/components/empty-state'
 import { TimeRecordsDialog } from '@/components/time-records-dialog'
+import { ColorSchemeDialog } from '@/components/color-scheme-dialog'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -33,7 +34,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
-import { Plus, Settings, Download, Upload, Trash2 } from 'lucide-react'
+import { Plus, Settings, Download, Upload, Trash2, Palette } from 'lucide-react'
 import { motion } from 'framer-motion'
 import {
   DndContext,
@@ -71,7 +72,7 @@ export default function Home() {
   )
   const [viewMode, setViewMode] = useState<ViewMode>('all')
   const [sortOption, setSortOption] = useState<SortOption>('due-date')
-  const [groupByCategory, setGroupByCategory] = useState(false)
+  const [groupByCategory, setGroupByCategory] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [addCategoryOpen, setAddCategoryOpen] = useState(false)
   const [addTaskOpen, setAddTaskOpen] = useState(false)
@@ -80,6 +81,7 @@ export default function Home() {
   const [clearDataOpen, setClearDataOpen] = useState(false)
   const [importDataOpen, setImportDataOpen] = useState(false)
   const [timeRecordsOpen, setTimeRecordsOpen] = useState(false)
+  const [colorSchemeOpen, setColorSchemeOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [todayTaskIds, setTodayTaskIds] = useState<string[]>([])
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
@@ -107,7 +109,7 @@ export default function Home() {
           setTasks(
             dbTasks.map((t: Record<string, unknown>) => ({
               ...t,
-              dueAt: typeof t.dueAt === 'string' ? t.dueAt : new Date(t.dueAt as number).toISOString(),
+              dueAt: t.dueAt == null ? null : typeof t.dueAt === 'string' ? t.dueAt : new Date(t.dueAt as number).toISOString(),
               createdAt: typeof t.createdAt === 'string' ? t.createdAt : new Date(t.createdAt as number).toISOString(),
             }))
           )
@@ -205,7 +207,7 @@ export default function Home() {
     title: string
     categoryId: string
     type: TaskType
-    dueAt: string
+    dueAt: string | null
     notes?: string
     estimatedDuration?: number
   }) => {
@@ -490,6 +492,11 @@ export default function Home() {
       return true
     }
 
+    // Tasks with no due date: show in 'all' only
+    if (!task.dueAt) {
+      return false
+    }
+
     const dueDate = new Date(task.dueAt)
     dueDate.setHours(0, 0, 0, 0)
 
@@ -503,6 +510,10 @@ export default function Home() {
   // Sort tasks
   const sortedTasks = [...filteredTasks].sort((a, b) => {
     if (sortOption === 'due-date') {
+      // Tasks without due date go to the end
+      if (!a.dueAt && !b.dueAt) return a.priorityOrder - b.priorityOrder
+      if (!a.dueAt) return 1
+      if (!b.dueAt) return -1
       const dateA = new Date(a.dueAt).getTime()
       const dateB = new Date(b.dueAt).getTime()
       if (dateA !== dateB) {
@@ -567,6 +578,11 @@ export default function Home() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setColorSchemeOpen(true)}>
+                    <Palette className="h-4 w-4 mr-2" />
+                    Color Scheme
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleExportData}>
                     <Download className="h-4 w-4 mr-2" />
                     Export Data
@@ -591,7 +607,7 @@ export default function Home() {
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 flex flex-col overflow-hidden p-6">
           {/* Show empty state if no categories exist */}
           {categories.length === 0 ? (
             <EmptyState onAddCategory={() => setAddCategoryOpen(true)} />
@@ -600,12 +616,13 @@ export default function Home() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3 }}
+              className="flex flex-col h-full min-h-0"
             >
               {/* Stats */}
               <Stats tasks={tasks} completedTodayCount={completedTodayCount} todayRemainingCount={todayTaskIds.length} />
 
-              {/* View Tabs + Add Task Button */}
-              <div className="flex items-center gap-3 mb-6">
+              {/* View Tabs + Add Task Button + Controls */}
+              <div className="flex items-center gap-3 mb-6 flex-wrap">
                 <motion.div whileTap={{ scale: 0.95 }}>
                   <Button
                     id="add-task-button"
@@ -626,53 +643,54 @@ export default function Home() {
                     <TabsTrigger value="due-soon" className="rounded-md">Due Soon</TabsTrigger>
                   </TabsList>
                 </Tabs>
-              </div>
 
-              {/* Controls */}
-              <div className="flex items-center gap-4 mb-6 flex-wrap">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="group-by-category"
-                    checked={groupByCategory}
-                    onCheckedChange={(checked) =>
-                      setGroupByCategory(checked as boolean)
-                    }
-                  />
-                  <Label
-                    htmlFor="group-by-category"
-                    className="text-sm font-normal cursor-pointer"
+                <div className="flex-1" />
+
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="group-by-category"
+                      checked={groupByCategory}
+                      onCheckedChange={(checked) =>
+                        setGroupByCategory(checked as boolean)
+                      }
+                    />
+                    <Label
+                      htmlFor="group-by-category"
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      Group by category
+                    </Label>
+                  </div>
+
+                  <Select
+                    value={sortOption}
+                    onValueChange={(value) => setSortOption(value as SortOption)}
                   >
-                    Group by category
-                  </Label>
+                    <SelectTrigger className="w-40 rounded-lg">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="due-date">Sort by due date</SelectItem>
+                      <SelectItem value="manual">Manual order</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <motion.div
+                    key={sortedTasks.length}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="text-sm text-muted-foreground/70 tabular-nums"
+                  >
+                    {sortedTasks.length} task{sortedTasks.length !== 1 ? 's' : ''}
+                  </motion.div>
                 </div>
-
-                <Select
-                  value={sortOption}
-                  onValueChange={(value) => setSortOption(value as SortOption)}
-                >
-                  <SelectTrigger className="w-40 rounded-lg">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="due-date">Sort by due date</SelectItem>
-                    <SelectItem value="manual">Manual order</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <motion.div
-                  key={sortedTasks.length}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="text-sm text-muted-foreground/70 tabular-nums"
-                >
-                  {sortedTasks.length} task{sortedTasks.length !== 1 ? 's' : ''}
-                </motion.div>
               </div>
 
               {/* Bento Grid: Task List + Today's Plan */}
-              <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-6 items-start">
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-6 flex-1 min-h-0">
                 {/* Task List */}
-                <div className="min-w-0">
+                <div className="min-w-0 min-h-0 flex flex-col overflow-hidden">
                   <TaskList
                     tasks={sortedTasks}
                     categories={categories}
@@ -690,8 +708,8 @@ export default function Home() {
                   />
                 </div>
 
-                {/* Today's Plan — sticky Bento card */}
-                <div className="lg:sticky lg:top-4">
+                {/* Today's Plan — fills column height */}
+                <div className="min-h-0 flex flex-col overflow-hidden">
                   <TodayPanel
                     tasks={todayTaskIds.map((id) => tasks.find((t) => t.id === id)).filter(Boolean) as Task[]}
                     allTasks={tasks}
@@ -778,6 +796,27 @@ export default function Home() {
       <TimeRecordsDialog
         open={timeRecordsOpen}
         onOpenChange={setTimeRecordsOpen}
+      />
+      <ColorSchemeDialog
+        open={colorSchemeOpen}
+        onOpenChange={setColorSchemeOpen}
+        categories={categories}
+        onCategoryColorChange={async (id, color) => {
+          // Optimistic update
+          setCategories((prev) =>
+            prev.map((c) => (c.id === id ? { ...c, color } : c))
+          )
+          // Persist to DB
+          try {
+            await fetch(`/api/categories/${id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ color }),
+            })
+          } catch (err) {
+            console.error('Failed to update category color:', err)
+          }
+        }}
       />
     </div>
     </DndContext>
