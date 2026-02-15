@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.2] - 2026-02-15
+Timer display accuracy and study time source of truth
+
+### Fixed
+- Personal Dev Timer HH:MM display now accurate — eliminated elapsedSeconds accumulator that caused drift by computing display from DB totals + live segment elapsed instead
+- Study Time now reflects actual study time based on user's configured day start/end boundaries — fetches all time records for today from database instead of completed task minutes, polls every 30s to stay fresh
+- getDueInfo function now properly handles nullable dueAt field (prevents TypeScript errors for tasks without due dates)
+
 ## [1.4.1] - 2026-02-15
 Optional due dates, manual time entry, color scheme settings, timeline fix
 
