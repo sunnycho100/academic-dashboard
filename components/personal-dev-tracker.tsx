@@ -24,12 +24,14 @@ const ACTIVITY_DEFS: Activity[] = [
 
 interface ActivityTimer {
   isRunning: boolean
-  elapsedSeconds: number
-  /** ISO string – start of the current active segment */
+  /** ISO string – start of the current active segment (null if not running) */
   segmentStartedAt: string | null
 }
 
 type ActivityTimerData = Record<string, ActivityTimer>
+
+/** DB totals per activity key (seconds) */
+type DbTotals = Record<string, number>
 
 const STORAGE_KEY = 'personal-dev-timers'
 
@@ -91,67 +93,64 @@ function fmt(totalSeconds: number): string {
 
 export function PersonalDevTracker() {
   const [timers, setTimers] = useState<ActivityTimerData>({})
-  const [dbLoaded, setDbLoaded] = useState(false)
+  const [dbTotals, setDbTotals] = useState<DbTotals>({})
+  const [tick, setTick] = useState(0) // forces re-render every second when running
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  // hydrate from localStorage, then overlay DB totals for today
+  // Load running state from localStorage & fetch DB totals for today
   useEffect(() => {
     const local = load()
-    setTimers(local)
+    // Only preserve running state, not elapsedSeconds
+    const cleaned: ActivityTimerData = {}
+    for (const key of Object.keys(local)) {
+      cleaned[key] = {
+        isRunning: local[key]?.isRunning ?? false,
+        segmentStartedAt: local[key]?.segmentStartedAt ?? null,
+      }
+    }
+    setTimers(cleaned)
 
     // Fetch today's Personal Dev records from DB to compute total elapsed
     const now = new Date()
     const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
     const tzOffset = now.getTimezoneOffset()
-    fetch(`/api/time-records?date=${dateStr}&tz=${tzOffset}`)
+    // Use day boundaries from localStorage
+    let startHour = 6
+    let endHour = 24
+    try {
+      const saved = localStorage.getItem('timeRecords-dayBoundaries')
+      if (saved) {
+        const { start, end } = JSON.parse(saved)
+        if (typeof start === 'number') startHour = start
+        if (typeof end === 'number') endHour = end
+      }
+    } catch {}
+    const endHourParam = endHour > 24 ? endHour - 24 : 0
+    fetch(`/api/time-records?date=${dateStr}&tz=${tzOffset}&startHour=${startHour}&endHour=${endHourParam}`)
       .then((r) => r.json())
       .then((records: Array<{ taskTitle: string; categoryName: string; duration: number }>) => {
         if (!Array.isArray(records)) return
-        // Sum duration per activity from DB records tagged as Personal Dev
-        const dbTotals: Record<string, number> = {}
+        const totals: DbTotals = {}
         for (const rec of records) {
           if (rec.categoryName !== 'Personal Dev') continue
           const actKey = ACTIVITY_DEFS.find((a) => a.label === rec.taskTitle)?.key
           if (actKey) {
-            dbTotals[actKey] = (dbTotals[actKey] || 0) + rec.duration
+            totals[actKey] = (totals[actKey] || 0) + rec.duration
           }
         }
-        // Update timers: DB total is the source of truth for elapsed
-        setTimers((prev) => {
-          const next = { ...prev }
-          for (const key of Object.keys(dbTotals)) {
-            const existing = next[key]
-            next[key] = {
-              isRunning: existing?.isRunning ?? false,
-              elapsedSeconds: dbTotals[key],
-              segmentStartedAt: existing?.segmentStartedAt ?? null,
-            }
-          }
-          return next
-        })
-        setDbLoaded(true)
+        setDbTotals(totals)
       })
-      .catch(() => setDbLoaded(true))
+      .catch(() => {})
   }, [])
 
-  // persist on every change (only after DB load to avoid clobbering)
-  useEffect(() => { if (dbLoaded) save(timers) }, [timers, dbLoaded])
+  // Persist running state on change
+  useEffect(() => { save(timers) }, [timers])
 
-  // tick running timers every second
+  // Tick every second when any timer is running (to update displayed live elapsed)
   useEffect(() => {
     const hasRunning = Object.values(timers).some((t) => t.isRunning)
     if (hasRunning) {
-      intervalRef.current = setInterval(() => {
-        setTimers((prev) => {
-          const next = { ...prev }
-          for (const key of Object.keys(next)) {
-            if (next[key].isRunning) {
-              next[key] = { ...next[key], elapsedSeconds: next[key].elapsedSeconds + 1 }
-            }
-          }
-          return next
-        })
-      }, 1000)
+      intervalRef.current = setInterval(() => setTick((t) => t + 1), 1000)
     } else if (intervalRef.current) {
       clearInterval(intervalRef.current)
       intervalRef.current = null
@@ -160,6 +159,17 @@ export function PersonalDevTracker() {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
   }, [timers])
+
+  /** Compute displayed seconds: DB total + live segment elapsed */
+  const getDisplaySeconds = (key: string): number => {
+    const db = dbTotals[key] || 0
+    const timer = timers[key]
+    if (timer?.isRunning && timer.segmentStartedAt) {
+      const liveElapsed = Math.floor((Date.now() - new Date(timer.segmentStartedAt).getTime()) / 1000)
+      return db + Math.max(0, liveElapsed)
+    }
+    return db
+  }
 
   const toggle = useCallback((activity: Activity) => {
     const colors = loadPersonalDevColors()
@@ -183,11 +193,16 @@ export function PersonalDevTracker() {
               endTime,
               dur,
             )
+            // Update DB total locally so display stays accurate without refetch
+            setDbTotals((prevTotals) => ({
+              ...prevTotals,
+              [activity.key]: (prevTotals[activity.key] || 0) + dur,
+            }))
           }
         }
         return {
           ...prev,
-          [activity.key]: { ...current, isRunning: false, segmentStartedAt: null },
+          [activity.key]: { isRunning: false, segmentStartedAt: null },
         }
       }
 
@@ -196,12 +211,11 @@ export function PersonalDevTracker() {
         ...prev,
         [activity.key]: {
           isRunning: true,
-          elapsedSeconds: current?.elapsedSeconds ?? 0,
           segmentStartedAt: new Date().toISOString(),
         },
       }
     })
-  }, [])
+  }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
   const anyRunning = Object.values(timers).some((t) => t.isRunning)
   const devColors = loadPersonalDevColors()
@@ -234,7 +248,7 @@ export function PersonalDevTracker() {
           {ACTIVITY_DEFS.map((activity) => {
             const timer = timers[activity.key]
             const running = timer?.isRunning ?? false
-            const elapsed = timer?.elapsedSeconds ?? 0
+            const elapsed = getDisplaySeconds(activity.key)
             const Icon = activity.icon
             const color = devColors[activity.key] || DEFAULT_PERSONAL_DEV_COLORS[activity.key]
 

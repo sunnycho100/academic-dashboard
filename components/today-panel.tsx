@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Task, Category } from '@/lib/types'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -46,7 +46,8 @@ function formatDuration(minutes: number) {
   return `${minutes}m`
 }
 
-function getDueInfo(dueAt: string) {
+function getDueInfo(dueAt: string | null) {
+  if (!dueAt) return null
   const dueDate = new Date(dueAt)
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -125,7 +126,8 @@ export function TodayPanel({
 }: TodayPanelProps) {
   const { isOver, setNodeRef } = useDroppable({ id: 'today-drop-zone' })
   const [focusMode, setFocusMode] = useState(false)
-  const [dbStudyMinutes, setDbStudyMinutes] = useState(0)
+  const [dbStudySeconds, setDbStudySeconds] = useState(0)
+  const studyPollRef = useRef<NodeJS.Timeout | null>(null)
 
   // dnd-kit sensors for internal reordering (separate from main list DnD)
   const todaySensors = useSensors(
@@ -170,23 +172,44 @@ export function TodayPanel({
     })
   }, [tasks, categories, registerTaskMeta])
 
-  // Fetch today's total study time from the DB (completed tasks archive)
+  // Fetch today's total study time from ALL time records (using day boundaries)
   useEffect(() => {
-    fetch('/api/completed-tasks')
-      .then((res) => res.json())
-      .then((data: { completedAt: string; actualTimeSpent: number | null }[]) => {
-        const now = new Date()
-        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-        const todayMinutes = data
-          .filter((r) => new Date(r.completedAt) >= todayStart && r.actualTimeSpent)
-          .reduce((sum, r) => sum + (r.actualTimeSpent ?? 0), 0)
-        setDbStudyMinutes(todayMinutes)
-      })
-      .catch(() => {})
+    const fetchStudyTime = () => {
+      const now = new Date()
+      const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+      const tzOffset = now.getTimezoneOffset()
+      // Read day boundaries from localStorage (same key as Time Records dialog)
+      let startHour = 6
+      let endHour = 24
+      try {
+        const saved = localStorage.getItem('timeRecords-dayBoundaries')
+        if (saved) {
+          const { start, end } = JSON.parse(saved)
+          if (typeof start === 'number') startHour = start
+          if (typeof end === 'number') endHour = end
+        }
+      } catch {}
+      const endHourParam = endHour > 24 ? endHour - 24 : 0
+      fetch(`/api/time-records?date=${dateStr}&tz=${tzOffset}&startHour=${startHour}&endHour=${endHourParam}`)
+        .then((res) => res.json())
+        .then((records: Array<{ duration: number }>) => {
+          if (!Array.isArray(records)) return
+          const totalSec = records.reduce((sum, r) => sum + r.duration, 0)
+          setDbStudySeconds(totalSec)
+        })
+        .catch(() => {})
+    }
+
+    fetchStudyTime()
+    // Poll every 30 seconds to keep study time fresh
+    studyPollRef.current = setInterval(fetchStudyTime, 30000)
+    return () => {
+      if (studyPollRef.current) clearInterval(studyPollRef.current)
+    }
   }, [tasks]) // re-fetch when tasks change (e.g. after completing one)
 
-  // Total study time = live timers (seconds) + DB completed-today (converted to seconds)
-  const totalStudySeconds = getTotalStudyTime() + (dbStudyMinutes * 60)
+  // Total study time = DB time records for today + any currently running live timers
+  const totalStudySeconds = dbStudySeconds + getTotalStudyTime()
 
   const totalMinutes = tasks.reduce(
     (acc, t) => acc + (t.estimatedDuration || 0),
@@ -388,10 +411,14 @@ export function TodayPanel({
                             </span>
                           </>
                         )}
-                        <span className="text-muted-foreground/40 text-xs">&middot;</span>
-                        <Badge variant={due.variant} className="text-xs font-normal">
-                          {due.label}
-                        </Badge>
+                        {due && (
+                          <>
+                            <span className="text-muted-foreground/40 text-xs">&middot;</span>
+                            <Badge variant={due.variant} className="text-xs font-normal">
+                              {due.label}
+                            </Badge>
+                          </>
+                        )}
                       </div>
                     </div>
                     
@@ -810,10 +837,14 @@ export function TodayPanel({
                                   </span>
                                 </>
                               )}
-                              <span className="text-muted-foreground/40 text-xs">&middot;</span>
-                              <Badge variant={due.variant} className="text-xs font-normal">
-                                {due.label}
-                              </Badge>
+                              {due && (
+                                <>
+                                  <span className="text-muted-foreground/40 text-xs">&middot;</span>
+                                  <Badge variant={due.variant} className="text-xs font-normal">
+                                    {due.label}
+                                  </Badge>
+                                </>
+                              )}
                             </div>
                           </div>
 
