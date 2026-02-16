@@ -394,8 +394,7 @@ export default function Home() {
     })
     const map: Record<string, string[]> = {}
     for (const entry of weeklyEntries) {
-      const entryDate = new Date(entry.date)
-      const entryKey = formatDateKey(entryDate)
+      const entryKey = String(entry.date).slice(0, 10)
       const dayIdx = weekDates.findIndex((d) => formatDateKey(d) === entryKey)
       if (dayIdx !== -1) {
         const label = DAY_LABELS[dayIdx]

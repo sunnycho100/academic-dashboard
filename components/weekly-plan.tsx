@@ -156,7 +156,7 @@ export function WeeklyPlan({ tasks, categories, open, onOpenChange, onEntriesCha
       map[formatDateKey(d)] = []
     }
     for (const entry of entries) {
-      const key = formatDateKey(new Date(entry.date))
+      const key = String(entry.date).slice(0, 10)
       if (map[key]) map[key].push(entry)
     }
     return map
