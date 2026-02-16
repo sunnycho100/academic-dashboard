@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/command'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useDroppable } from '@dnd-kit/core'
 import {
   CalendarDays,
   ChevronDown,
@@ -31,7 +32,7 @@ import {
 
 // ── Types ──────────────────────────────────────────────────────────
 
-interface WeeklyPlanEntry {
+export interface WeeklyPlanEntry {
   id: string
   taskId: string
   date: string
@@ -43,12 +44,13 @@ interface WeeklyPlanProps {
   categories: Category[]
   open: boolean
   onOpenChange: (open: boolean) => void
+  onEntriesChange?: (entries: WeeklyPlanEntry[]) => void
 }
 
 // ── Helpers ────────────────────────────────────────────────────────
 
 /** Get Monday of the current week (ISO week) */
-function getWeekStart(d: Date = new Date()): Date {
+export function getWeekStart(d: Date = new Date()): Date {
   const date = new Date(d)
   date.setHours(0, 0, 0, 0)
   const day = date.getDay() // 0=Sun … 6=Sat
@@ -57,11 +59,11 @@ function getWeekStart(d: Date = new Date()): Date {
   return date
 }
 
-function formatDateKey(d: Date): string {
+export function formatDateKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+export const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 function formatShortDate(d: Date): string {
@@ -70,7 +72,7 @@ function formatShortDate(d: Date): string {
 
 // ── Component ──────────────────────────────────────────────────────
 
-export function WeeklyPlan({ tasks, categories, open, onOpenChange }: WeeklyPlanProps) {
+export function WeeklyPlan({ tasks, categories, open, onOpenChange, onEntriesChange }: WeeklyPlanProps) {
   const [entries, setEntries] = useState<WeeklyPlanEntry[]>([])
   const [weekOffset, setWeekOffset] = useState(0) // 0 = this week, 1 = next, -1 = prev
   const [loading, setLoading] = useState(false)
@@ -95,17 +97,21 @@ export function WeeklyPlan({ tasks, categories, open, onOpenChange }: WeeklyPlan
     try {
       const res = await fetch(`/api/weekly-plan?weekStart=${weekStartKey}`)
       const data = await res.json()
-      if (Array.isArray(data)) setEntries(data)
+      if (Array.isArray(data)) {
+        setEntries(data)
+        onEntriesChange?.(data)
+      }
     } catch (err) {
       console.error('Failed to fetch weekly plan:', err)
     } finally {
       setLoading(false)
     }
-  }, [weekStartKey])
+  }, [weekStartKey, onEntriesChange])
 
   useEffect(() => {
-    if (open) fetchEntries()
-  }, [open, fetchEntries])
+    // Fetch on mount (even if closed) so task-row badges are populated
+    fetchEntries()
+  }, [fetchEntries])
 
   // Add task to a day
   const addEntry = async (taskId: string, dateKey: string) => {
@@ -117,7 +123,9 @@ export function WeeklyPlan({ tasks, categories, open, onOpenChange }: WeeklyPlan
       })
       if (res.ok) {
         const entry = await res.json()
-        setEntries((prev) => [...prev, entry])
+        const updated = [...entries, entry]
+        setEntries(updated)
+        onEntriesChange?.(updated)
       }
     } catch (err) {
       console.error('Failed to add weekly plan entry:', err)
@@ -127,7 +135,9 @@ export function WeeklyPlan({ tasks, categories, open, onOpenChange }: WeeklyPlan
 
   // Remove entry
   const removeEntry = async (entryId: string) => {
-    setEntries((prev) => prev.filter((e) => e.id !== entryId))
+    const updated = entries.filter((e) => e.id !== entryId)
+    setEntries(updated)
+    onEntriesChange?.(updated)
     try {
       await fetch('/api/weekly-plan', {
         method: 'DELETE',
@@ -248,15 +258,7 @@ export function WeeklyPlan({ tasks, categories, open, onOpenChange }: WeeklyPlan
                   const availableTasks = tasks.filter((t) => !assignedIds.has(t.id))
 
                   return (
-                    <div
-                      key={dateKey}
-                      className={cn(
-                        'rounded-xl border transition-colors min-h-[140px] flex flex-col',
-                        isToday
-                          ? 'border-violet-500/40 bg-violet-500/5'
-                          : 'border-border/20 bg-muted/20 hover:bg-muted/30',
-                      )}
-                    >
+                    <DroppableDayColumn key={dateKey} dateKey={dateKey} isToday={isToday}>
                       {/* Day header */}
                       <div className={cn(
                         'px-2.5 py-1.5 flex items-center justify-between border-b',
@@ -389,7 +391,7 @@ export function WeeklyPlan({ tasks, categories, open, onOpenChange }: WeeklyPlan
                           </PopoverContent>
                         </Popover>
                       </div>
-                    </div>
+                    </DroppableDayColumn>
                   )
                 })}
               </div>
@@ -398,5 +400,34 @@ export function WeeklyPlan({ tasks, categories, open, onOpenChange }: WeeklyPlan
         </motion.div>
       )}
     </AnimatePresence>
+  )
+}
+
+// ── Droppable Day Column ───────────────────────────────────────────
+
+function DroppableDayColumn({
+  dateKey,
+  isToday,
+  children,
+}: {
+  dateKey: string
+  isToday: boolean
+  children: React.ReactNode
+}) {
+  const { isOver, setNodeRef } = useDroppable({ id: `weekly-day-${dateKey}` })
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        'rounded-xl border transition-colors min-h-[140px] flex flex-col',
+        isToday
+          ? 'border-violet-500/40 bg-violet-500/5'
+          : 'border-border/20 bg-muted/20 hover:bg-muted/30',
+        isOver && 'ring-2 ring-violet-500/40 bg-violet-500/10',
+      )}
+    >
+      {children}
+    </div>
   )
 }

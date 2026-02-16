@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Task, Category, SortOption, ViewMode, TaskType } from '@/lib/types'
 import { loadState } from '@/lib/store'
 import { CategorySidebar } from '@/components/category-sidebar'
@@ -16,7 +16,7 @@ import { ImportDataDialog } from '@/components/import-data-dialog'
 import { EmptyState } from '@/components/empty-state'
 import { TimeRecordsDialog } from '@/components/time-records-dialog'
 import { ColorSchemeDialog } from '@/components/color-scheme-dialog'
-import { WeeklyPlan } from '@/components/weekly-plan'
+import { WeeklyPlan, type WeeklyPlanEntry, getWeekStart, formatDateKey, DAY_LABELS } from '@/components/weekly-plan'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -84,6 +84,7 @@ export default function Home() {
   const [timeRecordsOpen, setTimeRecordsOpen] = useState(false)
   const [colorSchemeOpen, setColorSchemeOpen] = useState(false)
   const [weeklyPlanOpen, setWeeklyPlanOpen] = useState(false)
+  const [weeklyEntries, setWeeklyEntries] = useState<WeeklyPlanEntry[]>([])
   const [mounted, setMounted] = useState(false)
   const [todayTaskIds, setTodayTaskIds] = useState<string[]>([])
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
@@ -383,10 +384,60 @@ export default function Home() {
     setActiveDragId(String(event.active.id))
   }
 
+  // Build taskId → day label map from weekly entries for this week
+  const weeklyDayLabels = useMemo(() => {
+    const monday = getWeekStart()
+    const weekDates = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday)
+      d.setDate(monday.getDate() + i)
+      return d
+    })
+    const map: Record<string, string[]> = {}
+    for (const entry of weeklyEntries) {
+      const entryDate = new Date(entry.date)
+      const entryKey = formatDateKey(entryDate)
+      const dayIdx = weekDates.findIndex((d) => formatDateKey(d) === entryKey)
+      if (dayIdx !== -1) {
+        const label = DAY_LABELS[dayIdx]
+        if (!map[entry.taskId]) map[entry.taskId] = []
+        if (!map[entry.taskId].includes(label)) map[entry.taskId].push(label)
+      }
+    }
+    return map
+  }, [weeklyEntries])
+
+  const handleWeeklyEntriesChange = useCallback((entries: WeeklyPlanEntry[]) => {
+    setWeeklyEntries(entries)
+  }, [])
+
   const handleGlobalDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
     setActiveDragId(null)
     if (!over) return
+
+    // Drop onto a weekly plan day column
+    const overId = String(over.id)
+    if (overId.startsWith('weekly-day-')) {
+      const dateKey = overId.replace('weekly-day-', '')
+      const taskId = String(active.id)
+      // Call API to add entry, then trigger refetch via onEntriesChange
+      fetch('/api/weekly-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId, date: dateKey }),
+      })
+        .then((res) => {
+          if (res.ok) return res.json()
+          return null
+        })
+        .then((entry) => {
+          if (entry) {
+            setWeeklyEntries((prev) => [...prev, entry])
+          }
+        })
+        .catch((err) => console.error('Failed to add weekly plan entry via drag:', err))
+      return
+    }
 
     if (over.id === 'today-drop-zone') {
       handleAddToToday(String(active.id))
@@ -705,6 +756,7 @@ export default function Home() {
                 categories={categories}
                 open={weeklyPlanOpen}
                 onOpenChange={setWeeklyPlanOpen}
+                onEntriesChange={handleWeeklyEntriesChange}
               />
 
               {/* Bento Grid: Task List + Today's Plan */}
@@ -725,6 +777,7 @@ export default function Home() {
                     todayTaskIds={todayTaskIds}
                     sortOption={sortOption}
                     emptyMessage={emptyMessage}
+                    weeklyDayLabels={weeklyDayLabels}
                   />
                 </div>
 

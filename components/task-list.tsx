@@ -24,6 +24,7 @@ interface TaskListProps {
   todayTaskIds?: string[]
   sortOption: SortOption
   emptyMessage: string
+  weeklyDayLabels?: Record<string, string[]>
 }
 
 export function TaskList({
@@ -40,6 +41,7 @@ export function TaskList({
   todayTaskIds,
   sortOption,
   emptyMessage,
+  weeklyDayLabels,
 }: TaskListProps) {
   const getCategoryForTask = (categoryId: string) => {
     return categories.find((c) => c.id === categoryId)!
@@ -116,6 +118,7 @@ export function TaskList({
                             onAddToToday={onAddToToday}
                             onRemoveFromToday={onRemoveFromToday}
                             isInToday={todayTaskIds?.includes(task.id)}
+                            weeklyDayLabels={weeklyDayLabels?.[task.id]}
                           />
                         ))}
                       </div>
@@ -151,6 +154,7 @@ export function TaskList({
                   onAddToToday={onAddToToday}
                   onRemoveFromToday={onRemoveFromToday}
                   isInToday={todayTaskIds?.includes(task.id)}
+                  weeklyDayLabels={weeklyDayLabels?.[task.id]}
                 />
               ))}
             </div>

@@ -481,11 +481,10 @@ export function TodayPanel({
   // ── Normal (inline Bento card) ──
   return (
     <motion.div
-      layout
       layoutId="today-panel-card"
       ref={setNodeRef}
       className={cn(
-        'relative rounded-2xl flex flex-col overflow-hidden h-full',
+        'relative rounded-2xl flex flex-col overflow-hidden',
         // Glassmorphism
         'bg-card/50 backdrop-blur-xl',
         'border',
@@ -498,7 +497,7 @@ export function TodayPanel({
       )}
       animate={isOver ? { scale: 1.01 } : { scale: 1 }}
       transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-      style={{ minHeight: 0 }}
+      style={{ minHeight: 0, height: '100%' }}
     >
       {/* Radial inner glow on drag-over */}
       <AnimatePresence>
@@ -611,8 +610,9 @@ export function TodayPanel({
 
       <div className="mx-4 border-t border-border/10" />
 
-      {/* Task list / Drop zone */}
-      <div className="relative z-10 px-3 py-2">
+      {/* Task list / Drop zone — scrollable */}
+      <ScrollArea className="relative z-10 flex-1 min-h-0">
+        <div className="px-3 py-2">
         {tasks.length === 0 ? (
           /* ── Empty State ── */
           <motion.div
@@ -894,18 +894,18 @@ export function TodayPanel({
             </SortableContext>
           </DndContext>
         )}
-      </div>
+        </div>
+      </ScrollArea>
 
       {/* Global Study Time Footer */}
       <AnimatePresence>
         {tasks.length > 0 && (
           <motion.div
-            layout
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-            className="relative z-10 border-t border-border/20 overflow-hidden"
+            className="relative z-10 border-t border-border/20 overflow-hidden flex-shrink-0"
           >
             <div className="px-4 py-3 bg-background/30 backdrop-blur-sm">
               <div className="flex items-center justify-between">
@@ -935,7 +935,9 @@ export function TodayPanel({
       </AnimatePresence>
 
       {/* Personal Development Tracker */}
-      <PersonalDevTracker />
+      <div className="flex-shrink-0">
+        <PersonalDevTracker />
+      </div>
     </motion.div>
   )
 }

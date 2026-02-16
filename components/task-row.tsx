@@ -37,6 +37,7 @@ interface TaskRowProps {
   isInToday?: boolean
   isDragging?: boolean
   animationIndex?: number
+  weeklyDayLabels?: string[]
 }
 
 function InlineEdit({
@@ -221,6 +222,7 @@ export function TaskRow({
   onRemoveFromToday,
   isInToday,
   animationIndex = 0,
+  weeklyDayLabels,
 }: TaskRowProps) {
   const {
     attributes,
@@ -381,6 +383,23 @@ export function TaskRow({
           >
             {dueDateLabel}
           </Badge>
+          {/* Weekly day labels */}
+          {weeklyDayLabels && weeklyDayLabels.length > 0 && (
+            <>
+              <span className="text-muted-foreground/40 text-xs">·</span>
+              <span className="inline-flex items-center gap-1">
+                {weeklyDayLabels.map((day) => (
+                  <Badge
+                    key={day}
+                    variant="outline"
+                    className="text-[9px] px-1.5 py-0 h-4 font-medium text-violet-600 dark:text-violet-400 border-violet-400/40 bg-violet-500/10"
+                  >
+                    {day}
+                  </Badge>
+                ))}
+              </span>
+            </>
+          )}
           {/* Completed time info */}
           {task.status === 'done' && task.actualTimeSpent != null && task.actualTimeSpent > 0 && (
             <>
