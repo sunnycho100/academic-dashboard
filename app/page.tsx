@@ -16,7 +16,7 @@ import { ImportDataDialog } from '@/components/import-data-dialog'
 import { EmptyState } from '@/components/empty-state'
 import { TimeRecordsDialog } from '@/components/time-records-dialog'
 import { ColorSchemeDialog } from '@/components/color-scheme-dialog'
-import { WeeklyPlan, type WeeklyPlanEntry, getWeekStart, formatDateKey, DAY_LABELS } from '@/components/weekly-plan'
+import { WeeklyPlan, type WeeklyPlanEntry, DAY_LABELS } from '@/components/weekly-plan'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -40,7 +40,7 @@ import { motion } from 'framer-motion'
 import {
   DndContext,
   DragOverlay,
-  closestCenter,
+  pointerWithin,
   PointerSensor,
   useSensor,
   useSensors,
@@ -385,23 +385,17 @@ export default function Home() {
     setActiveDragId(String(event.active.id))
   }
 
-  // Build taskId → day label map from weekly entries for this week
+  // Build taskId → day label map from weekly entries
   const weeklyDayLabels = useMemo(() => {
-    const monday = getWeekStart()
-    const weekDates = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(monday)
-      d.setDate(monday.getDate() + i)
-      return d
-    })
     const map: Record<string, string[]> = {}
     for (const entry of weeklyEntries) {
-      const entryKey = String(entry.date).slice(0, 10)
-      const dayIdx = weekDates.findIndex((d) => formatDateKey(d) === entryKey)
-      if (dayIdx !== -1) {
-        const label = DAY_LABELS[dayIdx]
-        if (!map[entry.taskId]) map[entry.taskId] = []
-        if (!map[entry.taskId].includes(label)) map[entry.taskId].push(label)
-      }
+      // Derive day-of-week directly from the date string to avoid week-range mismatch
+      const [y, m, d] = String(entry.date).slice(0, 10).split('-').map(Number)
+      const dateObj = new Date(y, m - 1, d) // local date, no TZ shift
+      const jsDay = dateObj.getDay() // 0=Sun … 6=Sat
+      const label = DAY_LABELS[jsDay === 0 ? 6 : jsDay - 1] // DAY_LABELS is Mon-indexed
+      if (!map[entry.taskId]) map[entry.taskId] = []
+      if (!map[entry.taskId].includes(label)) map[entry.taskId].push(label)
     }
     return map
   }, [weeklyEntries])
@@ -594,7 +588,7 @@ export default function Home() {
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
+      collisionDetection={pointerWithin}
       onDragStart={handleGlobalDragStart}
       onDragEnd={handleGlobalDragEnd}
     >
