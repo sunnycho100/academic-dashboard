@@ -280,6 +280,8 @@ export function TaskRow({
     <motion.div
       ref={setNodeRef}
       style={style}
+      {...attributes}
+      {...listeners}
       layout
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
@@ -288,7 +290,7 @@ export function TaskRow({
       whileHover={{ y: -2, transition: { duration: 0.15 } }}
       whileTap={{ scale: 0.995 }}
       className={cn(
-        'group relative flex items-center gap-3 p-3 rounded-xl border border-border/60 bg-card transition-all duration-200',
+        'group relative flex items-center gap-3 p-3 rounded-xl border border-border/60 bg-card transition-all duration-200 cursor-grab active:cursor-grabbing touch-none',
         'hover:shadow-md hover:border-border',
         isDragging && 'opacity-50 shadow-lg scale-[1.02] z-50',
         task.status === 'done' && 'opacity-50'
@@ -300,13 +302,9 @@ export function TaskRow({
         style={{ backgroundColor: category.color }}
       />
 
-      <button
-        className="cursor-grab active:cursor-grabbing touch-none"
-        {...attributes}
-        {...listeners}
-      >
+      <div className="flex-shrink-0">
         <GripVertical className="h-4 w-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors" />
-      </button>
+      </div>
 
       <motion.div
         whileTap={{ scale: 0.85 }}
