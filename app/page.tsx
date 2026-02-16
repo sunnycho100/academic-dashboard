@@ -160,12 +160,32 @@ export default function Home() {
         fetch('/api/completed-tasks/cleanup', { method: 'DELETE' })
           .catch((err) => console.error('Auto-cleanup failed:', err))
 
-        // Fetch today's completed count
+        // Fetch today's completed count (respecting day boundaries)
         try {
           const completedRes = await fetch('/api/completed-tasks')
           const completedAll = await completedRes.json()
-          const todayStart = new Date()
-          todayStart.setHours(0, 0, 0, 0)
+
+          // Read day boundaries from localStorage
+          let dayStartHour = 0
+          let dayEndHour = 24
+          try {
+            const saved = localStorage.getItem('timeRecords-dayBoundaries')
+            if (saved) {
+              const { start, end } = JSON.parse(saved)
+              if (typeof start === 'number') dayStartHour = start
+              if (typeof end === 'number') dayEndHour = end
+            }
+          } catch {}
+
+          // Compute effective "today start" respecting day boundaries
+          const now = new Date()
+          const todayStart = new Date(now)
+          if (dayEndHour > 24 && now.getHours() < dayEndHour - 24) {
+            // Past midnight but before end-hour: still in yesterday's day
+            todayStart.setDate(todayStart.getDate() - 1)
+          }
+          todayStart.setHours(dayStartHour, 0, 0, 0)
+
           const todayCount = completedAll.filter(
             (ct: { completedAt: string }) => new Date(ct.completedAt) >= todayStart
           ).length
