@@ -45,6 +45,7 @@ interface WeeklyPlanProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onEntriesChange?: (entries: WeeklyPlanEntry[]) => void
+  refreshKey?: number
 }
 
 // ── Helpers ────────────────────────────────────────────────────────
@@ -72,7 +73,7 @@ function formatShortDate(d: Date): string {
 
 // ── Component ──────────────────────────────────────────────────────
 
-export function WeeklyPlan({ tasks, categories, open, onOpenChange, onEntriesChange }: WeeklyPlanProps) {
+export function WeeklyPlan({ tasks, categories, open, onOpenChange, onEntriesChange, refreshKey }: WeeklyPlanProps) {
   const [entries, setEntries] = useState<WeeklyPlanEntry[]>([])
   const [weekOffset, setWeekOffset] = useState(0) // 0 = this week, 1 = next, -1 = prev
   const [loading, setLoading] = useState(false)
@@ -111,7 +112,7 @@ export function WeeklyPlan({ tasks, categories, open, onOpenChange, onEntriesCha
   useEffect(() => {
     // Fetch on mount (even if closed) so task-row badges are populated
     fetchEntries()
-  }, [fetchEntries])
+  }, [fetchEntries, refreshKey])
 
   // Add task to a day
   const addEntry = async (taskId: string, dateKey: string) => {

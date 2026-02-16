@@ -85,6 +85,7 @@ export default function Home() {
   const [colorSchemeOpen, setColorSchemeOpen] = useState(false)
   const [weeklyPlanOpen, setWeeklyPlanOpen] = useState(false)
   const [weeklyEntries, setWeeklyEntries] = useState<WeeklyPlanEntry[]>([])
+  const [weeklyRefreshKey, setWeeklyRefreshKey] = useState(0)
   const [mounted, setMounted] = useState(false)
   const [todayTaskIds, setTodayTaskIds] = useState<string[]>([])
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
@@ -432,6 +433,7 @@ export default function Home() {
         .then((entry) => {
           if (entry) {
             setWeeklyEntries((prev) => [...prev, entry])
+            setWeeklyRefreshKey((k) => k + 1)
           }
         })
         .catch((err) => console.error('Failed to add weekly plan entry via drag:', err))
@@ -756,6 +758,7 @@ export default function Home() {
                 open={weeklyPlanOpen}
                 onOpenChange={setWeeklyPlanOpen}
                 onEntriesChange={handleWeeklyEntriesChange}
+                refreshKey={weeklyRefreshKey}
               />
 
               {/* Bento Grid: Task List + Today's Plan */}
