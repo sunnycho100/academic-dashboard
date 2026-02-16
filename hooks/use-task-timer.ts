@@ -71,6 +71,9 @@ async function saveTimeRecord(
 export function useTaskTimers(taskIds: string[]) {
   const [timerStates, setTimerStates] = useState<TaskTimerData>({})
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  // Keep a ref mirror so side-effects can read latest state outside the setter
+  const timerStatesRef = useRef<TaskTimerData>({})
+  useEffect(() => { timerStatesRef.current = timerStates }, [timerStates])
   // Map of taskId → TaskMeta for persisting records
   const taskMetaRef = useRef<Record<string, TaskMeta>>({})
 
@@ -152,31 +155,30 @@ export function useTaskTimers(taskIds: string[]) {
   }, [])
 
   const pauseTimer = useCallback((taskId: string) => {
-    setTimerStates((prev) => {
-      const state = prev[taskId]
-      if (!state || !state.isRunning || state.isPaused) return prev
+    // Read state from ref (outside setter) so the side-effect runs exactly once
+    const state = timerStatesRef.current[taskId]
+    if (!state || !state.isRunning || state.isPaused) return
 
-      // Save segment record
-      const endTime = new Date().toISOString()
-      if (state.segmentStartedAt) {
-        const segmentDuration = Math.round(
-          (new Date(endTime).getTime() - new Date(state.segmentStartedAt).getTime()) / 1000
-        )
-        const meta = taskMetaRef.current[taskId]
-        if (meta && segmentDuration > 0) {
-          saveTimeRecord(meta, state.segmentStartedAt, endTime, segmentDuration)
-        }
+    // Save segment record OUTSIDE the state updater to avoid React StrictMode double-fire
+    const endTime = new Date().toISOString()
+    if (state.segmentStartedAt) {
+      const segmentDuration = Math.round(
+        (new Date(endTime).getTime() - new Date(state.segmentStartedAt).getTime()) / 1000
+      )
+      const meta = taskMetaRef.current[taskId]
+      if (meta && segmentDuration > 0) {
+        saveTimeRecord(meta, state.segmentStartedAt, endTime, segmentDuration)
       }
+    }
 
-      return {
-        ...prev,
-        [taskId]: {
-          ...state,
-          isPaused: true,
-          segmentStartedAt: null,
-        },
-      }
-    })
+    setTimerStates((prev) => ({
+      ...prev,
+      [taskId]: {
+        ...prev[taskId],
+        isPaused: true,
+        segmentStartedAt: null,
+      },
+    }))
   }, [])
 
   const resumeTimer = useCallback((taskId: string) => {
@@ -196,20 +198,20 @@ export function useTaskTimers(taskIds: string[]) {
   }, [])
 
   const stopTimer = useCallback((taskId: string) => {
-    setTimerStates((prev) => {
-      const state = prev[taskId]
-      // Save the last active segment if still running
-      if (state?.isRunning && !state.isPaused && state.segmentStartedAt) {
-        const endTime = new Date().toISOString()
-        const segmentDuration = Math.round(
-          (new Date(endTime).getTime() - new Date(state.segmentStartedAt).getTime()) / 1000
-        )
-        const meta = taskMetaRef.current[taskId]
-        if (meta && segmentDuration > 0) {
-          saveTimeRecord(meta, state.segmentStartedAt, endTime, segmentDuration)
-        }
+    // Read state from ref (outside setter) so the side-effect runs exactly once
+    const state = timerStatesRef.current[taskId]
+    if (state?.isRunning && !state.isPaused && state.segmentStartedAt) {
+      const endTime = new Date().toISOString()
+      const segmentDuration = Math.round(
+        (new Date(endTime).getTime() - new Date(state.segmentStartedAt).getTime()) / 1000
+      )
+      const meta = taskMetaRef.current[taskId]
+      if (meta && segmentDuration > 0) {
+        saveTimeRecord(meta, state.segmentStartedAt, endTime, segmentDuration)
       }
+    }
 
+    setTimerStates((prev) => {
       const newState = { ...prev }
       delete newState[taskId]
       return newState
