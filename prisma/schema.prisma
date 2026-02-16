@@ -36,6 +36,8 @@ model Task {
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
+  weeklyPlanEntries WeeklyPlanEntry[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -79,4 +81,16 @@ model TimeRecord {
 
   @@index([startTime])
   @@index([taskId])
+}
+
+model WeeklyPlanEntry {
+  id     String   @id @default(uuid())
+  taskId String
+  task   Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  date   DateTime // the calendar date this task is planned for
+
+  createdAt DateTime @default(now())
+
+  @@unique([taskId, date])
+  @@index([date])
 }

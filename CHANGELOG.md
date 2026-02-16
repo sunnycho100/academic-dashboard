@@ -5,7 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+**Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
+
 ## [Unreleased]
+
+## [1.5.0] - 2026-02-15
+Weekly planning system with PostgreSQL-backed task scheduling and 7-day grid interface
+
+### Added
+- Weekly Plan — collapsible panel above Task List and Today's Plan for planning tasks across the week
+- 7-day grid layout (Mon–Sun) with task assignment via searchable dropdown grouped by category
+- Week navigation with previous/next arrows and click-to-reset to current week
+- Today column highlighting with visual indicator
+- `WeeklyPlanEntry` Prisma model with unique constraint on task+date (prevents duplicates)
+- `GET /api/weekly-plan?weekStart=YYYY-MM-DD` — fetch entries for a 7-day window with full task + category data
+- `POST /api/weekly-plan` — assign a task to a specific day
+- `DELETE /api/weekly-plan` — remove a weekly plan entry
+- Cascade delete: weekly plan entries auto-removed when parent task is deleted
 
 ## [1.4.2] - 2026-02-15
 Timer display accuracy and study time source of truth

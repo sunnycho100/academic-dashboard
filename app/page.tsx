@@ -16,6 +16,7 @@ import { ImportDataDialog } from '@/components/import-data-dialog'
 import { EmptyState } from '@/components/empty-state'
 import { TimeRecordsDialog } from '@/components/time-records-dialog'
 import { ColorSchemeDialog } from '@/components/color-scheme-dialog'
+import { WeeklyPlan } from '@/components/weekly-plan'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -34,7 +35,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
-import { Plus, Settings, Download, Upload, Trash2, Palette } from 'lucide-react'
+import { Plus, Settings, Download, Upload, Trash2, Palette, CalendarDays } from 'lucide-react'
 import { motion } from 'framer-motion'
 import {
   DndContext,
@@ -82,6 +83,7 @@ export default function Home() {
   const [importDataOpen, setImportDataOpen] = useState(false)
   const [timeRecordsOpen, setTimeRecordsOpen] = useState(false)
   const [colorSchemeOpen, setColorSchemeOpen] = useState(false)
+  const [weeklyPlanOpen, setWeeklyPlanOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [todayTaskIds, setTodayTaskIds] = useState<string[]>([])
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
@@ -633,6 +635,16 @@ export default function Home() {
                     Add Task
                   </Button>
                 </motion.div>
+                <motion.div whileTap={{ scale: 0.95 }}>
+                  <Button
+                    variant={weeklyPlanOpen ? 'default' : 'outline'}
+                    onClick={() => setWeeklyPlanOpen(!weeklyPlanOpen)}
+                    className="rounded-lg shadow-sm"
+                  >
+                    <CalendarDays className="h-4 w-4 mr-2" />
+                    Weekly Plan
+                  </Button>
+                </motion.div>
                 <Tabs
                   value={viewMode}
                   onValueChange={(value) => setViewMode(value as ViewMode)}
@@ -686,6 +698,14 @@ export default function Home() {
                   </motion.div>
                 </div>
               </div>
+
+              {/* Weekly Plan (collapsible, above bento grid) */}
+              <WeeklyPlan
+                tasks={tasks}
+                categories={categories}
+                open={weeklyPlanOpen}
+                onOpenChange={setWeeklyPlanOpen}
+              />
 
               {/* Bento Grid: Task List + Today's Plan */}
               <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-6 flex-1 min-h-0">
