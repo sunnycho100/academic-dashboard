@@ -8,6 +8,24 @@ export async function PATCH(
   try {
     const { id } = await params
     const body = await request.json()
+
+    // If renaming, also cascade to CompletedTask and TimeRecord
+    if (body.name) {
+      const existing = await prisma.category.findUnique({ where: { id } })
+      if (existing && existing.name !== body.name) {
+        await Promise.all([
+          prisma.completedTask.updateMany({
+            where: { categoryName: existing.name },
+            data: { categoryName: body.name },
+          }),
+          prisma.timeRecord.updateMany({
+            where: { categoryName: existing.name },
+            data: { categoryName: body.name },
+          }),
+        ])
+      }
+    }
+
     const category = await prisma.category.update({
       where: { id },
       data: body,

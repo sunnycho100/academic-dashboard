@@ -27,7 +27,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <div className="mesh-gradient min-h-screen">
+            {children}
+          </div>
         </ThemeProvider>
       </body>
     </html>

@@ -262,10 +262,10 @@ export function TodayPanel({
         {/* Expanded card */}
         <motion.div
           layoutId="today-panel-card"
-          className="relative z-10 w-full max-w-lg max-h-[80vh] rounded-3xl border border-white/15 bg-card/90 backdrop-blur-2xl shadow-2xl flex flex-col overflow-hidden"
+          className="relative z-10 w-full max-w-lg max-h-[80vh] rounded-3xl glass-thick shadow-2xl flex flex-col overflow-hidden"
           transition={{ type: 'spring', stiffness: 250, damping: 28 }}
         >
-          <div className="px-6 pt-6 pb-4 border-b border-border/20">
+          <div className="px-6 pt-6 pb-4 border-b border-white/10">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -326,8 +326,8 @@ export function TodayPanel({
                     whileTap={{ scale: 0.98 }}
                     className={cn(
                       'group flex items-center gap-3 p-4 rounded-2xl transition-all duration-200',
-                      'bg-background/60 hover:bg-background/90 backdrop-blur-sm',
-                      'border border-border/20 hover:border-border/40',
+                      'glass-thin glass-interactive',
+                      'border border-white/10 hover:border-white/20',
                       task.status === 'done' && 'opacity-40',
                       isRunning && 'ring-2 ring-primary/20'
                     )}
@@ -462,7 +462,7 @@ export function TodayPanel({
           </ScrollArea>
           
           {/* Study Time Footer in Focus Mode */}
-          <div className="border-t border-border/20 px-6 py-4 bg-background/30 backdrop-blur-sm">
+          <div className="border-t border-white/10 px-6 py-4 glass-thick">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -498,14 +498,13 @@ export function TodayPanel({
       className={cn(
         'relative rounded-2xl flex flex-col overflow-hidden',
         // Glassmorphism
-        'bg-card/50 backdrop-blur-xl',
-        'border',
+        'glass-thin glass-rim',
         // Magnetic glow states
         isOver
           ? 'border-primary/40 shadow-[0_0_30px_-5px_hsl(var(--primary)/0.2)] scale-[1.01]'
           : showMagnetic
             ? 'border-primary/20 shadow-[0_0_20px_-5px_hsl(var(--primary)/0.1)]'
-            : 'border-border/40 shadow-sm',
+            : '',
       )}
       animate={isOver ? { scale: 1.01 } : { scale: 1 }}
       transition={{ type: 'spring', stiffness: 300, damping: 28 }}
@@ -559,7 +558,7 @@ export function TodayPanel({
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                className="text-[10px] font-medium text-muted-foreground/50 bg-secondary/50 px-2 py-0.5 rounded-full tabular-nums mr-1"
+                className="text-[10px] font-medium text-muted-foreground/50 bg-white/10 px-2 py-0.5 rounded-full tabular-nums mr-1"
               >
                 {completedCount}/{tasks.length}
               </motion.span>
@@ -620,7 +619,7 @@ export function TodayPanel({
         </div>
       </div>
 
-      <div className="mx-4 border-t border-border/10" />
+      <div className="mx-4 border-t border-white/10" />
 
       {/* Task list / Drop zone — scrollable */}
       <ScrollArea className="relative z-10 flex-1 min-h-0">
@@ -741,8 +740,8 @@ export function TodayPanel({
                           }}
                           className={cn(
                             'group relative flex items-center gap-3 p-3 rounded-xl transition-all duration-200',
-                            'bg-background/60 hover:bg-background/90 backdrop-blur-sm',
-                            'border border-border/30 hover:border-border/50',
+                            'glass-thin glass-interactive',
+                            'border border-white/10 hover:border-white/20',
                             'hover:shadow-md',
                             task.status === 'done' && 'opacity-40',
                             isRunning && 'ring-2 ring-primary/20'
@@ -917,9 +916,9 @@ export function TodayPanel({
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-            className="relative z-10 border-t border-border/20 overflow-hidden flex-shrink-0"
+            className="relative z-10 border-t border-white/10 overflow-hidden flex-shrink-0"
           >
-            <div className="px-4 py-3 bg-background/30 backdrop-blur-sm">
+            <div className="px-4 py-3 glass-thick">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">

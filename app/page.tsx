@@ -387,6 +387,35 @@ export default function Home() {
       .catch((err) => console.error('Failed to delete category:', err))
   }
 
+  const handleRenameCategory = (categoryId: string, newName: string) => {
+    // Optimistic update
+    setCategories((prev) =>
+      prev.map((c) => (c.id === categoryId ? { ...c, name: newName } : c))
+    )
+    // Persist
+    fetch(`/api/categories/${categoryId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newName }),
+    }).catch((err) => console.error('Failed to rename category:', err))
+  }
+
+  const handleReorderCategories = (reorderedCategories: Category[]) => {
+    // Optimistic update with new order values
+    const updated = reorderedCategories.map((c, i) => ({ ...c, order: i }))
+    setCategories(updated)
+    // Persist each category's new order
+    Promise.all(
+      updated.map((c) =>
+        fetch(`/api/categories/${c.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order: c.order }),
+        })
+      )
+    ).catch((err) => console.error('Failed to reorder categories:', err))
+  }
+
   const handleAddToToday = (taskId: string) => {
     if (!todayTaskIds.includes(taskId)) {
       setTodayTaskIds([...todayTaskIds, taskId])
@@ -612,7 +641,7 @@ export default function Home() {
       onDragStart={handleGlobalDragStart}
       onDragEnd={handleGlobalDragEnd}
     >
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen">
       {/* Sidebar */}
       <CategorySidebar
         categories={categories}
@@ -620,6 +649,8 @@ export default function Home() {
         onSelectCategory={setSelectedCategoryId}
         onAddCategory={() => setAddCategoryOpen(true)}
         onRemoveCategory={handleRemoveCategory}
+        onRenameCategory={handleRenameCategory}
+        onReorderCategories={handleReorderCategories}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onOpenTimeRecords={() => setTimeRecordsOpen(true)}
@@ -628,7 +659,7 @@ export default function Home() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Header */}
-        <header className="border-b border-border/50 bg-card/80 backdrop-blur-md px-6 py-4 sticky top-0 z-30">
+        <header className="border-b border-white/10 glass-thick px-6 py-4 sticky top-0 z-30">
           <div className="flex items-center justify-between">
             <motion.h1
               initial={{ opacity: 0, x: -12 }}
@@ -829,7 +860,7 @@ export default function Home() {
               transition={{ type: 'spring', stiffness: 300, damping: 20 }}
               className="bg-card/95 backdrop-blur-xl border border-border/40 rounded-xl p-3 max-w-sm cursor-grabbing"
               style={{
-                boxShadow: '0 25px 60px -12px rgba(0,0,0,0.25), 0 12px 28px -8px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05)',
+                boxShadow: '0 25px 60px -12px rgba(0,0,0,0.15), 0 12px 28px -8px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.03)',
               }}
             >
               <div className="flex items-center gap-3">

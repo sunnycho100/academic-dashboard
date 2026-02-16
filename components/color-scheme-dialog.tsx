@@ -82,7 +82,7 @@ export function ColorSchemeDialog({
         <>
           {/* Backdrop */}
           <motion.div
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -93,14 +93,14 @@ export function ColorSchemeDialog({
           {/* Dialog */}
           <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
             <motion.div
-              className="pointer-events-auto w-full max-w-md rounded-2xl border border-border/50 bg-card shadow-2xl overflow-hidden"
+              className="pointer-events-auto w-full max-w-md rounded-2xl glass-overlay border border-white/10 shadow-2xl overflow-hidden"
               initial={{ opacity: 0, scale: 0.92, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             >
               {/* Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-border/30">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
                 <motion.h2
                   className="text-lg font-bold tracking-tight"
                   initial={{ opacity: 0, x: -8 }}
@@ -134,7 +134,7 @@ export function ColorSchemeDialog({
                     {categories.map((cat) => (
                       <div
                         key={cat.id}
-                        className="flex items-center gap-3 rounded-xl border border-border/30 bg-muted/20 px-3 py-2.5"
+                        className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-3 py-2.5"
                       >
                         <Input
                           type="color"
@@ -176,7 +176,7 @@ export function ColorSchemeDialog({
                       return (
                         <div
                           key={activity.key}
-                          className="flex items-center gap-3 rounded-xl border border-border/30 bg-muted/20 px-3 py-2.5"
+                          className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-3 py-2.5"
                         >
                           <Input
                             type="color"
@@ -202,7 +202,7 @@ export function ColorSchemeDialog({
               </div>
 
               {/* Footer */}
-              <div className="px-6 py-3 border-t border-border/30 flex justify-end">
+              <div className="px-6 py-3 border-t border-white/10 flex justify-end">
                 <Button variant="ghost" size="sm" onClick={handleClose}>
                   Done
                 </Button>

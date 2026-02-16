@@ -4,6 +4,7 @@ import { Task } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CheckCircle2, AlertCircle, Clock, ListTodo } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { liquidStaggerContainer, liquidStaggerChild, childSpring } from '@/lib/liquidTransitions'
 
 interface StatsProps {
   tasks: Task[]
@@ -119,17 +120,20 @@ export function Stats({ tasks, completedTodayCount, todayRemainingCount }: Stats
   ]
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+    <motion.div
+      variants={liquidStaggerContainer}
+      initial="initial"
+      animate="animate"
+      className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8"
+    >
       {stats.map((stat, index) => (
         <motion.div
           key={stat.label}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: index * 0.08, ease: 'easeOut' }}
+          variants={liquidStaggerChild}
           whileHover={{ y: -4, transition: { duration: 0.2 } }}
           whileTap={{ scale: 0.97 }}
         >
-          <Card className={`relative overflow-hidden rounded-xl border-border/50 transition-shadow duration-300 hover:shadow-lg h-full ${stat.bgGlow}`}>
+          <Card className={`relative overflow-hidden rounded-2xl transition-all duration-300 hover:shadow-lg h-full glass-interactive ${stat.bgGlow}`}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                 {stat.label}
@@ -163,6 +167,6 @@ export function Stats({ tasks, completedTodayCount, todayRemainingCount }: Stats
           </Card>
         </motion.div>
       ))}
-    </div>
+    </motion.div>
   )
 }

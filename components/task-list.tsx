@@ -8,6 +8,7 @@ import {
 } from '@dnd-kit/sortable'
 import { FileQuestion, ListTodo } from 'lucide-react'
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
+import { liquidStaggerContainer, liquidStaggerChild, childSpring } from '@/lib/liquidTransitions'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
 interface TaskListProps {
@@ -168,7 +169,7 @@ export function TaskList({
   return (
     <motion.div
       layout
-      className="relative rounded-2xl flex flex-col overflow-hidden bg-card/50 backdrop-blur-xl border border-border/40 shadow-sm h-full"
+      className="relative rounded-2xl flex flex-col overflow-hidden glass-thin glass-rim h-full"
     >
       {/* Header */}
       <div className="relative z-10 px-4 pt-4 pb-3">
@@ -189,7 +190,7 @@ export function TaskList({
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-              className="text-[10px] font-medium text-muted-foreground/50 bg-secondary/50 px-2 py-0.5 rounded-full tabular-nums"
+              className="text-[10px] font-medium text-muted-foreground/50 bg-white/10 px-2 py-0.5 rounded-full tabular-nums"
             >
               {doneCount}/{tasks.length}
             </motion.span>
@@ -197,7 +198,7 @@ export function TaskList({
         </div>
       </div>
 
-      <div className="mx-4 border-t border-border/10" />
+      <div className="mx-4 border-t border-white/10" />
 
       {/* Scrollable content */}
       <ScrollArea className="flex-1 min-h-0">

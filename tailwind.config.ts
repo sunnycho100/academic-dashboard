@@ -84,10 +84,25 @@ const config: Config = {
             height: '0',
           },
         },
+        shimmer: {
+          '0%': { backgroundPosition: '-400px 0' },
+          '100%': { backgroundPosition: '400px 0' },
+        },
+        'status-pulse': {
+          '0%, 100%': { opacity: '1', boxShadow: '0 0 0 0 currentColor' },
+          '50%': { opacity: '0.85', boxShadow: '0 0 8px 2px currentColor' },
+        },
+        'message-enter': {
+          from: { opacity: '0', transform: 'translateY(12px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        shimmer: 'shimmer 1.8s ease-in-out infinite',
+        'status-pulse': 'status-pulse 2s ease-in-out infinite',
+        'message-enter': 'message-enter 0.3s ease-out both',
       },
     },
   },

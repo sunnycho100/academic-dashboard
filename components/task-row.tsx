@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { motion } from 'framer-motion'
+import { childSpring } from '@/lib/liquidTransitions'
 
 interface TaskRowProps {
   task: Task
@@ -283,15 +284,15 @@ export function TaskRow({
       {...attributes}
       {...listeners}
       layout
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: 8, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -6, transition: { duration: 0.15 } }}
-      transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+      transition={childSpring}
       whileHover={{ y: -2, transition: { duration: 0.15 } }}
       whileTap={{ scale: 0.995 }}
       className={cn(
-        'group relative flex items-center gap-3 p-3 rounded-xl border border-border/60 bg-card transition-all duration-200 cursor-grab active:cursor-grabbing touch-none',
-        'hover:shadow-md hover:border-border',
+        'group relative flex items-center gap-3 p-3 rounded-xl glass-thin glass-interactive cursor-grab active:cursor-grabbing touch-none',
+        'hover:shadow-md',
         isDragging && 'opacity-50 shadow-lg scale-[1.02] z-50',
         task.status === 'done' && 'opacity-50'
       )}
@@ -346,21 +347,21 @@ export function TaskRow({
             </TooltipProvider>
           )}
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
           <div
-            className="flex items-center gap-1.5 text-xs"
+            className="flex items-center gap-1.5 text-xs w-[80px] truncate flex-shrink-0"
             style={{ color: category.color }}
           >
             <div
-              className="w-1.5 h-1.5 rounded-full"
+              className="w-1.5 h-1.5 rounded-full flex-shrink-0"
               style={{ backgroundColor: category.color }}
             />
-            {category.name}
+            <span className="truncate">{category.name}</span>
           </div>
-          <span className="text-muted-foreground/40 text-xs">·</span>
-          <span className="text-xs text-muted-foreground/70">{task.type}</span>
-          <span className="text-muted-foreground/40 text-xs">·</span>
-          <span className="text-xs text-muted-foreground/70">
+          <span className="text-muted-foreground/40 text-xs flex-shrink-0">·</span>
+          <span className="text-xs text-muted-foreground/70 w-[72px] truncate flex-shrink-0">{task.type}</span>
+          <span className="text-muted-foreground/40 text-xs flex-shrink-0">·</span>
+          <span className="text-xs text-muted-foreground/70 w-[48px] flex-shrink-0">
             {onSave ? (
               <InlineDurationEdit
                 minutes={task.estimatedDuration}
@@ -374,10 +375,10 @@ export function TaskRow({
                 : null
             )}
           </span>
-          <span className="text-muted-foreground/40 text-xs">·</span>
+          <span className="text-muted-foreground/40 text-xs flex-shrink-0">·</span>
           <Badge
             variant={dueDateVariant}
-            className="text-xs font-normal"
+            className="text-xs font-normal flex-shrink-0"
           >
             {dueDateLabel}
           </Badge>

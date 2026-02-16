@@ -190,7 +190,7 @@ export function WeeklyPlan({ tasks, categories, open, onOpenChange, onEntriesCha
         >
           <motion.div
             layout
-            className="relative rounded-2xl overflow-hidden bg-card/50 backdrop-blur-xl border border-border/40 shadow-sm mb-6"
+            className="relative rounded-2xl overflow-hidden glass-thin glass-rim mb-6"
           >
             {/* Header */}
             <div className="relative z-10 px-4 pt-4 pb-3">
@@ -246,7 +246,7 @@ export function WeeklyPlan({ tasks, categories, open, onOpenChange, onEntriesCha
               </div>
             </div>
 
-            <div className="mx-4 border-t border-border/10" />
+            <div className="mx-4 border-t border-white/10" />
 
             {/* 7-day grid */}
             <div className="px-4 py-3">
@@ -263,7 +263,7 @@ export function WeeklyPlan({ tasks, categories, open, onOpenChange, onEntriesCha
                       {/* Day header */}
                       <div className={cn(
                         'px-2.5 py-1.5 flex items-center justify-between border-b',
-                        isToday ? 'border-violet-500/20' : 'border-border/10',
+                        isToday ? 'border-violet-500/20' : 'border-white/10',
                       )}>
                         <div className="flex items-center gap-1.5">
                           <span className={cn(
@@ -424,7 +424,7 @@ function DroppableDayColumn({
         'rounded-xl border transition-colors min-h-[140px] flex flex-col',
         isToday
           ? 'border-violet-500/40 bg-violet-500/5'
-          : 'border-border/20 bg-muted/20 hover:bg-muted/30',
+          : 'border-white/10 bg-white/5 hover:bg-white/8',
         isOver && 'ring-2 ring-violet-500/40 bg-violet-500/10',
       )}
     >

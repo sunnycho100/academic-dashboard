@@ -30,7 +30,7 @@ export function EmptyState({ onAddCategory }: EmptyStateProps) {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
       >
-        <Card className="max-w-2xl rounded-2xl border-border/40 shadow-lg overflow-hidden relative">
+        <Card className="max-w-2xl rounded-2xl shadow-lg overflow-hidden relative">
           {/* Subtle shimmer overlay */}
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer pointer-events-none" />
 

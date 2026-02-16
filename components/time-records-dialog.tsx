@@ -94,12 +94,13 @@ function getCurrentTimePosition(timelineStartHour: number, timelineEndHour: numb
   return (currentHour - timelineStartHour) * HOUR_HEIGHT + 16 // 16px top padding
 }
 
-// ── Metric Card (animated) ──
+// ── Metric Card (animated, glassmorphism) ──
 function MetricCard({
   icon: Icon,
   label,
   value,
   iconColor,
+  gradient,
   delay,
   show,
 }: {
@@ -107,12 +108,13 @@ function MetricCard({
   label: string
   value: string
   iconColor: string
+  gradient: string
   delay: number
   show: boolean
 }) {
   return (
     <motion.div
-      className="flex-1 min-w-[110px] rounded-xl bg-muted/40 border border-border/30 p-3 flex flex-col gap-1"
+      className="flex-1 min-w-[110px] rounded-xl border border-white/[0.08] p-3 flex flex-col gap-1.5 relative overflow-hidden group"
       initial={{ opacity: 0, y: 12, scale: 0.95 }}
       animate={{
         opacity: show ? 1 : 0,
@@ -126,27 +128,36 @@ function MetricCard({
         delay,
       }}
     >
-      <div className="flex items-center gap-2">
-        <div
-          className="h-6 w-6 rounded-lg flex items-center justify-center"
-          style={{ backgroundColor: iconColor + '20' }}
-        >
-          <Icon className="h-3.5 w-3.5" style={{ color: iconColor }} />
+      {/* Gradient background */}
+      <div className={cn('absolute inset-0 opacity-[0.07] dark:opacity-[0.12]', gradient)} />
+      {/* Glass surface */}
+      <div className="absolute inset-0 backdrop-blur-xl bg-white/[0.03] dark:bg-white/[0.02]" />
+      {/* Inset highlight */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+      <div className="relative z-10">
+        <div className="flex items-center gap-2">
+          <div
+            className="h-6 w-6 rounded-lg flex items-center justify-center backdrop-blur-sm"
+            style={{ backgroundColor: iconColor + '18' }}
+          >
+            <Icon className="h-3.5 w-3.5" style={{ color: iconColor }} />
+          </div>
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">{label}</span>
         </div>
-        <span className="text-[11px] text-muted-foreground font-medium">{label}</span>
+        <span className="text-xl font-bold tabular-nums tracking-tight mt-1 block">{value}</span>
       </div>
-      <span className="text-lg font-bold tabular-nums tracking-tight">{value}</span>
     </motion.div>
   )
 }
 
-// ── TimeBlock ──
+// ── TimeBlock (glassmorphism) ──
 function TimeBlock({ record, index, timelineStartHour }: { record: TimeRecord; index: number; timelineStartHour: number }) {
   const start = new Date(record.startTime)
   const end = new Date(record.endTime)
   const { top, height } = getBlockPosition(start, end, timelineStartHour)
 
   const isShort = height < 50
+  const color = record.categoryColor
 
   return (
     <motion.div
@@ -159,41 +170,44 @@ function TimeBlock({ record, index, timelineStartHour }: { record: TimeRecord; i
         damping: 28,
         delay: index * 0.06,
       }}
-      className="absolute left-[72px] right-3 rounded-lg overflow-hidden shadow-md cursor-default group"
+      className="absolute left-[72px] right-3 rounded-xl overflow-hidden cursor-default group"
       style={{
         top: `${top}px`,
         height: `${height}px`,
-        backgroundColor: record.categoryColor,
-        opacity: 0.92,
       }}
       title={`${record.taskTitle}\n${formatTimeLabel(start)} – ${formatTimeLabel(end)}\n${formatDurationShort(record.duration)}`}
     >
-      <div className="h-full px-3 py-1.5 flex flex-col justify-center text-white relative overflow-hidden">
-        {/* Subtle gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/5 to-black/20 pointer-events-none" />
-        <div className="relative z-10">
-          <p
-            className={cn(
-              'font-semibold leading-tight truncate',
-              isShort ? 'text-[11px]' : 'text-sm'
-            )}
-          >
-            {record.categoryName} – {record.taskType}
-          </p>
-          {!isShort && (
-            <p className="text-xs text-white/80 mt-0.5 truncate">
-              {record.taskTitle}
-            </p>
+      {/* Layered glass background */}
+      <div className="absolute inset-0" style={{ backgroundColor: color, opacity: 0.75 }} />
+      <div className="absolute inset-0 backdrop-blur-md bg-gradient-to-br from-white/20 via-transparent to-black/10" />
+      {/* Top inset highlight */}
+      <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(to right, ${color}00, ${color}80, ${color}00)` }} />
+      {/* Left accent bar */}
+      <div className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 8px ${color}60` }} />
+      {/* Border */}
+      <div className="absolute inset-0 rounded-xl border" style={{ borderColor: `${color}30` }} />
+      <div className="h-full px-3.5 py-2 flex flex-col justify-center text-white relative z-10">
+        <p
+          className={cn(
+            'font-bold leading-tight truncate drop-shadow-sm',
+            isShort ? 'text-[11px]' : 'text-[13px]'
           )}
-          <p
-            className={cn(
-              'text-white/70 tabular-nums',
-              isShort ? 'text-[10px]' : 'text-[11px] mt-0.5'
-            )}
-          >
-            {formatTimeLabel(start)} – {formatTimeLabel(end)} · {formatDurationShort(record.duration)}
+        >
+          {record.categoryName} – {record.taskType}
+        </p>
+        {!isShort && (
+          <p className="text-[12px] text-white/85 mt-0.5 truncate font-medium">
+            {record.taskTitle}
           </p>
-        </div>
+        )}
+        <p
+          className={cn(
+            'text-white/65 tabular-nums font-medium',
+            isShort ? 'text-[9px]' : 'text-[10px] mt-1'
+          )}
+        >
+          {formatTimeLabel(start)} – {formatTimeLabel(end)} · {formatDurationShort(record.duration)}
+        </p>
       </div>
     </motion.div>
   )
@@ -228,9 +242,9 @@ function CurrentTimeLine({ date, timelineStartHour, timelineEndHour }: { date: D
       style={{ top: `${position}px` }}
     >
       <div className="relative flex items-center">
-        <div className="absolute left-[72px] right-3 h-[2px] bg-red-500/80" />
-        <div className="absolute left-[66px] w-3 h-3 rounded-full bg-red-500 border-2 border-background shadow-sm" />
-        <span className="absolute right-4 -top-3 bg-red-500 text-white text-[10px] font-medium px-1.5 py-0.5 rounded tabular-nums">
+        <div className="absolute left-[72px] right-3 h-[2px] bg-gradient-to-r from-rose-500 via-rose-400 to-rose-500/50 shadow-[0_0_6px_rgba(244,63,94,0.4)]" />
+        <div className="absolute left-[66px] w-3 h-3 rounded-full bg-rose-500 border-2 border-background shadow-[0_0_8px_rgba(244,63,94,0.5)]" />
+        <span className="absolute right-4 -top-3 bg-rose-500/90 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-0.5 rounded-md tabular-nums shadow-lg">
           {format(new Date(), 'h:mm a')}
         </span>
       </div>
@@ -514,7 +528,21 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
 
     setAddingNew(false)
     setNewForm({ taskTitle: '', categoryName: '', categoryColor: '#6366f1', taskType: '', startTime: '', endTime: '' })
-    refetch()
+    // Optimistic insert — no loading flash
+    const newRecord: TimeRecord = {
+      id: crypto.randomUUID(),
+      taskId: null,
+      taskTitle: newForm.taskTitle,
+      categoryName: newForm.categoryName || 'Manual',
+      categoryColor: newForm.categoryColor,
+      taskType: newForm.taskType || 'Manual',
+      startTime,
+      endTime,
+      duration,
+    }
+    setRecords((prev) => [...prev, newRecord].sort((a, b) =>
+      new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+    ))
   }
 
   return (
@@ -523,7 +551,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
         <>
           {/* Backdrop */}
           <motion.div
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -546,7 +574,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
               }}
             >
               <motion.div
-                className="relative bg-background border border-border/60 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+                className="relative glass-overlay border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
                 style={{ maxHeight: '85vh' }}
                 initial={{ boxShadow: '0 0 0 0 rgba(59, 130, 246, 0)' }}
                 animate={{
@@ -558,7 +586,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
               >
                 {/* Animated top gradient bar */}
                 <motion.div
-                  className="h-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-emerald-500"
+                  className="h-[2px] bg-gradient-to-r from-blue-500/80 via-cyan-400/80 to-emerald-400/80"
                   initial={{ scaleX: 0 }}
                   animate={{ scaleX: 1 }}
                   transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
@@ -567,35 +595,36 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
 
                 {/* Header */}
                 <motion.div
-                  className="px-6 pt-5 pb-4 border-b border-border/30 flex-shrink-0"
+                  className="px-6 pt-5 pb-4 border-b border-white/[0.06] flex-shrink-0"
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: showContent ? 1 : 0, y: showContent ? 0 : -10 }}
                   transition={{ duration: 0.25, delay: 0.05 }}
                 >
                   <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <motion.div
+                        className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-sm flex items-center justify-center border border-blue-500/10"
                         initial={{ rotate: -90, opacity: 0 }}
                         animate={{ rotate: 0, opacity: 1 }}
                         transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.15 }}
                       >
-                        <CalendarDays className="h-5 w-5 text-blue-500" />
+                        <CalendarDays className="h-4.5 w-4.5 text-blue-400" />
                       </motion.div>
                       <div>
-                        <h2 className="text-lg font-semibold tracking-tight">View Time Records</h2>
-                        <p className="text-xs text-muted-foreground">
+                        <h2 className="text-lg font-bold tracking-tight">Time Records</h2>
+                        <p className="text-[11px] text-muted-foreground/60 font-medium tracking-wide">
                           Your daily focus timeline
                         </p>
                       </div>
                     </div>
                     <motion.button
                       onClick={handleClose}
-                      className="rounded-full p-1.5 hover:bg-secondary/80 transition-colors"
+                      className="rounded-full p-1.5 hover:bg-white/10 transition-colors"
                       whileHover={{ rotate: 90, scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
                       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                     >
-                      <X className="h-4 w-4 text-muted-foreground" />
+                      <X className="h-4 w-4 text-muted-foreground/60" />
                     </motion.button>
                   </div>
 
@@ -618,10 +647,10 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                       <button
                         onClick={handleToday}
                         className={cn(
-                          'text-sm font-medium px-3 py-1 rounded-lg transition-colors',
+                          'text-sm font-semibold px-3.5 py-1.5 rounded-lg transition-all duration-200',
                           isToday
-                            ? 'bg-primary/10 text-primary'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                            ? 'bg-gradient-to-r from-blue-500/15 to-cyan-500/15 text-blue-400 border border-blue-500/10'
+                            : 'text-muted-foreground/70 hover:text-foreground hover:bg-white/5'
                         )}
                       >
                         {isToday ? 'Today' : format(selectedDate, 'EEEE')},{' '}
@@ -638,7 +667,16 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                       </Button>
                     </motion.div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 rounded-lg"
+                        onClick={() => setAddingNew(!addingNew)}
+                        title="Add record manually"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </Button>
                       <Button
                         variant={editMode ? 'secondary' : 'ghost'}
                         size="icon"
@@ -655,18 +693,18 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                   <AnimatePresence>
                     {editMode && (
                       <motion.div
-                        className="flex items-center gap-3 mt-3 pt-3 border-t border-border/20"
+                        className="flex items-center gap-3 mt-3 pt-3 border-t border-white/[0.06]"
                         initial={{ opacity: 0, height: 0, marginTop: 0, paddingTop: 0 }}
                         animate={{ opacity: 1, height: 'auto', marginTop: 12, paddingTop: 12 }}
                         exit={{ opacity: 0, height: 0, marginTop: 0, paddingTop: 0 }}
                         transition={{ duration: 0.2, ease: 'easeInOut' }}
                       >
                         <div className="flex items-center gap-2">
-                          <label className="text-xs text-muted-foreground whitespace-nowrap">Day starts</label>
+                          <label className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold whitespace-nowrap">Start</label>
                           <select
                             value={timelineStartHour}
                             onChange={(e) => handleStartHourChange(Number(e.target.value))}
-                            className="h-7 rounded-md border border-border/50 bg-background px-2 text-xs text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring"
+                            className="h-7 rounded-md border border-white/10 bg-white/5 backdrop-blur-sm px-2 text-xs text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring"
                           >
                             {Array.from({ length: 13 }, (_, i) => (
                               <option key={i} value={i}>
@@ -676,11 +714,11 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                           </select>
                         </div>
                         <div className="flex items-center gap-2">
-                          <label className="text-xs text-muted-foreground whitespace-nowrap">Day ends</label>
+                          <label className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold whitespace-nowrap">End</label>
                           <select
                             value={timelineEndHour}
                             onChange={(e) => handleEndHourChange(Number(e.target.value))}
-                            className="h-7 rounded-md border border-border/50 bg-background px-2 text-xs text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring"
+                            className="h-7 rounded-md border border-white/10 bg-white/5 backdrop-blur-sm px-2 text-xs text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring"
                           >
                             {Array.from({ length: 13 }, (_, i) => {
                               const hour = 18 + i // 6 PM through 6 AM next day
@@ -699,20 +737,22 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                 </motion.div>
 
                 {/* Analytics Cards */}
-                <div className="px-6 py-4 flex gap-3 flex-wrap flex-shrink-0 border-b border-border/20">
+                <div className="px-6 py-4 flex gap-3 flex-wrap flex-shrink-0 border-b border-white/[0.06]">
                   <MetricCard
                     icon={Clock}
                     label="Total Focus"
                     value={analytics.totalFocus}
-                    iconColor="hsl(210, 100%, 50%)"
+                    iconColor="hsl(210, 100%, 60%)"
+                    gradient="bg-gradient-to-br from-blue-500 to-cyan-500"
                     delay={0.08}
                     show={showContent}
                   />
                   <MetricCard
                     icon={Zap}
-                    label="Longest Session"
+                    label="Longest"
                     value={analytics.longestSession}
-                    iconColor="hsl(35, 90%, 55%)"
+                    iconColor="hsl(35, 95%, 60%)"
+                    gradient="bg-gradient-to-br from-amber-500 to-orange-500"
                     delay={0.12}
                     show={showContent}
                   />
@@ -720,15 +760,17 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                     icon={Coffee}
                     label="Idle Time"
                     value={analytics.idleTime}
-                    iconColor="hsl(0, 0%, 55%)"
+                    iconColor="hsl(0, 0%, 60%)"
+                    gradient="bg-gradient-to-br from-slate-400 to-slate-500"
                     delay={0.16}
                     show={showContent}
                   />
                   <MetricCard
                     icon={TrendingUp}
-                    label="Productivity"
+                    label="Productive"
                     value={analytics.productivityRatio}
-                    iconColor="hsl(140, 60%, 45%)"
+                    iconColor="hsl(140, 70%, 50%)"
+                    gradient="bg-gradient-to-br from-emerald-500 to-green-500"
                     delay={0.20}
                     show={showContent}
                   />
@@ -766,7 +808,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                             <motion.div
                               key={record.id}
                               layout
-                              className="flex items-center gap-3 rounded-xl border border-border/40 bg-muted/20 px-3 py-2.5"
+                              className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-3 py-2.5"
                             >
                               {/* Color dot */}
                               <div
@@ -847,7 +889,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                         })}
 
                         {/* Add new record form */}
-                        {addingNew ? (
+                        {addingNew && (
                           <motion.div
                             initial={{ opacity: 0, y: 8 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -930,16 +972,6 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                               </Button>
                             </div>
                           </motion.div>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full gap-1.5 text-xs"
-                            onClick={() => setAddingNew(true)}
-                          >
-                            <Plus className="h-3.5 w-3.5" />
-                            Add Record Manually
-                          </Button>
                         )}
 
                         {records.length === 0 && !addingNew && (
@@ -950,11 +982,87 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                       </div>
                     </div>
                   ) : (
-                    <div
-                      ref={scrollRef}
-                      className="h-full overflow-y-auto px-2"
-                      style={{ maxHeight: 'calc(85vh - 300px)' }}
-                    >
+                    <div className="flex flex-col h-full" style={{ maxHeight: 'calc(85vh - 300px)' }}>
+                      {/* Inline add form (shown when + is clicked from header) */}
+                      <AnimatePresence>
+                        {addingNew && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="px-4 py-3 border-b border-white/10 flex-shrink-0"
+                          >
+                            <div className="rounded-xl border border-primary/30 bg-primary/5 px-3 py-3 space-y-2">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-[10px] text-muted-foreground mr-1">Quick:</span>
+                                {(() => {
+                                  const pdColors = loadPersonalDevColors()
+                                  return [
+                                    { label: 'Reading', key: 'reading' },
+                                    { label: 'Project', key: 'project' },
+                                    { label: 'Job App', key: 'job-application' },
+                                  ].map((preset) => {
+                                    const color = pdColors[preset.key]
+                                    return (
+                                      <Button
+                                        key={preset.label}
+                                        type="button"
+                                        variant={newForm.taskTitle === preset.label && newForm.categoryName === 'Personal Dev' ? 'secondary' : 'outline'}
+                                        size="sm"
+                                        className="h-6 px-2 text-[10px] gap-1"
+                                        onClick={() => setNewForm({
+                                          ...newForm,
+                                          taskTitle: preset.label,
+                                          categoryName: 'Personal Dev',
+                                          categoryColor: color,
+                                          taskType: preset.label,
+                                        })}
+                                      >
+                                        <div className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+                                        {preset.label}
+                                      </Button>
+                                    )
+                                  })
+                                })()}
+                              </div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Input
+                                  value={newForm.taskTitle}
+                                  onChange={(e) => setNewForm({ ...newForm, taskTitle: e.target.value })}
+                                  className="h-7 text-xs flex-1 min-w-[100px]"
+                                  placeholder="Title (e.g. A02 Review)"
+                                />
+                                <Input
+                                  value={newForm.categoryName}
+                                  onChange={(e) => setNewForm({ ...newForm, categoryName: e.target.value })}
+                                  className="h-7 text-xs w-[100px]"
+                                  placeholder="Category"
+                                />
+                                <Input
+                                  type="time"
+                                  value={newForm.startTime}
+                                  onChange={(e) => setNewForm({ ...newForm, startTime: e.target.value })}
+                                  className="h-7 text-xs w-[90px]"
+                                />
+                                <span className="text-xs text-muted-foreground">–</span>
+                                <Input
+                                  type="time"
+                                  value={newForm.endTime}
+                                  onChange={(e) => setNewForm({ ...newForm, endTime: e.target.value })}
+                                  className="h-7 text-xs w-[90px]"
+                                />
+                                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-primary" onClick={handleAddNew}>Save</Button>
+                                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setAddingNew(false)}>Cancel</Button>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                      <div
+                        ref={scrollRef}
+                        className="flex-1 overflow-y-auto px-2"
+                      >
                       <div
                         className="relative"
                         style={{ height: `${totalHours * HOUR_HEIGHT + 16}px`, paddingTop: '16px' }}
@@ -964,15 +1072,15 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                           const y = i * HOUR_HEIGHT + 16
                           return (
                             <div key={hour} className="absolute left-0 right-0" style={{ top: `${y}px` }}>
-                              <span className="absolute left-2 -top-[9px] text-[11px] font-medium text-muted-foreground tabular-nums select-none">
+                              <span className="absolute left-2 -top-[9px] text-[10px] font-semibold text-muted-foreground/40 tabular-nums select-none tracking-wide">
                                 {label}
                               </span>
-                              <div className="absolute left-[72px] right-3 h-px bg-border/40" />
+                              <div className="absolute left-[72px] right-3 h-px bg-white/[0.04] dark:bg-white/[0.06]" />
                               {i < totalHours &&
                                 [1, 2, 3].map((q) => (
                                   <div
                                     key={q}
-                                    className="absolute left-[72px] right-3 h-px bg-border/15"
+                                    className="absolute left-[72px] right-3 h-px bg-white/[0.02] dark:bg-white/[0.03]"
                                     style={{ top: `${q * QUARTER_HEIGHT}px` }}
                                   />
                                 ))}
@@ -1016,12 +1124,13 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                         )}
                       </div>
                     </div>
+                    </div>
                   )}
                 </motion.div>
 
                 {/* Footer */}
                 <motion.div
-                  className="px-6 py-3 border-t border-border/30 flex items-center justify-end gap-2 flex-shrink-0"
+                  className="px-6 py-3 border-t border-white/[0.06] flex items-center justify-end gap-2 flex-shrink-0"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: showContent ? 1 : 0, y: showContent ? 0 : 10 }}
                   transition={{ duration: 0.25, delay: 0.22 }}

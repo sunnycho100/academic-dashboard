@@ -9,7 +9,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.5.0] - 2026-02-15
+## [1.6.0] - 2026-02-16
+Glassmorphism UI overhaul, category management, time records polish, activity summary sync
+
+### Added
+- Category Edit mode — replaces Remove button; enables inline rename, reorder (up/down arrows), and delete in one unified interface
+- Category rename cascades to `CompletedTask` and `TimeRecord` tables via API — historical data stays consistent across all views
+- Category reorder via arrow buttons with persistent `order` field update to PostgreSQL
+- Time Records `+` button in header for quick manual entry without entering edit mode
+- Inline add form in timeline view with optimistic insert (no refresh flash)
+- Activity Summary day boundary sync — reads `timeRecords-dayBoundaries` from localStorage so "Today" filter matches time records configuration
+- Logical day boundary support with `getLogicalDayStart` — tasks completed at 2 AM correctly group under the previous logical day
+
+### Changed
+- Full glassmorphism design system applied across all components — glass-thick, glass-thin, glass-overlay, glass-rim tiers with CSS custom properties
+- Glass polish pass: `::after` inset top highlights on glass surfaces, directional rim borders (top/left brighter, bottom/right dimmer)
+- Badge variants updated to translucent glass (e.g. `bg-red-500/10 backdrop-blur-sm` for destructive)
+- Time Records dialog redesigned with glassmorphism:
+  - Metric cards with gradient backgrounds, glass layering, inset highlights, uppercase labels
+  - Timeline blocks with glass overlay, left accent bar with glow, gradient-to-transparent surfaces
+  - Current time indicator with gradient line and glow effect
+  - Refined typography with tighter tracking and improved hierarchy
+  - Hour grid labels and lines adjusted for dark glass aesthetic
+  - Date pill with gradient highlight for today
+- Theme toggle simplified to single-click light/dark switch (no dropdown)
+- Task row alignment fix: category name (80px), task type (72px), duration (48px) with fixed widths and truncate
+- Custom dialogs (add-task, edit-task, time-records, color-scheme) converted to glass-overlay with `bg-black/40` backdrop
+- Overlay transparency increased (~82% light / ~88% dark) for readability on floating components
+- Category sidebar Edit mode hides "All Categories" to prevent accidental navigation
+
+### Fixed
+- Dropdown/select menus too transparent — `.glass-overlay` class with higher opacity
+- Add-task and time-record dialogs appearing too dark — standardized to glass-overlay
 Weekly planning system with PostgreSQL-backed task scheduling and 7-day grid interface
 
 ### Added

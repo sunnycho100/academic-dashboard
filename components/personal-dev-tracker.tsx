@@ -227,9 +227,9 @@ export function PersonalDevTracker() {
       animate={{ opacity: 1, height: 'auto' }}
       exit={{ opacity: 0, height: 0 }}
       transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-      className="relative z-10 border-t border-border/20 overflow-hidden"
+      className="relative z-10 border-t border-white/10 overflow-hidden"
     >
-      <div className="px-4 py-3 bg-background/30 backdrop-blur-sm">
+      <div className="px-4 py-3 glass-thick">
         {/* Section header */}
         <div className="flex items-center justify-between mb-2.5">
           <p className="text-xs font-medium text-muted-foreground tracking-wide uppercase">
@@ -259,8 +259,8 @@ export function PersonalDevTracker() {
                 onClick={() => toggle(activity)}
                 className={cn(
                   'flex items-center gap-2 rounded-xl px-2.5 py-2.5 transition-all',
-                  'border border-border/30 hover:border-border/60',
-                  !running && 'bg-muted/30 hover:bg-muted/50',
+                  'border border-white/10 hover:border-white/20',
+                  !running && 'bg-white/5 hover:bg-white/8',
                 )}
                 style={running ? { backgroundColor: color + '18' } : undefined}
               >

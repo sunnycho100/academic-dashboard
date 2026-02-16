@@ -134,7 +134,7 @@ export function EditTaskSheet({
         <div key={task.id}>
           {/* Backdrop */}
           <motion.div
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -157,7 +157,7 @@ export function EditTaskSheet({
               }}
             >
               <motion.div
-                className="relative bg-background border border-border/60 rounded-2xl shadow-2xl overflow-hidden"
+                className="relative glass-overlay border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
                 initial={{ boxShadow: '0 0 0 0 rgba(59, 130, 246, 0)' }}
                 animate={{
                   boxShadow: showContent

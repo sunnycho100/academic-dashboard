@@ -34,7 +34,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
-import { format, parseISO, isToday, isYesterday, startOfDay } from 'date-fns'
+import { format, parseISO, startOfDay, addHours, subHours, isSameDay } from 'date-fns'
 
 interface CompletedTaskRecord {
   id: string
@@ -67,6 +67,8 @@ function formatTimeSpent(minutes: number): string {
   return `${hours}h ${mins > 0 ? `${mins}m` : ''}`
 }
 
+const DEFAULT_DAY_START_HOUR = 6 // 6 AM
+
 function formatTimeDiff(diff: number): { text: string; color: string; icon: typeof TrendingUp } {
   const absDiff = Math.abs(diff)
   const label = formatTimeSpent(absDiff)
@@ -79,11 +81,41 @@ function formatTimeDiff(diff: number): { text: string; color: string; icon: type
   return { text: 'On time', color: 'text-muted-foreground', icon: Minus }
 }
 
-function getDayLabel(dateStr: string): string {
+// Get the "logical day start" for a given date, adjusting for custom day boundary
+function getLogicalDayStart(date: Date, dayStartHour: number): Date {
+  const calendarDay = startOfDay(date)
+  const dayBoundary = addHours(calendarDay, dayStartHour)
+  // If the time is before the day boundary, it belongs to the previous logical day
+  if (date < dayBoundary) {
+    return addHours(subHours(calendarDay, 24), dayStartHour)
+  }
+  return dayBoundary
+}
+
+// Check if a date falls within "today" based on custom day boundary
+function isLogicalToday(date: Date, dayStartHour: number): boolean {
+  const now = new Date()
+  const logicalTodayStart = getLogicalDayStart(now, dayStartHour)
+  const logicalRecordDay = getLogicalDayStart(date, dayStartHour)
+  return isSameDay(logicalTodayStart, logicalRecordDay)
+}
+
+// Check if a date falls within "yesterday" based on custom day boundary
+function isLogicalYesterday(date: Date, dayStartHour: number): boolean {
+  const now = new Date()
+  const logicalTodayStart = getLogicalDayStart(now, dayStartHour)
+  const logicalYesterdayStart = subHours(logicalTodayStart, 24)
+  const logicalRecordDay = getLogicalDayStart(date, dayStartHour)
+  return isSameDay(logicalYesterdayStart, logicalRecordDay)
+}
+
+function getDayLabel(dateStr: string, dayStartHour: number): string {
   const date = parseISO(dateStr)
-  if (isToday(date)) return 'Today'
-  if (isYesterday(date)) return 'Yesterday'
-  return format(date, 'EEEE, MMM d')
+  if (isLogicalToday(date, dayStartHour)) return 'Today'
+  if (isLogicalYesterday(date, dayStartHour)) return 'Yesterday'
+  // Use the logical day start for formatting
+  const logicalDay = getLogicalDayStart(date, dayStartHour)
+  return format(logicalDay, 'EEEE, MMM d')
 }
 
 function TaskCard({ 
@@ -217,6 +249,18 @@ export function ActivitySummaryDialog({
     notes: '',
   })
   const [saving, setSaving] = useState(false)
+  const [dayStartHour, setDayStartHour] = useState(DEFAULT_DAY_START_HOUR)
+
+  // Load day boundary settings from localStorage (synced with time-records)
+  useEffect(() => {
+    const saved = localStorage.getItem('timeRecords-dayBoundaries')
+    if (saved) {
+      try {
+        const { start } = JSON.parse(saved)
+        if (typeof start === 'number') setDayStartHour(start)
+      } catch {}
+    }
+  }, [])
 
   const loadRecords = () => {
     setLoading(true)
@@ -305,33 +349,34 @@ export function ActivitySummaryDialog({
     }
   }
 
-  // Filter for today using system clock
+  // Filter for today using custom day boundary
   const todayRecords = useMemo(
-    () => records.filter((r) => isToday(parseISO(r.completedAt))),
-    [records]
+    () => records.filter((r) => isLogicalToday(parseISO(r.completedAt), dayStartHour)),
+    [records, dayStartHour]
   )
 
-  // Group all records by day (descending)
+  // Group all records by day (descending) using custom day boundary
   const groupedByDay = useMemo(() => {
     const groups: { label: string; date: Date; records: CompletedTaskRecord[] }[] = []
     const map = new Map<string, CompletedTaskRecord[]>()
 
     for (const r of records) {
-      const dayKey = startOfDay(parseISO(r.completedAt)).toISOString()
+      const logicalDay = getLogicalDayStart(parseISO(r.completedAt), dayStartHour)
+      const dayKey = logicalDay.toISOString()
       if (!map.has(dayKey)) map.set(dayKey, [])
       map.get(dayKey)!.push(r)
     }
 
     for (const [dayKey, dayRecords] of map) {
       groups.push({
-        label: getDayLabel(dayRecords[0].completedAt),
+        label: getDayLabel(dayRecords[0].completedAt, dayStartHour),
         date: new Date(dayKey),
         records: dayRecords,
       })
     }
 
     return groups.sort((a, b) => b.date.getTime() - a.date.getTime())
-  }, [records])
+  }, [records, dayStartHour])
 
   const activeRecords = tab === 'today' ? todayRecords : records
 
