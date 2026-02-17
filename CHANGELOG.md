@@ -7,8 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [1.6.3] - 2026-02-17
+Fix negative duration and metric calculations for midnight-crossing time records
+
+### Fixed
+- Time records spanning midnight (e.g. 11:52 PM → 1:00 AM) now calculate positive duration by advancing end date to next day
+- `handleSaveEdit` and `handleAddNew` both detect end < start and push end to next calendar day
+- PATCH API adds 86400s safety guard against negative duration values
+- `formatDurationShort` correctly handles negative seconds with absolute-value math
+
 ## [1.6.2] - 2026-02-16
-Time Records category selector with DB-backed dropdown and auto-fill via Personal Dev quick-pick presets
+Category dropdown bar and autofill edits
 
 ### Changed
 - Category field in Time Records add-record form replaced with `<select>` dropdown populated from `/api/categories` API

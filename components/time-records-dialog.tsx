@@ -47,11 +47,13 @@ const QUARTER_HEIGHT = HOUR_HEIGHT / 4
 
 // ── Helpers ──
 function formatDurationShort(seconds: number): string {
-  const h = Math.floor(seconds / 3600)
-  const m = Math.floor((seconds % 3600) / 60)
-  if (h > 0 && m > 0) return `${h}h ${m}m`
-  if (h > 0) return `${h}h`
-  return `${m}m`
+  const abs = Math.abs(seconds)
+  const sign = seconds < 0 ? '-' : ''
+  const h = Math.floor(abs / 3600)
+  const m = Math.floor((abs % 3600) / 60)
+  if (h > 0 && m > 0) return `${sign}${h}h ${m}m`
+  if (h > 0) return `${sign}${h}h`
+  return `${sign}${m}m`
 }
 
 function formatTimeLabel(date: Date): string {
@@ -478,8 +480,12 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
 
   const handleSaveEdit = async (id: string) => {
     const dateStr = format(selectedDate, 'yyyy-MM-dd')
-    const startTime = new Date(`${dateStr}T${editForm.startTime}:00`).toISOString()
-    const endTime = new Date(`${dateStr}T${editForm.endTime}:00`).toISOString()
+    const startDt = new Date(`${dateStr}T${editForm.startTime}:00`)
+    const endDt = new Date(`${dateStr}T${editForm.endTime}:00`)
+    // If end time is before start time, it crosses midnight — push end to next day
+    if (endDt <= startDt) endDt.setDate(endDt.getDate() + 1)
+    const startTime = startDt.toISOString()
+    const endTime = endDt.toISOString()
     await fetch(`/api/time-records/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -497,9 +503,13 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
   const handleAddNew = async () => {
     if (!newForm.taskTitle || !newForm.startTime || !newForm.endTime) return
     const dateStr = format(selectedDate, 'yyyy-MM-dd')
-    const startTime = new Date(`${dateStr}T${newForm.startTime}:00`).toISOString()
-    const endTime = new Date(`${dateStr}T${newForm.endTime}:00`).toISOString()
-    const duration = Math.round((new Date(endTime).getTime() - new Date(startTime).getTime()) / 1000)
+    const startDt = new Date(`${dateStr}T${newForm.startTime}:00`)
+    const endDt = new Date(`${dateStr}T${newForm.endTime}:00`)
+    // If end time is before start time, it crosses midnight — push end to next day
+    if (endDt <= startDt) endDt.setDate(endDt.getDate() + 1)
+    const startTime = startDt.toISOString()
+    const endTime = endDt.toISOString()
+    const duration = Math.round((endDt.getTime() - startDt.getTime()) / 1000)
     await fetch('/api/time-records', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

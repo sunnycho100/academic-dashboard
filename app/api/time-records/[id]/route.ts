@@ -20,9 +20,12 @@ export async function PATCH(
 
     // If start/end changed, recalculate duration automatically
     if (body.startTime && body.endTime && body.duration === undefined) {
-      data.duration = Math.round(
+      let dur = Math.round(
         (new Date(body.endTime).getTime() - new Date(body.startTime).getTime()) / 1000
       )
+      // Guard against negative duration (should not happen if client handles midnight correctly)
+      if (dur < 0) dur += 86400
+      data.duration = dur
     }
 
     const record = await prisma.timeRecord.update({
