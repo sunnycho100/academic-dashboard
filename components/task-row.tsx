@@ -347,9 +347,9 @@ export function TaskRow({
             </TooltipProvider>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <div
-            className="flex items-center gap-1.5 text-xs w-[80px] truncate flex-shrink-0"
+            className="flex items-center gap-1.5 text-xs w-[68px] truncate flex-shrink-0"
             style={{ color: category.color }}
           >
             <div
@@ -359,9 +359,9 @@ export function TaskRow({
             <span className="truncate">{category.name}</span>
           </div>
           <span className="text-muted-foreground/40 text-xs flex-shrink-0">·</span>
-          <span className="text-xs text-muted-foreground/70 w-[72px] truncate flex-shrink-0">{task.type}</span>
+          <span className="text-xs text-muted-foreground/70 w-[68px] truncate flex-shrink-0">{task.type}</span>
           <span className="text-muted-foreground/40 text-xs flex-shrink-0">·</span>
-          <span className="text-xs text-muted-foreground/70 w-[48px] flex-shrink-0">
+          <span className="text-xs text-muted-foreground/70 w-[44px] flex-shrink-0">
             {onSave ? (
               <InlineDurationEdit
                 minutes={task.estimatedDuration}

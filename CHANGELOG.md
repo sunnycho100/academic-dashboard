@@ -7,7 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
-## [Unreleased]
+## [1.6.1] - 2026-02-16
+
+### Fixed
+- Time Records timeline blocks: corners now clip properly during animation by applying `rounded-xl` to inner glass layers
+- Weekly Plan column height limited to ~3 tasks (112px max-height) to prevent expanding beyond viewport and hiding Task List / Today's Plan
+- Task row badge alignment restored: fixed widths (68px category, 68px type, 44px duration) for consistent overdue badge positioning across rows
 
 ## [1.6.0] - 2026-02-16
 Glassmorphism UI overhaul, category management, time records polish, activity summary sync

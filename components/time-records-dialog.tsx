@@ -178,10 +178,10 @@ function TimeBlock({ record, index, timelineStartHour }: { record: TimeRecord; i
       title={`${record.taskTitle}\n${formatTimeLabel(start)} – ${formatTimeLabel(end)}\n${formatDurationShort(record.duration)}`}
     >
       {/* Layered glass background */}
-      <div className="absolute inset-0" style={{ backgroundColor: color, opacity: 0.75 }} />
-      <div className="absolute inset-0 backdrop-blur-md bg-gradient-to-br from-white/20 via-transparent to-black/10" />
+      <div className="absolute inset-0 rounded-xl" style={{ backgroundColor: color, opacity: 0.75 }} />
+      <div className="absolute inset-0 rounded-xl backdrop-blur-md bg-gradient-to-br from-white/20 via-transparent to-black/10" />
       {/* Top inset highlight */}
-      <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(to right, ${color}00, ${color}80, ${color}00)` }} />
+      <div className="absolute inset-x-0 top-0 h-px rounded-t-xl" style={{ background: `linear-gradient(to right, ${color}00, ${color}80, ${color}00)` }} />
       {/* Left accent bar */}
       <div className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 8px ${color}60` }} />
       {/* Border */}

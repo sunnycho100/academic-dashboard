@@ -285,7 +285,7 @@ export function WeeklyPlan({ tasks, categories, open, onOpenChange, onEntriesCha
                       </div>
 
                       {/* Task list for this day */}
-                      <div className="flex-1 px-1.5 py-1.5 space-y-1 overflow-y-auto max-h-[200px]">
+                      <div className="flex-1 px-1.5 py-1.5 space-y-1 overflow-y-auto max-h-[112px]">
                         <AnimatePresence mode="popLayout">
                           {dayEntries.map((entry) => {
                             const cat = entry.task?.category
