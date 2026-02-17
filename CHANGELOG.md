@@ -7,7 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [1.6.2] - 2026-02-16
+Time Records category selector with DB-backed dropdown and auto-fill via Personal Dev quick-pick presets
+
+### Changed
+- Category field in Time Records add-record form replaced with `<select>` dropdown populated from `/api/categories` API
+- "+ Add New" option at bottom of dropdown switches to inline text input for custom category entry
+- Personal Dev quick-pick presets (Reading, Project, Job App) now auto-select category in dropdown — removed redundant standalone "Personal Dev" option
+
 ## [1.6.1] - 2026-02-16
+Timeline corner clipping, weekly plan height constraint, task row alignment fixes
 
 ### Fixed
 - Time Records timeline blocks: corners now clip properly during animation by applying `rounded-xl` to inner glass layers

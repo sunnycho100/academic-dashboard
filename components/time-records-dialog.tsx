@@ -263,6 +263,9 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
   const [editForm, setEditForm] = useState({ taskTitle: '', startTime: '', endTime: '' })
   const [addingNew, setAddingNew] = useState(false)
   const [newForm, setNewForm] = useState({ taskTitle: '', categoryName: '', categoryColor: '#6366f1', taskType: '', startTime: '', endTime: '' })
+  const [categories, setCategories] = useState<{ name: string; color: string }[]>([])
+  const [customCategoryMode, setCustomCategoryMode] = useState(false)
+  const [customCategoryName, setCustomCategoryName] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // Configurable day boundaries
@@ -298,9 +301,16 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
   useEffect(() => {
     if (open) {
       const timer = setTimeout(() => setShowContent(true), 150)
+      // Fetch categories
+      fetch('/api/categories')
+        .then((res) => res.json())
+        .then((data) => setCategories(data.map((c: { name: string; color: string }) => ({ name: c.name, color: c.color }))))
+        .catch(() => {})
       return () => clearTimeout(timer)
     } else {
       setShowContent(false)
+      setCustomCategoryMode(false)
+      setCustomCategoryName('')
     }
   }, [open])
 
@@ -935,12 +945,58 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                                 className="h-7 text-xs flex-1 min-w-[100px]"
                                 placeholder="Title (e.g. A02 Review)"
                               />
-                              <Input
-                                value={newForm.categoryName}
-                                onChange={(e) => setNewForm({ ...newForm, categoryName: e.target.value })}
-                                className="h-7 text-xs w-[100px]"
-                                placeholder="Category"
-                              />
+                              {customCategoryMode ? (
+                                <div className="flex items-center gap-1">
+                                  <Input
+                                    value={customCategoryName}
+                                    onChange={(e) => setCustomCategoryName(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' && customCategoryName.trim()) {
+                                        setNewForm({ ...newForm, categoryName: customCategoryName.trim(), categoryColor: '#6366f1' })
+                                        setCustomCategoryMode(false)
+                                        setCustomCategoryName('')
+                                      }
+                                      if (e.key === 'Escape') { setCustomCategoryMode(false); setCustomCategoryName('') }
+                                    }}
+                                    autoFocus
+                                    className="h-7 text-xs w-[90px]"
+                                    placeholder="New category"
+                                  />
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-1.5 text-xs text-primary"
+                                    onClick={() => {
+                                      if (customCategoryName.trim()) {
+                                        setNewForm({ ...newForm, categoryName: customCategoryName.trim(), categoryColor: '#6366f1' })
+                                      }
+                                      setCustomCategoryMode(false)
+                                      setCustomCategoryName('')
+                                    }}
+                                  >
+                                    OK
+                                  </Button>
+                                </div>
+                              ) : (
+                                <select
+                                  value={newForm.categoryName}
+                                  onChange={(e) => {
+                                    if (e.target.value === '__add_new__') {
+                                      setCustomCategoryMode(true)
+                                      return
+                                    }
+                                    const cat = categories.find((c) => c.name === e.target.value)
+                                    setNewForm({ ...newForm, categoryName: e.target.value, categoryColor: cat?.color || '#6366f1' })
+                                  }}
+                                  className="h-7 rounded-md border border-white/10 bg-white/5 backdrop-blur-sm px-2 text-xs text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring min-w-[100px]"
+                                >
+                                  <option value="">Category</option>
+                                  {categories.map((cat) => (
+                                    <option key={cat.name} value={cat.name}>{cat.name}</option>
+                                  ))}
+                                  <option value="__add_new__">+ Add New</option>
+                                </select>
+                              )}
                               <Input
                                 type="time"
                                 value={newForm.startTime}
@@ -1033,12 +1089,58 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                                   className="h-7 text-xs flex-1 min-w-[100px]"
                                   placeholder="Title (e.g. A02 Review)"
                                 />
-                                <Input
-                                  value={newForm.categoryName}
-                                  onChange={(e) => setNewForm({ ...newForm, categoryName: e.target.value })}
-                                  className="h-7 text-xs w-[100px]"
-                                  placeholder="Category"
-                                />
+                                {customCategoryMode ? (
+                                  <div className="flex items-center gap-1">
+                                    <Input
+                                      value={customCategoryName}
+                                      onChange={(e) => setCustomCategoryName(e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && customCategoryName.trim()) {
+                                          setNewForm({ ...newForm, categoryName: customCategoryName.trim(), categoryColor: '#6366f1' })
+                                          setCustomCategoryMode(false)
+                                          setCustomCategoryName('')
+                                        }
+                                        if (e.key === 'Escape') { setCustomCategoryMode(false); setCustomCategoryName('') }
+                                      }}
+                                      autoFocus
+                                      className="h-7 text-xs w-[90px]"
+                                      placeholder="New category"
+                                    />
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 px-1.5 text-xs text-primary"
+                                      onClick={() => {
+                                        if (customCategoryName.trim()) {
+                                          setNewForm({ ...newForm, categoryName: customCategoryName.trim(), categoryColor: '#6366f1' })
+                                        }
+                                        setCustomCategoryMode(false)
+                                        setCustomCategoryName('')
+                                      }}
+                                    >
+                                      OK
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <select
+                                    value={newForm.categoryName}
+                                    onChange={(e) => {
+                                      if (e.target.value === '__add_new__') {
+                                        setCustomCategoryMode(true)
+                                        return
+                                      }
+                                      const cat = categories.find((c) => c.name === e.target.value)
+                                      setNewForm({ ...newForm, categoryName: e.target.value, categoryColor: cat?.color || '#6366f1' })
+                                    }}
+                                    className="h-7 rounded-md border border-white/10 bg-white/5 backdrop-blur-sm px-2 text-xs text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring min-w-[100px]"
+                                  >
+                                    <option value="">Category</option>
+                                    {categories.map((cat) => (
+                                      <option key={cat.name} value={cat.name}>{cat.name}</option>
+                                    ))}
+                                    <option value="__add_new__">+ Add New</option>
+                                  </select>
+                                )}
                                 <Input
                                   type="time"
                                   value={newForm.startTime}
