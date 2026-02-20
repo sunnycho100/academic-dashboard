@@ -247,6 +247,7 @@ export function TaskRow({
   let dueDateLabel = ''
   let dueDateVariant: 'default' | 'secondary' | 'destructive' | 'outline' =
     'secondary'
+  let dueDateClassName = ''
 
   if (dueDate) {
     const dueDateOnly = new Date(dueDate)
@@ -262,7 +263,8 @@ export function TaskRow({
       dueDateVariant = 'destructive'
     } else if (daysDiff === 0) {
       dueDateLabel = 'Due today'
-      dueDateVariant = 'destructive'
+      dueDateVariant = 'default'
+      dueDateClassName = 'bg-red-500/20 text-red-500 dark:text-red-400 border-red-500/40 hover:bg-red-500/30 font-medium'
     } else if (daysDiff === 1) {
       dueDateLabel = 'Due tomorrow'
       dueDateVariant = 'default'
@@ -378,7 +380,7 @@ export function TaskRow({
           <span className="text-muted-foreground/40 text-xs flex-shrink-0">·</span>
           <Badge
             variant={dueDateVariant}
-            className="text-xs font-normal flex-shrink-0"
+            className={cn('text-xs font-normal flex-shrink-0', dueDateClassName)}
           >
             {dueDateLabel}
           </Badge>

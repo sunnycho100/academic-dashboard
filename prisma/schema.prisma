@@ -94,3 +94,10 @@ model WeeklyPlanEntry {
   @@unique([taskId, date])
   @@index([date])
 }
+
+model UserInfo {
+  id        String   @id @default("default")
+  name      String   @default("User")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

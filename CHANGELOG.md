@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [1.7.0] - 2026-02-19
+Animated landing sequence with Great Vibes cursive greeting, unified DnD context, logical day boundaries, and UX polish
+
+### Added
+- **Landing page sequence** — full-screen greeting overlay with cursive typewriter animation (Great Vibes via `next/font`, Framer Motion clip-path reveal), glassmorphic ambient background, and smooth dashboard fade-in
+- UserInfo Prisma model and `/api/user-info` endpoint for personalized greeting name
+
+### Changed
+- Consolidated Today Panel drag-drop into the global `DndContext` (removed nested context); today items use `today-` prefixed IDs for cross-panel disambiguation
+- Client-side dedup guard prevents duplicate weekly plan entries on drag-drop (+ server 409 fallback)
+- "Due today" badge uses translucent red glassmorphic styling instead of solid destructive variant
+- Personal Dev timer toggle reads state via `useRef` to prevent double-fire under React StrictMode
+
+### Fixed
+- Time Records dialog initializes to **logical today** based on day boundaries (e.g. past midnight before end-hour → previous calendar day)
+- "Today" button, next-day guard, date header, current-time indicator, and productivity analytics all respect logical day boundaries
+- Server-side duration sanitization: GET clamps negative durations (+86 400 s fallback), POST clamps to `Math.max(0, …)`
+- DB migration script repaired pre-existing records with negative duration from midnight-crossing edge cases
+
 ## [1.6.3] - 2026-02-17
 Fix negative duration and metric calculations for midnight-crossing time records
 

@@ -11,14 +11,6 @@ import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useDroppable } from '@dnd-kit/core'
 import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core'
-import {
   SortableContext,
   verticalListSortingStrategy,
   useSortable,
@@ -55,7 +47,7 @@ function getDueInfo(dueAt: string | null) {
   dueDateOnly.setHours(0, 0, 0, 0)
   const daysDiff = Math.floor((dueDateOnly.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
   if (daysDiff < 0) return { label: `${Math.abs(daysDiff)}d overdue`, variant: 'destructive' as const }
-  if (daysDiff === 0) return { label: 'Due today', variant: 'destructive' as const }
+  if (daysDiff === 0) return { label: 'Due today', variant: 'default' as const, className: 'bg-red-500/20 text-red-500 dark:text-red-400 border-red-500/40 font-medium' }
   if (daysDiff === 1) return { label: 'Tomorrow', variant: 'default' as const }
   return { label: `${daysDiff}d`, variant: 'secondary' as const }
 }
@@ -128,23 +120,6 @@ export function TodayPanel({
   const [focusMode, setFocusMode] = useState(false)
   const [dbStudySeconds, setDbStudySeconds] = useState(0)
   const studyPollRef = useRef<NodeJS.Timeout | null>(null)
-
-  // dnd-kit sensors for internal reordering (separate from main list DnD)
-  const todaySensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
-  )
-
-  const handleTodayDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-    if (!over || active.id === over.id) return
-    const oldIndex = tasks.findIndex((t) => t.id === String(active.id))
-    const newIndex = tasks.findIndex((t) => t.id === String(over.id))
-    if (oldIndex === -1 || newIndex === -1) return
-    const newOrder = tasks.map((t) => t.id)
-    const [moved] = newOrder.splice(oldIndex, 1)
-    newOrder.splice(newIndex, 0, moved)
-    onReorderToday(newOrder)
-  }
   
   const {
     timerStates,
@@ -426,7 +401,7 @@ export function TodayPanel({
                         {due && (
                           <>
                             <span className="text-muted-foreground/40 text-xs">&middot;</span>
-                            <Badge variant={due.variant} className="text-xs font-normal">
+                            <Badge variant={due.variant} className={cn('text-xs font-normal', 'className' in due ? due.className : '')}>
                               {due.label}
                             </Badge>
                           </>
@@ -692,12 +667,7 @@ export function TodayPanel({
           </motion.div>
         ) : (
           /* ── Task list with sortable reordering ── */
-          <DndContext
-            sensors={todaySensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleTodayDragEnd}
-          >
-            <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+            <SortableContext items={tasks.map((t) => `today-${t.id}`)} strategy={verticalListSortingStrategy}>
               <div className="space-y-1">
                 {/* Ghost placeholder at top when dragging over populated list */}
                 <AnimatePresence>
@@ -724,7 +694,7 @@ export function TodayPanel({
                   const hasStarted = timerState?.isRunning
                   
                   return (
-                    <SortableTodayItem key={task.id} id={task.id}>
+                    <SortableTodayItem key={task.id} id={`today-${task.id}`}>
                       {(dragHandleListeners, dragHandleAttributes) => (
                         <motion.div
                           layout
@@ -851,7 +821,7 @@ export function TodayPanel({
                               {due && (
                                 <>
                                   <span className="text-muted-foreground/40 text-xs">&middot;</span>
-                                  <Badge variant={due.variant} className="text-xs font-normal">
+                                  <Badge variant={due.variant} className={cn('text-xs font-normal', 'className' in due ? due.className : '')}>
                                     {due.label}
                                   </Badge>
                                 </>
@@ -903,7 +873,6 @@ export function TodayPanel({
                 })}
               </div>
             </SortableContext>
-          </DndContext>
         )}
         </div>
       </ScrollArea>

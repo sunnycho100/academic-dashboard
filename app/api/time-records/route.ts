@@ -48,7 +48,16 @@ export async function GET(request: NextRequest) {
       orderBy: { startTime: 'asc' },
     })
 
-    return NextResponse.json(records)
+    // Sanitize: recalculate negative durations (from pre-fix midnight-crossing records)
+    const sanitized = records.map((r) => {
+      if (r.duration < 0) {
+        const corrected = Math.round((r.endTime.getTime() - r.startTime.getTime()) / 1000)
+        return { ...r, duration: corrected < 0 ? corrected + 86400 : corrected }
+      }
+      return r
+    })
+
+    return NextResponse.json(sanitized)
   } catch (error) {
     console.error('Failed to fetch time records:', error)
     return NextResponse.json(
@@ -71,7 +80,7 @@ export async function POST(request: NextRequest) {
         taskType: body.taskType,
         startTime: new Date(body.startTime),
         endTime: new Date(body.endTime),
-        duration: body.duration,
+        duration: Math.max(0, body.duration),
       },
     })
 

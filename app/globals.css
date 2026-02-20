@@ -365,3 +365,176 @@ body {
     @apply outline-none ring-2 ring-ring/50 ring-offset-2 ring-offset-background;
   }
 }
+
+/* ── Landing Sequence ─────────────────────────────────────────────── */
+
+.landing-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 20%, rgba(99,102,241,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 85% 15%, rgba(56,189,248,0.035) 0%, transparent 55%),
+    linear-gradient(160deg, #f8f9fc 0%, #eef0f8 50%, #f8f9fc 100%);
+  z-index: -1;
+}
+
+.dark .landing-bg {
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 20%, rgba(99,102,241,0.14) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 85% 15%, rgba(56,189,248,0.09) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 60% at 50% 80%, rgba(139,92,246,0.1) 0%, transparent 60%),
+    linear-gradient(160deg, #0a0e1a 0%, #0f1629 30%, #0c1220 60%, #0a0e1a 100%);
+}
+
+/* Soft ambient center glow */
+.landing-ambient-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(99,102,241,0.03) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.dark .landing-ambient-glow {
+  background: radial-gradient(ellipse, rgba(99,102,241,0.08) 0%, rgba(56,189,248,0.04) 40%, transparent 70%);
+}
+
+.landing-text-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: clamp(3rem, 12vw, 7rem);
+  padding: 0 2rem;
+}
+
+/* Wrapper positions ghost + visible text on top of each other */
+.landing-greeting-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.landing-greeting {
+  font-family: var(--font-cursive), 'Great Vibes', cursive;
+  font-weight: 400;
+  font-size: clamp(2.9rem, 8.4vw, 6rem);
+  letter-spacing: 0.01em;
+  line-height: 1.4;
+  color: #1d1d1f;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.dark .landing-greeting {
+  color: #f0f0f5;
+}
+
+/* Ghost text — invisible, just holds the width/height */
+.landing-greeting-ghost {
+  visibility: hidden;
+}
+
+/* Visible text — overlaid on ghost, revealed via clip-path */
+.landing-greeting-visible {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: clip-path;
+}
+
+/* Pen cursor that follows the writing */
+.landing-cursor {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 60%;
+  background: linear-gradient(to bottom, transparent, currentColor, transparent);
+  color: #6e6e73;
+  pointer-events: none;
+  border-radius: 1px;
+}
+
+.dark .landing-cursor {
+  color: rgba(255,255,255,0.3);
+}
+
+/* Decorative line under greeting */
+.landing-line {
+  width: 60px;
+  height: 1px;
+  margin-top: 1.5rem;
+  background: linear-gradient(90deg, transparent, #6e6e73, transparent);
+  transform-origin: center;
+}
+
+.dark .landing-line {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+}
+
+.landing-indicator {
+  position: absolute;
+  bottom: clamp(1.5rem, 5vh, 3rem);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.landing-indicator-text {
+  font-size: 0.75rem;
+  color: #86868b;
+  font-family: var(--font-geist), -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.dark .landing-indicator-text {
+  color: rgba(255,255,255,0.35);
+}
+
+.landing-pulse-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #0071e3;
+  animation: landing-pulse 2.8s ease-in-out infinite;
+  will-change: opacity, box-shadow;
+}
+
+.dark .landing-pulse-dot {
+  background: #5a9cf5;
+}
+
+@keyframes landing-pulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(0, 113, 227, 0.3);
+  }
+  50% {
+    opacity: 0.5;
+    box-shadow: 0 0 8px 3px rgba(0, 113, 227, 0.1);
+  }
+}
+
+/* Reduced motion: disable sweep, simple fade */
+@media (prefers-reduced-motion: reduce) {
+  .landing-greeting-visible {
+    will-change: opacity;
+  }
+  .landing-cursor {
+    display: none;
+  }
+  .landing-pulse-dot {
+    animation: none;
+    opacity: 0.8;
+  }
+}

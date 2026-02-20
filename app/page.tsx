@@ -37,6 +37,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Plus, Settings, Download, Upload, Trash2, Palette, CalendarDays } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { LandingSequence } from '@/components/landing-sequence'
 import {
   DndContext,
   DragOverlay,
@@ -87,6 +88,7 @@ export default function Home() {
   const [weeklyEntries, setWeeklyEntries] = useState<WeeklyPlanEntry[]>([])
   const [weeklyRefreshKey, setWeeklyRefreshKey] = useState(0)
   const [mounted, setMounted] = useState(false)
+  const [landingComplete, setLandingComplete] = useState(false)
   const [todayTaskIds, setTodayTaskIds] = useState<string[]>([])
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
   const [completedTodayCount, setCompletedTodayCount] = useState(0)
@@ -431,7 +433,9 @@ export default function Home() {
   }
 
   const handleGlobalDragStart = (event: DragStartEvent) => {
-    setActiveDragId(String(event.active.id))
+    // Strip today- prefix so the drag overlay shows the correct task
+    const rawId = String(event.active.id)
+    setActiveDragId(rawId.startsWith('today-') ? rawId.slice(6) : rawId)
   }
 
   // Build taskId → day label map from weekly entries
@@ -453,17 +457,31 @@ export default function Home() {
     setWeeklyEntries(entries)
   }, [])
 
+  /** Extract the real taskId (strips "today-" prefix if present) */
+  const extractTaskId = (id: string): string =>
+    id.startsWith('today-') ? id.slice(6) : id
+
   const handleGlobalDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
     setActiveDragId(null)
     if (!over) return
 
-    // Drop onto a weekly plan day column
-    const overId = String(over.id)
-    if (overId.startsWith('weekly-day-')) {
-      const dateKey = overId.replace('weekly-day-', '')
-      const taskId = String(active.id)
-      // Call API to add entry, then trigger refetch via onEntriesChange
+    const activeRaw = String(active.id)
+    const overRaw = String(over.id)
+    const isFromToday = activeRaw.startsWith('today-')
+    const taskId = extractTaskId(activeRaw)
+
+    // Drop onto a weekly plan day column (from task list OR today panel)
+    if (overRaw.startsWith('weekly-day-')) {
+      const dateKey = overRaw.replace('weekly-day-', '')
+
+      // Client-side dedup: check if this task is already on this day
+      const alreadyExists = weeklyEntries.some(
+        (e) => e.taskId === taskId && String(e.date).slice(0, 10) === dateKey
+      )
+      if (alreadyExists) return // silently skip — task already scheduled for this day
+
+      // Call API to add entry
       fetch('/api/weekly-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -471,7 +489,7 @@ export default function Home() {
       })
         .then((res) => {
           if (res.ok) return res.json()
-          return null
+          return null // 409 = already exists (server-side dedup)
         })
         .then((entry) => {
           if (entry) {
@@ -483,13 +501,29 @@ export default function Home() {
       return
     }
 
-    if (over.id === 'today-drop-zone') {
-      handleAddToToday(String(active.id))
+    // Drop onto today panel drop zone (only from task list, not from within today)
+    if (overRaw === 'today-drop-zone' && !isFromToday) {
+      handleAddToToday(taskId)
       return
     }
 
-    // Reorder: dragged a task onto another task
-    if (active.id !== over.id) {
+    // Reorder within today panel (both active and over are today- prefixed)
+    if (isFromToday && overRaw.startsWith('today-')) {
+      const overTaskId = extractTaskId(overRaw)
+      if (taskId === overTaskId) return
+      const oldIndex = todayTaskIds.indexOf(taskId)
+      const newIndex = todayTaskIds.indexOf(overTaskId)
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newOrder = [...todayTaskIds]
+        const [moved] = newOrder.splice(oldIndex, 1)
+        newOrder.splice(newIndex, 0, moved)
+        handleReorderToday(newOrder)
+      }
+      return
+    }
+
+    // Reorder within the task list (neither is today-prefixed)
+    if (!isFromToday && !overRaw.startsWith('today-') && active.id !== over.id) {
       const activeId = String(active.id)
       const overId = String(over.id)
       const oldIndex = tasks.findIndex((t) => t.id === activeId)
@@ -635,6 +669,7 @@ export default function Home() {
   }
 
   return (
+    <LandingSequence onComplete={() => setLandingComplete(true)}>
     <DndContext
       sensors={sensors}
       collisionDetection={pointerWithin}
@@ -940,5 +975,6 @@ export default function Home() {
       />
     </div>
     </DndContext>
+    </LandingSequence>
   )
 }

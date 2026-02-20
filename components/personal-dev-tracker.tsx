@@ -160,6 +160,10 @@ export function PersonalDevTracker() {
     }
   }, [timers])
 
+  // Keep a ref mirror so side-effects can read latest state outside the setter
+  const timersRef = useRef<ActivityTimerData>({})
+  useEffect(() => { timersRef.current = timers }, [timers])
+
   /** Compute displayed seconds: DB total + live segment elapsed */
   const getDisplaySeconds = (key: string): number => {
     const db = dbTotals[key] || 0
@@ -174,47 +178,48 @@ export function PersonalDevTracker() {
   const toggle = useCallback((activity: Activity) => {
     const colors = loadPersonalDevColors()
     const actColor = colors[activity.key] || DEFAULT_PERSONAL_DEV_COLORS[activity.key]
-    setTimers((prev) => {
-      const current = prev[activity.key]
 
-      // ── Currently running → PAUSE ───────────────────────────
-      if (current?.isRunning) {
-        const endTime = new Date().toISOString()
-        if (current.segmentStartedAt) {
-          const dur = Math.round(
-            (new Date(endTime).getTime() - new Date(current.segmentStartedAt).getTime()) / 1000,
+    // Read state from ref OUTSIDE the setter to avoid React StrictMode double-fire
+    const current = timersRef.current[activity.key]
+
+    // ── Currently running → PAUSE ───────────────────────────
+    if (current?.isRunning) {
+      const endTime = new Date().toISOString()
+      if (current.segmentStartedAt) {
+        const dur = Math.round(
+          (new Date(endTime).getTime() - new Date(current.segmentStartedAt).getTime()) / 1000,
+        )
+        if (dur > 0) {
+          saveTimeRecord(
+            activity.key,
+            activity.label,
+            actColor,
+            current.segmentStartedAt,
+            endTime,
+            dur,
           )
-          if (dur > 0) {
-            saveTimeRecord(
-              activity.key,
-              activity.label,
-              actColor,
-              current.segmentStartedAt,
-              endTime,
-              dur,
-            )
-            // Update DB total locally so display stays accurate without refetch
-            setDbTotals((prevTotals) => ({
-              ...prevTotals,
-              [activity.key]: (prevTotals[activity.key] || 0) + dur,
-            }))
-          }
-        }
-        return {
-          ...prev,
-          [activity.key]: { isRunning: false, segmentStartedAt: null },
+          // Update DB total locally so display stays accurate without refetch
+          setDbTotals((prevTotals) => ({
+            ...prevTotals,
+            [activity.key]: (prevTotals[activity.key] || 0) + dur,
+          }))
         }
       }
-
-      // ── Not running → START / RESUME ────────────────────────
-      return {
+      setTimers((prev) => ({
         ...prev,
-        [activity.key]: {
-          isRunning: true,
-          segmentStartedAt: new Date().toISOString(),
-        },
-      }
-    })
+        [activity.key]: { isRunning: false, segmentStartedAt: null },
+      }))
+      return
+    }
+
+    // ── Not running → START / RESUME ────────────────────────
+    setTimers((prev) => ({
+      ...prev,
+      [activity.key]: {
+        isRunning: true,
+        segmentStartedAt: new Date().toISOString(),
+      },
+    }))
   }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
   const anyRunning = Object.values(timers).some((t) => t.isRunning)

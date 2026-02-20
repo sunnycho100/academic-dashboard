@@ -45,6 +45,36 @@ const DEFAULT_END_HOUR = 24 // midnight
 const HOUR_HEIGHT = 80 // px per hour
 const QUARTER_HEIGHT = HOUR_HEIGHT / 4
 
+/**
+ * Return the "logical today" date given day boundaries.
+ * If timelineEndHour > 24 (e.g. 27 = 3 AM next day) and the current wall-clock
+ * time is past midnight but before the extension hour, we are still in the
+ * previous calendar day's logical window.
+ */
+function getLogicalToday(timelineStartHour: number, timelineEndHour: number): Date {
+  const now = new Date()
+  const currentHour = now.getHours()
+  // Extension hours past midnight (e.g. endHour 27 → extensionHour 3)
+  const extensionHour = timelineEndHour > 24 ? timelineEndHour - 24 : 0
+  // If it's between midnight and the extension hour, we're still in yesterday's logical day
+  if (extensionHour > 0 && currentHour < extensionHour) {
+    return subDays(now, 1)
+  }
+  // Also if it's before the day-start hour (e.g. 10 AM) and there IS an extension,
+  // the previous day's window has already ended — this is a new day not yet started.
+  // In that case we still show "today" as the current calendar date.
+  return now
+}
+
+function isLogicalToday(
+  date: Date,
+  timelineStartHour: number,
+  timelineEndHour: number
+): boolean {
+  const logicalToday = getLogicalToday(timelineStartHour, timelineEndHour)
+  return date.toDateString() === logicalToday.toDateString()
+}
+
 // ── Helpers ──
 function formatDurationShort(seconds: number): string {
   const abs = Math.abs(seconds)
@@ -221,10 +251,7 @@ function CurrentTimeLine({ date, timelineStartHour, timelineEndHour }: { date: D
 
   useEffect(() => {
     const now = new Date()
-    const isToday =
-      date.getFullYear() === now.getFullYear() &&
-      date.getMonth() === now.getMonth() &&
-      date.getDate() === now.getDate()
+    const isToday = isLogicalToday(date, timelineStartHour, timelineEndHour)
     if (!isToday) {
       setPosition(null)
       return
@@ -258,6 +285,7 @@ function CurrentTimeLine({ date, timelineStartHour, timelineEndHour }: { date: D
 export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps) {
   const [records, setRecords] = useState<TimeRecord[]>([])
   const [loading, setLoading] = useState(false)
+  // Will be overridden to logical today once day boundaries load
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [showContent, setShowContent] = useState(false)
   const [editMode, setEditMode] = useState(false)
@@ -275,14 +303,18 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
   const [timelineEndHour, setTimelineEndHour] = useState(DEFAULT_END_HOUR)
   const totalHours = timelineEndHour - timelineStartHour
 
-  // Persist day boundary preferences
+  // Persist day boundary preferences & set logical today on mount
   useEffect(() => {
     const saved = localStorage.getItem('timeRecords-dayBoundaries')
     if (saved) {
       try {
         const { start, end } = JSON.parse(saved)
         if (typeof start === 'number') setTimelineStartHour(start)
-        if (typeof end === 'number') setTimelineEndHour(end)
+        if (typeof end === 'number') {
+          setTimelineEndHour(end)
+          // Adjust initial selected date to logical today
+          setSelectedDate(getLogicalToday(start, end))
+        }
       } catch {}
     }
   }, [])
@@ -369,10 +401,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
     const longestSeconds = Math.max(...records.map((r) => r.duration))
 
     const now = new Date()
-    const isTodayDate =
-      selectedDate.getFullYear() === now.getFullYear() &&
-      selectedDate.getMonth() === now.getMonth() &&
-      selectedDate.getDate() === now.getDate()
+    const isTodayDate = isLogicalToday(selectedDate, timelineStartHour, timelineEndHour)
 
     const dayStart = new Date(selectedDate)
     dayStart.setHours(timelineStartHour % 24, 0, 0, 0)
@@ -402,16 +431,20 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
     }
   }, [records, selectedDate, timelineStartHour, timelineEndHour])
 
-  const isToday = selectedDate.toDateString() === new Date().toDateString()
+  const logicalToday = useMemo(
+    () => getLogicalToday(timelineStartHour, timelineEndHour),
+    [timelineStartHour, timelineEndHour]
+  )
+  const isToday = selectedDate.toDateString() === logicalToday.toDateString()
 
   const handlePrevDay = () => setSelectedDate((d) => subDays(d, 1))
   const handleNextDay = () => {
     const tomorrow = addDays(selectedDate, 1)
-    if (tomorrow <= new Date()) {
+    if (tomorrow <= logicalToday) {
       setSelectedDate(tomorrow)
     }
   }
-  const handleToday = () => setSelectedDate(new Date())
+  const handleToday = () => setSelectedDate(getLogicalToday(timelineStartHour, timelineEndHour))
 
   const handleClose = () => {
     setShowContent(false)
@@ -527,7 +560,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
 
     // If this is a Personal Dev activity added for today, update the localStorage timer
     const isPersonalDev = newForm.categoryName === 'Personal Dev'
-    const isToday = selectedDate.toDateString() === new Date().toDateString()
+    const isToday = isLogicalToday(selectedDate, timelineStartHour, timelineEndHour)
     if (isPersonalDev && isToday && duration > 0) {
       const PERSONAL_DEV_KEYS: Record<string, string> = {
         'Reading': 'reading',
@@ -681,7 +714,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                         size="icon"
                         className="h-7 w-7 rounded-lg"
                         onClick={handleNextDay}
-                        disabled={addDays(selectedDate, 1) > new Date()}
+                        disabled={addDays(selectedDate, 1) > logicalToday}
                       >
                         <ChevronRight className="h-4 w-4" />
                       </Button>
