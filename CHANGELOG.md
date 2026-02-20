@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [1.7.1] - 2026-02-19
+Idle / power-save mode with timer persistence and zero-interval overlay via localStorage timestamp reconciliation
+
+### Added
+- `useIdleDetector` hook — fires after 5 min of inactivity (mouse, keyboard, scroll, touch, pointer); respects Page Visibility API for background tabs
+- `IdleOverlay` component — lightweight power-save screen with no Framer Motion or DnD dependencies; shows running timers from localStorage, updated once per minute
+- Pure CSS idle animations (fade-in, icon breathing, pulse dot, theme-aware light/dark) for minimal GPU usage
+
+### Changed
+- On idle trigger the entire heavy component tree (DnD, Framer Motion, task list, sidebar, all polling intervals) unmounts, leaving only a single 60 s interval
+- `TimerState` in `use-task-timer` gains `lastTickAt` and `taskTitle` fields persisted to localStorage
+- On remount after idle, elapsed seconds are reconciled from the `lastTickAt` gap so no recorded time is lost
+
 ## [1.7.0] - 2026-02-19
 Animated landing sequence with Great Vibes cursive greeting, unified DnD context, logical day boundaries, and UX polish
 

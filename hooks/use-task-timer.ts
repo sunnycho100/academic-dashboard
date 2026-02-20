@@ -8,6 +8,11 @@ export interface TimerState {
   elapsedSeconds: number
   /** ISO string — when the current active segment started */
   segmentStartedAt: string | null
+  /** ISO string — last time the 1-second tick updated this timer.
+   *  Used to reconcile elapsed time after idle / unmount gaps. */
+  lastTickAt?: string | null
+  /** Persisted task title for display during idle / power-save mode */
+  taskTitle?: string
 }
 
 interface TaskTimerData {
@@ -77,9 +82,29 @@ export function useTaskTimers(taskIds: string[]) {
   // Map of taskId → TaskMeta for persisting records
   const taskMetaRef = useRef<Record<string, TaskMeta>>({})
 
-  // Load timer states on mount
+  // Load timer states on mount — reconcile elapsed for any running timers
+  // that accumulated time while the component was unmounted (idle mode, tab close, etc.)
   useEffect(() => {
-    setTimerStates(loadTimerData())
+    const loaded = loadTimerData()
+    const now = Date.now()
+    const reconciled: TaskTimerData = {}
+    for (const [taskId, state] of Object.entries(loaded)) {
+      if (state.isRunning && !state.isPaused && state.lastTickAt) {
+        const lastTick = new Date(state.lastTickAt).getTime()
+        const missedSeconds = Math.max(0, Math.floor((now - lastTick) / 1000))
+        if (missedSeconds > 2) {
+          // Timer was running during a gap — add the missed time
+          reconciled[taskId] = {
+            ...state,
+            elapsedSeconds: state.elapsedSeconds + missedSeconds,
+            lastTickAt: new Date(now).toISOString(),
+          }
+          continue
+        }
+      }
+      reconciled[taskId] = state
+    }
+    setTimerStates(reconciled)
   }, [])
 
   // Save timer states whenever they change
@@ -95,6 +120,7 @@ export function useTaskTimers(taskIds: string[]) {
 
     if (hasRunningTimer) {
       intervalRef.current = setInterval(() => {
+        const tickTime = new Date().toISOString()
         setTimerStates((prev) => {
           const newState = { ...prev }
           Object.keys(newState).forEach((taskId) => {
@@ -102,6 +128,7 @@ export function useTaskTimers(taskIds: string[]) {
               newState[taskId] = {
                 ...newState[taskId],
                 elapsedSeconds: newState[taskId].elapsedSeconds + 1,
+                lastTickAt: tickTime,
               }
             }
           })
@@ -143,6 +170,7 @@ export function useTaskTimers(taskIds: string[]) {
   }, [])
 
   const startTimer = useCallback((taskId: string) => {
+    const meta = taskMetaRef.current[taskId]
     setTimerStates((prev) => ({
       ...prev,
       [taskId]: {
@@ -150,6 +178,8 @@ export function useTaskTimers(taskIds: string[]) {
         isPaused: false,
         elapsedSeconds: 0,
         segmentStartedAt: new Date().toISOString(),
+        lastTickAt: new Date().toISOString(),
+        taskTitle: meta?.taskTitle || 'Task',
       },
     }))
   }, [])

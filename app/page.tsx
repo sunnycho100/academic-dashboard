@@ -38,6 +38,8 @@ import { Label } from '@/components/ui/label'
 import { Plus, Settings, Download, Upload, Trash2, Palette, CalendarDays } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { LandingSequence } from '@/components/landing-sequence'
+import { IdleOverlay } from '@/components/idle-overlay'
+import { useIdleDetector } from '@/hooks/use-idle-detector'
 import {
   DndContext,
   DragOverlay,
@@ -93,6 +95,9 @@ export default function Home() {
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
   const [completedTodayCount, setCompletedTodayCount] = useState(0)
   const completingRef = useRef<Set<string>>(new Set())
+
+  // Idle / power-save detection (5 minutes of inactivity)
+  const { isIdle, resetIdle } = useIdleDetector(5 * 60 * 1000)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -666,6 +671,17 @@ export default function Home() {
 
   if (!mounted) {
     return null
+  }
+
+  // ── Power-save idle mode ──────────────────────────────────────────
+  // Unmounts the entire heavy component tree (DnD, Framer Motion,
+  // polling intervals, animation loops) while timers keep running
+  // via localStorage timestamps. On resume, useTaskTimers reconciles
+  // elapsed seconds from the lastTickAt gap.
+  if (isIdle) {
+    return (
+      <IdleOverlay onWakeUp={resetIdle} />
+    )
   }
 
   return (

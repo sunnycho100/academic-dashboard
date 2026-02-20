@@ -538,3 +538,205 @@ body {
     opacity: 0.8;
   }
 }
+
+/* ── Idle / Power-Save Overlay ────────────────────────────────────── */
+
+.idle-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: idle-fade-in 0.8s ease-out both;
+}
+
+@keyframes idle-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.idle-overlay-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, #0a0e1a 0%, #0f1629 30%, #0c1220 60%, #0a0e1a 100%);
+  z-index: -1;
+}
+
+:root:not(.dark) .idle-overlay-bg {
+  background: linear-gradient(160deg, #f0f1f5 0%, #e8eaf2 30%, #edeef6 60%, #f0f1f5 100%);
+}
+
+.idle-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: center;
+  padding: 2rem;
+  animation: idle-content-in 1s ease-out 0.3s both;
+}
+
+@keyframes idle-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.idle-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(99, 102, 241, 0.1);
+  color: rgba(99, 102, 241, 0.7);
+  margin-bottom: 0.5rem;
+  animation: idle-icon-breathe 4s ease-in-out infinite;
+}
+
+:root:not(.dark) .idle-icon {
+  background: rgba(99, 102, 241, 0.08);
+  color: rgba(79, 82, 201, 0.6);
+}
+
+@keyframes idle-icon-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.05); opacity: 1; }
+}
+
+.idle-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #f0f0f5;
+}
+
+:root:not(.dark) .idle-title {
+  color: #1d1d1f;
+}
+
+.idle-subtitle {
+  font-size: 0.8rem;
+  color: rgba(240, 240, 245, 0.4);
+  margin-bottom: 0.5rem;
+}
+
+:root:not(.dark) .idle-subtitle {
+  color: rgba(29, 29, 31, 0.4);
+}
+
+/* Running timers section */
+.idle-timers {
+  margin-top: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  min-width: 220px;
+}
+
+:root:not(.dark) .idle-timers {
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.idle-timers-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(74, 222, 128, 0.8);
+  margin-bottom: 0.75rem;
+}
+
+:root:not(.dark) .idle-timers-header {
+  color: rgba(22, 163, 74, 0.8);
+}
+
+.idle-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(74, 222, 128, 0.9);
+  animation: idle-pulse-anim 2s ease-in-out infinite;
+}
+
+:root:not(.dark) .idle-pulse {
+  background: rgba(22, 163, 74, 0.8);
+}
+
+@keyframes idle-pulse-anim {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.idle-timers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.idle-timer-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.idle-timer-icon {
+  color: rgba(240, 240, 245, 0.3);
+  flex-shrink: 0;
+}
+
+:root:not(.dark) .idle-timer-icon {
+  color: rgba(29, 29, 31, 0.3);
+}
+
+.idle-timer-label {
+  flex: 1;
+  text-align: left;
+  color: rgba(240, 240, 245, 0.7);
+  font-weight: 500;
+}
+
+:root:not(.dark) .idle-timer-label {
+  color: rgba(29, 29, 31, 0.7);
+}
+
+.idle-timer-elapsed {
+  font-family: var(--font-geist-mono), monospace;
+  font-variant-numeric: tabular-nums;
+  color: rgba(240, 240, 245, 0.5);
+  font-size: 0.75rem;
+}
+
+:root:not(.dark) .idle-timer-elapsed {
+  color: rgba(29, 29, 31, 0.45);
+}
+
+/* Resume hint */
+.idle-hint {
+  margin-top: 1.5rem;
+  font-size: 0.7rem;
+  color: rgba(240, 240, 245, 0.2);
+  animation: idle-hint-blink 3s ease-in-out infinite;
+}
+
+:root:not(.dark) .idle-hint {
+  color: rgba(29, 29, 31, 0.2);
+}
+
+@keyframes idle-hint-blink {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
