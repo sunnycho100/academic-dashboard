@@ -549,6 +549,7 @@ body {
   align-items: center;
   justify-content: center;
   animation: idle-fade-in 0.8s ease-out both;
+  overflow: hidden;
 }
 
 @keyframes idle-fade-in {
@@ -556,31 +557,96 @@ body {
   to { opacity: 1; }
 }
 
-.idle-overlay-bg {
+/* Mesh gradient background — matches main dashboard */
+.idle-mesh-bg {
   position: absolute;
   inset: 0;
-  background: linear-gradient(160deg, #0a0e1a 0%, #0f1629 30%, #0c1220 60%, #0a0e1a 100%);
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 20%, rgba(99,102,241,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 85% 15%, rgba(56,189,248,0.035) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 60% at 50% 80%, rgba(139,92,246,0.035) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 75% 60%, rgba(20,184,166,0.03) 0%, transparent 50%),
+    linear-gradient(160deg, #f8f9fc 0%, #eef0f8 30%, #f0f2fa 60%, #f8f9fc 100%);
+  z-index: -2;
+}
+
+.dark .idle-mesh-bg {
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 20%, rgba(99,102,241,0.14) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 85% 15%, rgba(56,189,248,0.09) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 60% at 50% 80%, rgba(139,92,246,0.1) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 75% 60%, rgba(20,184,166,0.06) 0%, transparent 50%),
+    linear-gradient(160deg, #0a0e1a 0%, #0f1629 30%, #0c1220 60%, #0a0e1a 100%);
+}
+
+/* Ambient floating orbs */
+.idle-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0;
   z-index: -1;
+  animation: idle-orb-drift 20s ease-in-out infinite, idle-orb-in 1.5s ease-out forwards;
 }
 
-:root:not(.dark) .idle-overlay-bg {
-  background: linear-gradient(160deg, #f0f1f5 0%, #e8eaf2 30%, #edeef6 60%, #f0f1f5 100%);
+.idle-orb-1 {
+  width: 400px;
+  height: 400px;
+  background: rgba(99, 102, 241, 0.08);
+  top: 15%;
+  left: 10%;
+  animation-delay: 0s, 0s;
 }
 
-.idle-content {
+.idle-orb-2 {
+  width: 300px;
+  height: 300px;
+  background: rgba(56, 189, 248, 0.06);
+  bottom: 20%;
+  right: 15%;
+  animation-delay: -7s, 0.2s;
+}
+
+.idle-orb-3 {
+  width: 250px;
+  height: 250px;
+  background: rgba(139, 92, 246, 0.06);
+  top: 50%;
+  right: 30%;
+  animation-delay: -14s, 0.4s;
+}
+
+.dark .idle-orb-1 { background: rgba(99, 102, 241, 0.15); }
+.dark .idle-orb-2 { background: rgba(56, 189, 248, 0.1); }
+.dark .idle-orb-3 { background: rgba(139, 92, 246, 0.12); }
+
+@keyframes idle-orb-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes idle-orb-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(30px, -20px) scale(1.05); }
+  50% { transform: translate(-20px, 15px) scale(0.95); }
+  75% { transform: translate(15px, 25px) scale(1.02); }
+}
+
+/* Layout */
+.idle-layout {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
+  gap: 2rem;
   text-align: center;
   padding: 2rem;
-  animation: idle-content-in 1s ease-out 0.3s both;
+  animation: idle-content-in 0.8s ease-out 0.3s both;
 }
 
 @keyframes idle-content-in {
   from {
     opacity: 0;
-    transform: translateY(12px) scale(0.97);
+    transform: translateY(16px) scale(0.97);
   }
   to {
     opacity: 1;
@@ -588,79 +654,170 @@ body {
   }
 }
 
-.idle-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 20px;
+/* Clock section */
+.idle-clock-section {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  background: rgba(99, 102, 241, 0.1);
-  color: rgba(99, 102, 241, 0.7);
-  margin-bottom: 0.5rem;
+  gap: 0.25rem;
+}
+
+.idle-clock {
+  font-size: clamp(3rem, 8vw, 5.5rem);
+  font-weight: 200;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  color: #1d1d1f;
+  font-variant-numeric: tabular-nums;
+  animation: idle-clock-in 1s ease-out 0.5s both;
+}
+
+.dark .idle-clock {
+  color: rgba(240, 240, 245, 0.9);
+}
+
+@keyframes idle-clock-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+.idle-date {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: rgba(29, 29, 31, 0.45);
+  letter-spacing: 0.02em;
+}
+
+.dark .idle-date {
+  color: rgba(240, 240, 245, 0.35);
+}
+
+/* Glass card */
+.idle-glass-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 2rem;
+  border-radius: 20px;
+  min-width: 240px;
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-top-color: rgba(255, 255, 255, 0.7);
+  border-bottom-color: rgba(255, 255, 255, 0.2);
+  box-shadow:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.5),
+    0 8px 40px rgba(0, 0, 0, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.03);
+  animation: idle-card-in 0.8s ease-out 0.6s both;
+}
+
+.dark .idle-glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
+  border-top-color: rgba(255, 255, 255, 0.14);
+  border-bottom-color: rgba(255, 255, 255, 0.02);
+  box-shadow:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.06),
+    0 8px 40px rgba(0, 0, 0, 0.25),
+    0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+@keyframes idle-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Status badge */
+.idle-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.85rem;
+  border-radius: 100px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(99, 102, 241, 0.85);
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.12);
+}
+
+.dark .idle-status-badge {
+  color: rgba(139, 142, 255, 0.85);
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.18);
+}
+
+/* Paused info (no timers running) */
+.idle-paused-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+}
+
+.idle-moon-icon {
+  color: rgba(29, 29, 31, 0.2);
   animation: idle-icon-breathe 4s ease-in-out infinite;
 }
 
-:root:not(.dark) .idle-icon {
-  background: rgba(99, 102, 241, 0.08);
-  color: rgba(79, 82, 201, 0.6);
+.dark .idle-moon-icon {
+  color: rgba(240, 240, 245, 0.2);
 }
 
 @keyframes idle-icon-breathe {
-  0%, 100% { transform: scale(1); opacity: 0.8; }
-  50% { transform: scale(1.05); opacity: 1; }
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.06); opacity: 1; }
 }
 
-.idle-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: #f0f0f5;
-}
-
-:root:not(.dark) .idle-title {
-  color: #1d1d1f;
-}
-
-.idle-subtitle {
+.idle-paused-text {
   font-size: 0.8rem;
-  color: rgba(240, 240, 245, 0.4);
-  margin-bottom: 0.5rem;
+  color: rgba(29, 29, 31, 0.35);
 }
 
-:root:not(.dark) .idle-subtitle {
-  color: rgba(29, 29, 31, 0.4);
+.dark .idle-paused-text {
+  color: rgba(240, 240, 245, 0.3);
 }
 
 /* Running timers section */
 .idle-timers {
-  margin-top: 0.75rem;
-  padding: 1rem 1.25rem;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  min-width: 220px;
-}
-
-:root:not(.dark) .idle-timers {
-  background: rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  width: 100%;
+  padding: 0.75rem 0;
 }
 
 .idle-timers-header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.7rem;
-  font-weight: 500;
+  font-size: 0.65rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: rgba(74, 222, 128, 0.8);
-  margin-bottom: 0.75rem;
+  letter-spacing: 0.06em;
+  color: rgba(74, 222, 128, 0.85);
+  margin-bottom: 0.6rem;
 }
 
 :root:not(.dark) .idle-timers-header {
-  color: rgba(22, 163, 74, 0.8);
+  color: rgba(22, 163, 74, 0.85);
 }
 
 .idle-pulse {
@@ -683,7 +840,7 @@ body {
 .idle-timers-list {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.45rem;
 }
 
 .idle-timer-row {
@@ -691,52 +848,71 @@ body {
   align-items: center;
   gap: 0.5rem;
   font-size: 0.8rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.03);
+  transition: background 0.2s ease;
+}
+
+.dark .idle-timer-row {
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .idle-timer-icon {
-  color: rgba(240, 240, 245, 0.3);
+  color: rgba(29, 29, 31, 0.25);
   flex-shrink: 0;
 }
 
-:root:not(.dark) .idle-timer-icon {
-  color: rgba(29, 29, 31, 0.3);
+.dark .idle-timer-icon {
+  color: rgba(240, 240, 245, 0.25);
 }
 
 .idle-timer-label {
   flex: 1;
   text-align: left;
-  color: rgba(240, 240, 245, 0.7);
+  color: rgba(29, 29, 31, 0.7);
   font-weight: 500;
 }
 
-:root:not(.dark) .idle-timer-label {
-  color: rgba(29, 29, 31, 0.7);
+.dark .idle-timer-label {
+  color: rgba(240, 240, 245, 0.7);
 }
 
 .idle-timer-elapsed {
   font-family: var(--font-geist-mono), monospace;
   font-variant-numeric: tabular-nums;
-  color: rgba(240, 240, 245, 0.5);
+  color: rgba(29, 29, 31, 0.45);
   font-size: 0.75rem;
 }
 
-:root:not(.dark) .idle-timer-elapsed {
-  color: rgba(29, 29, 31, 0.45);
+.dark .idle-timer-elapsed {
+  color: rgba(240, 240, 245, 0.45);
 }
 
 /* Resume hint */
 .idle-hint {
-  margin-top: 1.5rem;
   font-size: 0.7rem;
-  color: rgba(240, 240, 245, 0.2);
+  color: rgba(29, 29, 31, 0.2);
   animation: idle-hint-blink 3s ease-in-out infinite;
+  animation-delay: 1s;
 }
 
-:root:not(.dark) .idle-hint {
-  color: rgba(29, 29, 31, 0.2);
+.dark .idle-hint {
+  color: rgba(240, 240, 245, 0.18);
 }
 
 @keyframes idle-hint-blink {
   0%, 100% { opacity: 0.4; }
   50% { opacity: 1; }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .idle-orb { animation: idle-orb-in 0.5s ease-out forwards; }
+  .idle-clock { animation: none; opacity: 1; }
+  .idle-glass-card { animation: none; opacity: 1; }
+  .idle-layout { animation: none; opacity: 1; }
+  .idle-moon-icon { animation: none; opacity: 0.6; }
+  .idle-pulse { animation: none; opacity: 1; }
+  .idle-hint { animation: none; opacity: 0.6; }
 }

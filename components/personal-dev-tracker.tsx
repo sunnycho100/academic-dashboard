@@ -112,7 +112,6 @@ export function PersonalDevTracker() {
 
     // Fetch today's Personal Dev records from DB to compute total elapsed
     const now = new Date()
-    const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
     const tzOffset = now.getTimezoneOffset()
     // Use day boundaries from localStorage
     let startHour = 6
@@ -125,6 +124,17 @@ export function PersonalDevTracker() {
         if (typeof end === 'number') endHour = end
       }
     } catch {}
+    // If day extends past midnight (e.g. 10 AM–3 AM) and current time
+    // is before the end-hour boundary, we're still in "yesterday's" logical day.
+    let effectiveDate = now
+    if (endHour > 24) {
+      const pastMidnightEnd = endHour - 24
+      if (now.getHours() < pastMidnightEnd) {
+        effectiveDate = new Date(now)
+        effectiveDate.setDate(effectiveDate.getDate() - 1)
+      }
+    }
+    const dateStr = `${effectiveDate.getFullYear()}-${String(effectiveDate.getMonth() + 1).padStart(2, '0')}-${String(effectiveDate.getDate()).padStart(2, '0')}`
     const endHourParam = endHour > 24 ? endHour - 24 : 0
     fetch(`/api/time-records?date=${dateStr}&tz=${tzOffset}&startHour=${startHour}&endHour=${endHourParam}`)
       .then((r) => r.json())

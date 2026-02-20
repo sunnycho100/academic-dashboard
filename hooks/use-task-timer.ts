@@ -81,6 +81,8 @@ export function useTaskTimers(taskIds: string[]) {
   useEffect(() => { timerStatesRef.current = timerStates }, [timerStates])
   // Map of taskId → TaskMeta for persisting records
   const taskMetaRef = useRef<Record<string, TaskMeta>>({})
+  // Guard: don't save to localStorage until we've loaded first
+  const loadedRef = useRef(false)
 
   // Load timer states on mount — reconcile elapsed for any running timers
   // that accumulated time while the component was unmounted (idle mode, tab close, etc.)
@@ -104,13 +106,60 @@ export function useTaskTimers(taskIds: string[]) {
       }
       reconciled[taskId] = state
     }
+    loadedRef.current = true
     setTimerStates(reconciled)
   }, [])
 
-  // Save timer states whenever they change
+  // Save timer states whenever they change — but only after initial load
+  // to prevent overwriting localStorage with {} on mount
   useEffect(() => {
+    if (!loadedRef.current) return
     saveTimerData(timerStates)
   }, [timerStates])
+
+  // Flush running timer segments to DB on page unload / tab close
+  // so time is never silently lost
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const states = timerStatesRef.current
+      const metas = taskMetaRef.current
+      for (const [taskId, state] of Object.entries(states)) {
+        if (state.isRunning && !state.isPaused && state.segmentStartedAt) {
+          const endTime = new Date().toISOString()
+          const dur = Math.round(
+            (new Date(endTime).getTime() - new Date(state.segmentStartedAt).getTime()) / 1000
+          )
+          const meta = metas[taskId]
+          if (meta && dur > 0) {
+            // Use sendBeacon for reliable delivery during unload
+            const blob = new Blob([JSON.stringify({
+              taskId: meta.taskId,
+              taskTitle: meta.taskTitle,
+              categoryName: meta.categoryName,
+              categoryColor: meta.categoryColor,
+              taskType: meta.taskType,
+              startTime: state.segmentStartedAt,
+              endTime,
+              duration: dur,
+            })], { type: 'application/json' })
+            navigator.sendBeacon('/api/time-records', blob)
+            // Update localStorage so the timer starts a fresh segment on reload
+            // instead of double-counting this segment
+            const updated = { ...states }
+            updated[taskId] = {
+              ...state,
+              segmentStartedAt: endTime,
+              lastTickAt: endTime,
+            }
+            saveTimerData(updated)
+          }
+        }
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [])
 
   // Increment elapsed time every second for running timers
   useEffect(() => {

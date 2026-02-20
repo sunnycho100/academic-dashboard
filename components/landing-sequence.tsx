@@ -15,10 +15,22 @@ const WRITE_EASE: [number, number, number, number] = [0.25, 0.1, 0.25, 1]
 interface LandingSequenceProps {
   onComplete: () => void
   children: React.ReactNode
+  /** Skip the greeting entirely (e.g. returning from power-save mode) */
+  skip?: boolean
 }
 
-export function LandingSequence({ onComplete, children }: LandingSequenceProps) {
-  const [phase, setPhase] = useState<'loading' | 'greeting' | 'reveal' | 'done'>('loading')
+export function LandingSequence({ onComplete, children, skip }: LandingSequenceProps) {
+  const [phase, setPhase] = useState<'loading' | 'greeting' | 'reveal' | 'done'>(
+    skip ? 'done' : 'loading'
+  )
+
+  // If skip changes to true while still animating, jump to done
+  useEffect(() => {
+    if (skip && phase !== 'done') {
+      setPhase('done')
+      onComplete()
+    }
+  }, [skip]) // eslint-disable-line react-hooks/exhaustive-deps
   const [userName, setUserName] = useState<string | null>(null)
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([])

@@ -7,10 +7,12 @@ export async function GET() {
     const user = await prisma.userInfo.findUnique({
       where: { id: 'default' },
     })
-    return NextResponse.json({ name: user?.name ?? 'User' })
+    const fallback = process.env.USER_NAME || 'User'
+    return NextResponse.json({ name: user?.name ?? fallback })
   } catch (error) {
     console.error('Failed to fetch user info:', error)
-    return NextResponse.json({ name: 'User' })
+    const fallback = process.env.USER_NAME || 'User'
+    return NextResponse.json({ name: fallback })
   }
 }
 

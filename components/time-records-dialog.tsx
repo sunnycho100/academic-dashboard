@@ -75,6 +75,37 @@ function isLogicalToday(
   return date.toDateString() === logicalToday.toDateString()
 }
 
+/**
+ * Build a Date from a selectedDate (logical day) and a HH:mm time string,
+ * accounting for post-midnight extension hours.
+ *
+ * For a 10 AM–3 AM day boundary viewing Feb 6:
+ *   - "14:30" → Feb 6 14:30 (within the day's main period)
+ *   - "00:28" → Feb 7 00:28 (post-midnight extension, next calendar day)
+ *   - "02:15" → Feb 7 02:15 (post-midnight extension, next calendar day)
+ *   - "10:00" → Feb 6 10:00 (start of day)
+ */
+function buildDateFromLogicalDay(
+  selectedDate: Date,
+  timeStr: string,
+  timelineStartHour: number,
+  timelineEndHour: number,
+): Date {
+  const dateStr = format(selectedDate, 'yyyy-MM-dd')
+  const dt = new Date(`${dateStr}T${timeStr}:00`)
+  const hour = dt.getHours()
+  const extensionHour = timelineEndHour > 24 ? timelineEndHour - 24 : 0
+
+  // If the day extends past midnight and this time falls in the post-midnight
+  // extension window (hour < extensionHour AND hour < startHour), then the
+  // wall-clock time is on the NEXT calendar day.
+  if (extensionHour > 0 && hour < extensionHour && hour < timelineStartHour) {
+    dt.setDate(dt.getDate() + 1)
+  }
+
+  return dt
+}
+
 // ── Helpers ──
 function formatDurationShort(seconds: number): string {
   const abs = Math.abs(seconds)
@@ -512,10 +543,9 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
   }
 
   const handleSaveEdit = async (id: string) => {
-    const dateStr = format(selectedDate, 'yyyy-MM-dd')
-    const startDt = new Date(`${dateStr}T${editForm.startTime}:00`)
-    const endDt = new Date(`${dateStr}T${editForm.endTime}:00`)
-    // If end time is before start time, it crosses midnight — push end to next day
+    const startDt = buildDateFromLogicalDay(selectedDate, editForm.startTime, timelineStartHour, timelineEndHour)
+    const endDt = buildDateFromLogicalDay(selectedDate, editForm.endTime, timelineStartHour, timelineEndHour)
+    // If end time is still before or equal to start time, it crosses midnight — push end to next day
     if (endDt <= startDt) endDt.setDate(endDt.getDate() + 1)
     const startTime = startDt.toISOString()
     const endTime = endDt.toISOString()
@@ -535,10 +565,9 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
 
   const handleAddNew = async () => {
     if (!newForm.taskTitle || !newForm.startTime || !newForm.endTime) return
-    const dateStr = format(selectedDate, 'yyyy-MM-dd')
-    const startDt = new Date(`${dateStr}T${newForm.startTime}:00`)
-    const endDt = new Date(`${dateStr}T${newForm.endTime}:00`)
-    // If end time is before start time, it crosses midnight — push end to next day
+    const startDt = buildDateFromLogicalDay(selectedDate, newForm.startTime, timelineStartHour, timelineEndHour)
+    const endDt = buildDateFromLogicalDay(selectedDate, newForm.endTime, timelineStartHour, timelineEndHour)
+    // If end time is still before or equal to start time, it crosses midnight — push end to next day
     if (endDt <= startDt) endDt.setDate(endDt.getDate() + 1)
     const startTime = startDt.toISOString()
     const endTime = endDt.toISOString()

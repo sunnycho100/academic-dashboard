@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [1.7.2] - 2026-02-20
+Power-save UI polish, timer segment flush on unload, and logical day boundary correctness across all pipelines
+
+### Added
+- `buildDateFromLogicalDay` helper in `time-records-dialog` — correctly anchors post-midnight times (12 AM–3 AM) to the next calendar day when constructing `Date` objects for save/edit, fixing records silently drifting to the previous logical day
+- `beforeunload` handler in `useTaskTimers` — flushes any running timer segment to the database via `navigator.sendBeacon` on page close/refresh so no elapsed time is lost
+
+### Changed
+- `IdleOverlay` restyled to match dashboard glassmorphism — mesh gradient background, floating ambient orbs, live clock, glass card with blurred border; no additional runtime dependencies
+- `LandingSequence` accepts a `skip` prop — bypasses the "Welcome Back" cursive greeting animation when returning from power-save mode so it only plays on true page load
+- Idle overlay timer display now refreshes every 10 s (was 60 s) for tighter accuracy while in power-save mode
+
+### Fixed
+- **Timer data loss on midnight boundary**: `loadedRef` guard in `useTaskTimers` prevents the save effect from flushing an empty `{}` state to localStorage before the load effect populates it, which was wiping all running timers at midnight
+- **PersonalDevTracker wrong date after midnight**: `effectiveDate` now shifts back one calendar day when the current hour falls within the post-midnight extension window (e.g. 1 AM with a 3 AM end boundary)
+- **Time record edit midnight assignment**: `handleSaveEdit` and `handleAddNew` in `time-records-dialog` now use `buildDateFromLogicalDay` instead of raw `new Date(date + 'T' + time)`, so editing a record to e.g. 12:28 AM on logical day Feb 6 correctly stores it as Feb 7 00:28 rather than Feb 6 00:28
+- **`app/page.tsx` day boundary defaults**: corrected from `0`/`24` (midnight-to-midnight) to `6`/`24` to match all other components
+
 ## [1.7.1] - 2026-02-19
 Idle / power-save mode with timer persistence and zero-interval overlay via localStorage timestamp reconciliation
 

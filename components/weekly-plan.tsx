@@ -97,7 +97,9 @@ export function WeeklyPlan({ tasks, categories, open, onOpenChange, onEntriesCha
     setLoading(true)
     try {
       const res = await fetch(`/api/weekly-plan?weekStart=${weekStartKey}`)
-      const data = await res.json()
+      if (!res.ok) throw new Error(`Weekly plan fetch failed: ${res.status}`)
+      const text = await res.text()
+      const data = text ? JSON.parse(text) : []
       if (Array.isArray(data)) {
         setEntries(data)
         onEntriesChange?.(data)

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { Moon, Play } from 'lucide-react'
+import { Moon, Play, Zap } from 'lucide-react'
 
 // ── Storage keys (must match use-task-timer.ts & personal-dev-tracker.tsx) ──
 const TASK_TIMER_KEY = 'class-catchup-timers'
@@ -67,6 +67,18 @@ function formatElapsed(seconds: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
+function formatTime(date: Date): string {
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+function formatDate(date: Date): string {
+  return date.toLocaleDateString([], {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  })
+}
+
 interface IdleOverlayProps {
   onWakeUp: () => void
 }
@@ -75,13 +87,15 @@ interface IdleOverlayProps {
  * Lightweight overlay shown during idle / power-save mode.
  *
  * - NO framer-motion, NO DnD, NO heavy component tree
- * - Single 60-second interval to update running timer display
+ * - Single 60-second interval to update running timer display & clock
  * - Pure CSS animations only
  * - Listens for any interaction to fire onWakeUp
+ * - Glassmorphism design matching the dashboard aesthetic
  */
 export function IdleOverlay({ onWakeUp }: IdleOverlayProps) {
   const [runningTimers, setRunningTimers] = useState<RunningTimer[]>([])
   const [elapsed, setElapsed] = useState<Record<string, number>>({})
+  const [now, setNow] = useState(() => new Date())
   const wakeRef = useRef(false)
 
   // Load initial running timers
@@ -89,27 +103,27 @@ export function IdleOverlay({ onWakeUp }: IdleOverlayProps) {
     const timers = getRunningTimers()
     setRunningTimers(timers)
 
-    // Compute initial elapsed
-    const now = Date.now()
+    const nowMs = Date.now()
     const e: Record<string, number> = {}
     timers.forEach((t, i) => {
-      e[i] = Math.max(0, Math.floor((now - new Date(t.segmentStartedAt).getTime()) / 1000))
+      e[i] = Math.max(0, Math.floor((nowMs - new Date(t.segmentStartedAt).getTime()) / 1000))
     })
     setElapsed(e)
   }, [])
 
-  // Update elapsed every 60 seconds (very lightweight)
+  // Update elapsed & clock every 10 seconds — lightweight, keeps timer display accurate
   useEffect(() => {
     const interval = setInterval(() => {
       const timers = getRunningTimers()
       setRunningTimers(timers)
-      const now = Date.now()
+      const nowMs = Date.now()
       const e: Record<string, number> = {}
       timers.forEach((t, i) => {
-        e[i] = Math.max(0, Math.floor((now - new Date(t.segmentStartedAt).getTime()) / 1000))
+        e[i] = Math.max(0, Math.floor((nowMs - new Date(t.segmentStartedAt).getTime()) / 1000))
       })
       setElapsed(e)
-    }, 60_000) // once per minute
+      setNow(new Date())
+    }, 10_000)
 
     return () => clearInterval(interval)
   }, [])
@@ -130,8 +144,6 @@ export function IdleOverlay({ onWakeUp }: IdleOverlayProps) {
       'scroll',
     ]
 
-    // Delay attaching listeners briefly so the initial mouse position
-    // doesn't immediately trigger wake-up
     const timeout = setTimeout(() => {
       for (const event of events) {
         window.addEventListener(event, handleWake, { passive: true, once: true })
@@ -150,40 +162,57 @@ export function IdleOverlay({ onWakeUp }: IdleOverlayProps) {
 
   return (
     <div className="idle-overlay">
-      <div className="idle-overlay-bg" />
+      {/* Mesh gradient background — same as dashboard */}
+      <div className="idle-mesh-bg" />
 
-      <div className="idle-content">
-        {/* Moon icon */}
-        <div className="idle-icon">
-          <Moon className="h-8 w-8" strokeWidth={1.5} />
+      {/* Ambient floating orbs */}
+      <div className="idle-orb idle-orb-1" />
+      <div className="idle-orb idle-orb-2" />
+      <div className="idle-orb idle-orb-3" />
+
+      <div className="idle-layout">
+        {/* Clock section */}
+        <div className="idle-clock-section">
+          <time className="idle-clock">{formatTime(now)}</time>
+          <p className="idle-date">{formatDate(now)}</p>
         </div>
 
-        {/* Title */}
-        <h2 className="idle-title">Power Save Mode</h2>
-        <p className="idle-subtitle">
-          Dashboard paused to save energy
-        </p>
-
-        {/* Running timers indicator */}
-        {hasTimers && (
-          <div className="idle-timers">
-            <div className="idle-timers-header">
-              <span className="idle-pulse" />
-              <span>Recording in progress</span>
-            </div>
-            <div className="idle-timers-list">
-              {runningTimers.map((timer, i) => (
-                <div key={i} className="idle-timer-row">
-                  <Play className="h-3 w-3 idle-timer-icon" />
-                  <span className="idle-timer-label">{timer.label}</span>
-                  <span className="idle-timer-elapsed">
-                    {formatElapsed(elapsed[i] || 0)}
-                  </span>
-                </div>
-              ))}
-            </div>
+        {/* Glass card */}
+        <div className="idle-glass-card">
+          {/* Status badge */}
+          <div className="idle-status-badge">
+            <Zap className="h-3.5 w-3.5" />
+            <span>Power Save</span>
           </div>
-        )}
+
+          {/* Running timers */}
+          {hasTimers && (
+            <div className="idle-timers">
+              <div className="idle-timers-header">
+                <span className="idle-pulse" />
+                <span>Timers running</span>
+              </div>
+              <div className="idle-timers-list">
+                {runningTimers.map((timer, i) => (
+                  <div key={i} className="idle-timer-row">
+                    <Play className="h-3 w-3 idle-timer-icon" />
+                    <span className="idle-timer-label">{timer.label}</span>
+                    <span className="idle-timer-elapsed">
+                      {formatElapsed(elapsed[i] || 0)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!hasTimers && (
+            <div className="idle-paused-info">
+              <Moon className="h-5 w-5 idle-moon-icon" />
+              <p className="idle-paused-text">No active timers</p>
+            </div>
+          )}
+        </div>
 
         {/* Resume hint */}
         <p className="idle-hint">

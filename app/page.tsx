@@ -170,10 +170,12 @@ export default function Home() {
         // Fetch today's completed count (respecting day boundaries)
         try {
           const completedRes = await fetch('/api/completed-tasks')
-          const completedAll = await completedRes.json()
+          const completedAll = completedRes.ok ? await completedRes.json() : []
+
+          if (!Array.isArray(completedAll)) throw new Error('Expected array from /api/completed-tasks')
 
           // Read day boundaries from localStorage
-          let dayStartHour = 0
+          let dayStartHour = 6
           let dayEndHour = 24
           try {
             const saved = localStorage.getItem('timeRecords-dayBoundaries')
@@ -685,7 +687,7 @@ export default function Home() {
   }
 
   return (
-    <LandingSequence onComplete={() => setLandingComplete(true)}>
+    <LandingSequence onComplete={() => setLandingComplete(true)} skip={landingComplete}>
     <DndContext
       sensors={sensors}
       collisionDetection={pointerWithin}
