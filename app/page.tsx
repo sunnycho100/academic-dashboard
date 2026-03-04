@@ -675,18 +675,16 @@ export default function Home() {
     return null
   }
 
-  // ── Power-save idle mode ──────────────────────────────────────────
-  // Unmounts the entire heavy component tree (DnD, Framer Motion,
-  // polling intervals, animation loops) while timers keep running
-  // via localStorage timestamps. On resume, useTaskTimers reconciles
-  // elapsed seconds from the lastTickAt gap.
-  if (isIdle) {
-    return (
-      <IdleOverlay onWakeUp={resetIdle} />
-    )
-  }
-
   return (
+    <>
+    {/* ── Power-save idle overlay ──────────────────────────────────────
+         Renders on TOP of the dashboard instead of replacing it.
+         The dashboard stays mounted (hidden via CSS) so timers,
+         intervals, and all hook state remain alive.
+         On wake-up the overlay unmounts and the dashboard is revealed. */}
+    {isIdle && <IdleOverlay onWakeUp={resetIdle} />}
+
+    <div style={isIdle ? { visibility: 'hidden', pointerEvents: 'none' } : undefined}>
     <LandingSequence onComplete={() => setLandingComplete(true)} skip={landingComplete}>
     <DndContext
       sensors={sensors}
@@ -994,5 +992,7 @@ export default function Home() {
     </div>
     </DndContext>
     </LandingSequence>
+    </div>
+    </>
   )
 }
