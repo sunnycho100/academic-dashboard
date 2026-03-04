@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [1.8.0] - 2026-03-04
+Dual storage mode — JSON file backend for zero-infrastructure usage alongside existing PostgreSQL mode via repository factory pattern
+
+### Added
+- `lib/json-db.ts` — Prisma-compatible JSON file database implementation (`JsonModel`, `WeeklyPlanModel`, `JsonDatabase`) supporting `findMany`, `findUnique`, `create`, `update`, `updateMany`, `delete`, `deleteMany`, `count`, `upsert`, `$transaction`, where-clause operators (`not`, `lt`, `lte`, `gte`, `gt`, null checks), `orderBy`, and `include` joins
+- `lib/db.ts` — storage factory that selects between JSON and Prisma backends based on `STORAGE_MODE` environment variable (`json` default, `postgres` for Docker mode)
+- `scripts/migrate-db-to-json.ts` — one-time migration script to export all PostgreSQL data (categories, tasks, completed tasks, time records, weekly plans, user info) into `data/*.json` files
+- `start.sh` — lightweight JSON Mode startup script (no Docker required); checks Node.js/pnpm, creates `data/` directory, starts dev server
+- `db_start.sh` — renamed from original `start.sh`; adds `STORAGE_MODE=postgres` to the dev server command
+- `data/` directory with `.gitkeep` for JSON file storage
+- `pnpm dev:json`, `pnpm dev:postgres`, and `pnpm migrate:json` package.json scripts
+- Date reviver in JSON parsing to restore `Date` objects from ISO-8601 strings
+- Atomic file writes via temp file + rename to prevent data corruption
+
+### Changed
+- All 14 API route files updated: import changed from `@/lib/prisma` to `@/lib/db` (storage-agnostic)
+- `.env.example` updated with `STORAGE_MODE` documentation
+- `.gitignore` updated to exclude `data/*.json` but track `data/.gitkeep`
+- README rewritten with Deployment Modes comparison table, updated architecture diagram showing storage factory layer, dual Getting Started paths (JSON vs Database), migration instructions, and updated project structure/scripts reference
+
 ## [1.7.2] - 2026-02-20
 Power-save UI polish, timer segment flush on unload, and logical day boundary correctness across all pipelines
 

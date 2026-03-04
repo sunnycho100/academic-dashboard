@@ -214,12 +214,19 @@ function MetricCard({
 }
 
 // ── TimeBlock (glassmorphism) ──
+// Progressive content: show less info as duration shrinks
+//   ≥ 60 min  → full: category–type, task title, time range · duration
+//   30–59 min → compact: task title + time · duration
+//   < 30 min  → minimal: task title only
 function TimeBlock({ record, index, timelineStartHour }: { record: TimeRecord; index: number; timelineStartHour: number }) {
   const start = new Date(record.startTime)
   const end = new Date(record.endTime)
   const { top, height } = getBlockPosition(start, end, timelineStartHour)
 
-  const isShort = height < 50
+  const durationMin = record.duration / 60
+  const isFull = durationMin >= 60
+  const isCompact = durationMin >= 30 && durationMin < 60
+  const isMinimal = durationMin < 30
   const color = record.categoryColor
 
   return (
@@ -238,7 +245,7 @@ function TimeBlock({ record, index, timelineStartHour }: { record: TimeRecord; i
         top: `${top}px`,
         height: `${height}px`,
       }}
-      title={`${record.taskTitle}\n${formatTimeLabel(start)} – ${formatTimeLabel(end)}\n${formatDurationShort(record.duration)}`}
+      title={`${record.taskTitle}\n${record.categoryName} – ${record.taskType}\n${formatTimeLabel(start)} – ${formatTimeLabel(end)}\n${formatDurationShort(record.duration)}`}
     >
       {/* Layered glass background */}
       <div className="absolute inset-0 rounded-xl" style={{ backgroundColor: color, opacity: 0.75 }} />
@@ -249,28 +256,43 @@ function TimeBlock({ record, index, timelineStartHour }: { record: TimeRecord; i
       <div className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 8px ${color}60` }} />
       {/* Border */}
       <div className="absolute inset-0 rounded-xl border" style={{ borderColor: `${color}30` }} />
-      <div className="h-full px-3.5 py-2 flex flex-col justify-center text-white relative z-10">
-        <p
-          className={cn(
-            'font-bold leading-tight truncate drop-shadow-sm',
-            isShort ? 'text-[11px]' : 'text-[13px]'
-          )}
-        >
-          {record.categoryName} – {record.taskType}
-        </p>
-        {!isShort && (
-          <p className="text-[12px] text-white/85 mt-0.5 truncate font-medium">
+      <div className={cn(
+        "h-full px-3.5 flex flex-col justify-center text-white relative z-10",
+        isMinimal ? 'py-0.5' : 'py-2'
+      )}>
+        {/* Full: show category–type header */}
+        {isFull && (
+          <p className="font-bold text-[13px] leading-tight truncate drop-shadow-sm">
+            {record.categoryName} – {record.taskType}
+          </p>
+        )}
+        {/* Full & Compact: show task title */}
+        {(isFull || isCompact) && (
+          <p className={cn(
+            'truncate font-medium drop-shadow-sm',
+            isFull ? 'text-[12px] text-white/85 mt-0.5' : 'text-[13px] font-bold text-white'
+          )}>
             {record.taskTitle}
           </p>
         )}
-        <p
-          className={cn(
+        {/* Minimal: task title only, sized to fit */}
+        {isMinimal && (
+          <p className={cn(
+            'font-bold truncate drop-shadow-sm text-white',
+            durationMin < 10 ? 'text-[10px]' : 'text-[12px]'
+          )}>
+            {record.taskTitle}
+          </p>
+        )}
+        {/* Full & Compact: show time range */}
+        {!isMinimal && (
+          <p className={cn(
             'text-white/65 tabular-nums font-medium',
-            isShort ? 'text-[9px]' : 'text-[10px] mt-1'
-          )}
-        >
-          {formatTimeLabel(start)} – {formatTimeLabel(end)} · {formatDurationShort(record.duration)}
-        </p>
+            isFull ? 'text-[10px] mt-1' : 'text-[9px] mt-0.5'
+          )}>
+            {formatTimeLabel(start)} – {formatTimeLabel(end)} · {formatDurationShort(record.duration)}
+          </p>
+        )}
       </div>
     </motion.div>
   )

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Academic Dashboard — JSON Mode Startup Script
-# No Docker or PostgreSQL required. Data stored in data/*.json files.
+# Academic Dashboard Startup Script
+# This script checks dependencies and starts the development server
 
 set -e
 
@@ -14,7 +14,6 @@ NC='\033[0m' # No Color
 
 echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║   Academic Dashboard - Class Catch-up  ║${NC}"
-echo -e "${BLUE}║           ▸ JSON Mode ◂                ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════╝${NC}"
 echo ""
 
@@ -48,17 +47,49 @@ else
     echo -e "${GREEN}✓ Dependencies already installed${NC}"
 fi
 
-# Create data directory if it doesn't exist
-if [ ! -d "data" ]; then
-    mkdir -p data
-    echo -e "${GREEN}✓ Created data/ directory${NC}"
+# Start Docker / PostgreSQL
+if command -v docker &> /dev/null; then
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}Starting PostgreSQL via Docker...${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+
+    # Check if a non-Docker process is already holding port 5432
+    NON_DOCKER_PID=$(lsof -ti:5432 2>/dev/null | while read pid; do
+        if ! ps -p "$pid" -o command= 2>/dev/null | grep -q "docker\|com.docke"; then
+            echo "$pid"
+        fi
+    done | head -1)
+
+    if [ -n "$NON_DOCKER_PID" ]; then
+        CONFLICT_CMD=$(ps -p "$NON_DOCKER_PID" -o command= 2>/dev/null || echo "unknown")
+        echo -e "${YELLOW}⚠ Port 5432 is held by a local process (${CONFLICT_CMD##*/})${NC}"
+        # Try to stop it via brew services first
+        for PG_VER in postgresql@17 postgresql@16 postgresql@15 postgresql@14 postgresql; do
+            if brew services list 2>/dev/null | grep -q "^${PG_VER}.*started"; then
+                echo -e "${YELLOW}  Stopping local ${PG_VER} to free port 5432...${NC}"
+                brew services stop "$PG_VER" 2>/dev/null || true
+                break
+            fi
+        done
+        sleep 1
+    fi
+
+    docker compose up -d
+    echo -e "${GREEN}✓ PostgreSQL started${NC}"
+    # Wait briefly for Postgres to be ready
+    sleep 2
+    # Apply any pending migrations
+    pnpm prisma migrate deploy 2>/dev/null || true
+    echo ""
 else
-    echo -e "${GREEN}✓ Data directory exists${NC}"
+    echo -e "${YELLOW}⚠ Docker not found — skipping database startup${NC}"
+    echo "  Install Docker Desktop from https://www.docker.com/products/docker-desktop/"
+    echo ""
 fi
 
 echo ""
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${GREEN}Starting development server (JSON mode)...${NC}"
+echo -e "${GREEN}Starting development server...${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
@@ -86,10 +117,13 @@ open_browser() {
     
     # Detect OS and open browser
     if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
         open http://localhost:3000
     elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        # Linux
         xdg-open http://localhost:3000 2>/dev/null || sensible-browser http://localhost:3000 2>/dev/null
     elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
+        # Windows
         start http://localhost:3000
     fi
 }
@@ -97,5 +131,5 @@ open_browser() {
 # Open browser in background
 open_browser &
 
-# Start the development server in JSON mode
-STORAGE_MODE=json pnpm dev
+# Start the development server in database mode
+STORAGE_MODE=postgres pnpm dev

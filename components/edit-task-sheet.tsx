@@ -98,12 +98,20 @@ export function EditTaskSheet({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (task && title.trim() && categoryId) {
+      const yesterday = new Date()
+      yesterday.setDate(yesterday.getDate() - 1)
+      yesterday.setHours(0, 0, 0, 0)
+
       onSave({
         ...task,
         title: title.trim(),
         categoryId,
         type,
-        dueAt: dueDate ? new Date(dueDate + 'T00:00:00').toISOString() : null,
+        dueAt: dueDate
+          ? new Date(dueDate + 'T00:00:00').toISOString()
+          : isOverdue
+            ? yesterday.toISOString()
+            : null,
         notes: notes.trim() || undefined,
         estimatedDuration: (durationHours || durationMinutes)
           ? (parseInt(durationHours || '0') * 60) + parseInt(durationMinutes || '0') || undefined

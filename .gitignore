@@ -51,3 +51,7 @@ yarn-error.log*
 .cache/
 
 /lib/generated/prisma
+
+# JSON data files (user data, not tracked)
+data/*.json
+!data/.gitkeep

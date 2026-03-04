@@ -4,9 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbo",
+    "dev:json": "STORAGE_MODE=json next dev --turbo",
+    "dev:postgres": "STORAGE_MODE=postgres next dev --turbo",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "migrate:json": "npx tsx scripts/migrate-db-to-json.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

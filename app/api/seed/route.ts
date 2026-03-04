@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/db'
 
 // Seed the database from localStorage data (one-time migration)
 export async function POST(request: NextRequest) {
