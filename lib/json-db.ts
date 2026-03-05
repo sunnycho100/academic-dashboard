@@ -415,6 +415,7 @@ class JsonDatabase {
   timeRecord = new JsonModel<any>('time-records.json')
   weeklyPlanEntry = new WeeklyPlanModel()
   userInfo = new JsonModel<any>('user-info.json')
+  timetableEntry = new JsonModel<any>('timetable.json')
 
   /**
    * $transaction — accepts an array of already-executing promises.

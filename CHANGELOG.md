@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [1.9.1] - 2026-03-05
+Timetable persistence and default row improvements
+
+### Changed
+- Timetable now defaults to 20 pre-populated blank rows per day (padded on fetch, existing data preserved)
+- Removed "skip if all rows empty" save guard — all entries persist immediately on every edit to prevent data loss
+
+## [1.9.0] - 2026-03-04
+Timetable day-planner tab with glassmorphism excel-like table for scheduling activities and tracking actual vs planned time
+
+### Added
+- `components/timetable.tsx` — full-featured day-planner component with inline-editable time inputs, auto-calculated expected/actual durations, and colour-coded variance notes (over/under/on-time)
+- `app/api/timetable/route.ts` — REST API (GET by date, POST single entry, PUT bulk replace) backed by JSON storage
+- `TimetableEntry` type in `lib/types.ts` with planned/actual start/end, expected/actual minutes, activity name, and notes
+- Tab navigation in header: animated "Class Catch-up" ↔ "Timetable" switcher with spring-animated glassmorphism indicator
+- Date navigation bar with previous/next day buttons and "Today" shortcut
+- Summary pills showing total planned and actual time for the day
+- Auto-save with 600ms debounce and save-on-unmount
+- `timetableEntry` model added to `lib/json-db.ts` (stored in `data/timetable.json`)
+
 ## [1.8.0] - 2026-03-04
 Dual storage mode — JSON file backend for zero-infrastructure usage alongside existing PostgreSQL mode via repository factory pattern
 

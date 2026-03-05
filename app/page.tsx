@@ -35,11 +35,12 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
-import { Plus, Settings, Download, Upload, Trash2, Palette, CalendarDays } from 'lucide-react'
+import { Plus, Settings, Download, Upload, Trash2, Palette, CalendarDays, Clock } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { LandingSequence } from '@/components/landing-sequence'
 import { IdleOverlay } from '@/components/idle-overlay'
 import { useIdleDetector } from '@/hooks/use-idle-detector'
+import { Timetable } from '@/components/timetable'
 import {
   DndContext,
   DragOverlay,
@@ -94,6 +95,7 @@ export default function Home() {
   const [todayTaskIds, setTodayTaskIds] = useState<string[]>([])
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
   const [completedTodayCount, setCompletedTodayCount] = useState(0)
+  const [activeMainTab, setActiveMainTab] = useState<'catchup' | 'timetable'>('catchup')
   const completingRef = useRef<Set<string>>(new Set())
 
   // Idle / power-save detection (5 minutes of inactivity)
@@ -712,13 +714,44 @@ export default function Home() {
         {/* Header */}
         <header className="border-b border-white/10 glass-thick px-6 py-4 sticky top-0 z-30">
           <div className="flex items-center justify-between">
-            <motion.h1
-              initial={{ opacity: 0, x: -12 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="text-xl font-bold tracking-tight text-foreground"
-            >
-              Class Catch-up
-            </motion.h1>
+            {/* Tab navigation */}
+            <div className="flex items-center gap-1 rounded-lg bg-foreground/[0.04] p-0.5">
+              <button
+                onClick={() => setActiveMainTab('catchup')}
+                className={`relative px-3.5 py-1.5 text-sm font-semibold rounded-md transition-all duration-200 ${
+                  activeMainTab === 'catchup'
+                    ? 'text-foreground'
+                    : 'text-muted-foreground/60 hover:text-muted-foreground'
+                }`}
+              >
+                {activeMainTab === 'catchup' && (
+                  <motion.div
+                    layoutId="mainTabIndicator"
+                    className="absolute inset-0 rounded-md glass-thin shadow-sm"
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
+                )}
+                <span className="relative z-10">Class Catch-up</span>
+              </button>
+              <button
+                onClick={() => setActiveMainTab('timetable')}
+                className={`relative px-3.5 py-1.5 text-sm font-semibold rounded-md transition-all duration-200 flex items-center gap-1.5 ${
+                  activeMainTab === 'timetable'
+                    ? 'text-foreground'
+                    : 'text-muted-foreground/60 hover:text-muted-foreground'
+                }`}
+              >
+                {activeMainTab === 'timetable' && (
+                  <motion.div
+                    layoutId="mainTabIndicator"
+                    className="absolute inset-0 rounded-md glass-thin shadow-sm"
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
+                )}
+                <Clock className="h-3.5 w-3.5 relative z-10" />
+                <span className="relative z-10">Timetable</span>
+              </button>
+            </div>
             <div className="flex items-center gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -758,6 +791,18 @@ export default function Home() {
 
         {/* Content Area */}
         <div className="flex-1 flex flex-col overflow-hidden p-6">
+          {activeMainTab === 'timetable' ? (
+            <motion.div
+              key="timetable"
+              initial={{ opacity: 0, x: 12 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.25 }}
+              className="flex flex-col h-full min-h-0"
+            >
+              <Timetable />
+            </motion.div>
+          ) : (
+          <>
           {/* Show empty state if no categories exist */}
           {categories.length === 0 ? (
             <EmptyState onAddCategory={() => setAddCategoryOpen(true)} />
@@ -893,6 +938,8 @@ export default function Home() {
                 </div>
               </div>
             </motion.div>
+          )}
+          </>
           )}
         </div>
       </div>
