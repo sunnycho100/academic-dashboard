@@ -161,13 +161,21 @@ export function useTaskTimers(taskIds: string[]) {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [])
 
-  // Increment elapsed time every second for running timers
+  // Track whether a tick interval is currently active
+  const hasRunningRef = useRef(false)
+
+  // Create/destroy the tick interval only on start↔stop transitions,
+  // NOT on every tick. Previously the effect depended on [timerStates]
+  // which cleared and recreated the interval every second, causing each
+  // "second" to actually take 1000ms + render time ≈ 1.5–2s.
   useEffect(() => {
-    const hasRunningTimer = Object.values(timerStates).some(
+    const hasRunning = Object.values(timerStates).some(
       (state) => state.isRunning && !state.isPaused
     )
 
-    if (hasRunningTimer) {
+    if (hasRunning && !hasRunningRef.current) {
+      // Transition: stopped → running — start the interval
+      hasRunningRef.current = true
       intervalRef.current = setInterval(() => {
         const tickTime = new Date().toISOString()
         setTimerStates((prev) => {
@@ -184,19 +192,27 @@ export function useTaskTimers(taskIds: string[]) {
           return newState
         })
       }, 1000)
-    } else {
+    } else if (!hasRunning && hasRunningRef.current) {
+      // Transition: running → stopped — clear the interval
+      hasRunningRef.current = false
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
         intervalRef.current = null
       }
     }
+    // No cleanup here — the interval must persist across re-renders.
+    // Cleanup on unmount is handled by the separate effect below.
+  }, [timerStates])
 
+  // Cleanup interval on unmount only
+  useEffect(() => {
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
+        intervalRef.current = null
       }
     }
-  }, [timerStates])
+  }, [])
 
   /** Register metadata for a task so time records can include it */
   const registerTaskMeta = useCallback((meta: TaskMeta) => {

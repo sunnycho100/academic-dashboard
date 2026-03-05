@@ -27,6 +27,10 @@ Dual storage mode — JSON file backend for zero-infrastructure usage alongside 
 - `.gitignore` updated to exclude `data/*.json` but track `data/.gitkeep`
 - README rewritten with Deployment Modes comparison table, updated architecture diagram showing storage factory layer, dual Getting Started paths (JSON vs Database), migration instructions, and updated project structure/scripts reference
 
+### Fixed
+- **Timer ticking at half speed**: The 1-second tick interval in `useTaskTimers` was destroyed and recreated on every tick because the effect depended on `[timerStates]`. Each "second" actually took ~1.5–2s (1000ms interval + render/effect overhead), causing 5 real minutes to show as ~2–3 minutes. Fixed by tracking running state via `hasRunningRef` so the interval is only created/destroyed on start↔stop transitions.
+- **Idle mode stopping timers**: Idle overlay previously unmounted the entire component tree (including `TodayPanel` → `useTaskTimers`), killing all timer intervals. Changed to render the idle overlay on top with the dashboard hidden via CSS (`visibility: hidden`) so all hooks and intervals stay alive.
+
 ## [1.7.2] - 2026-02-20
 Power-save UI polish, timer segment flush on unload, and logical day boundary correctness across all pipelines
 
