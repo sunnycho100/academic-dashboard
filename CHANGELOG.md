@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [1.9.2] - 2026-03-05
+Timetable drag-and-drop animation and HTML hydration fix
+
+### Added
+- Drag overlay with glassmorphism card showing activity name, time range, and duration while dragging rows
+- `DragStartEvent` / `DragOverlay` integration with smooth drop animation (cubic-bezier easing)
+
+### Fixed
+- HTML hydration error: moved `DndContext` outside `<table>` element — `<div>` rendered by dnd-kit is no longer a child of `<table>`
+- Drag cancel handler to cleanly reset drag state
+
 ## [1.9.1] - 2026-03-05
 Timetable persistence and default row improvements
 

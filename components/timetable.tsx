@@ -3,8 +3,25 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { TimetableEntry } from '@/lib/types'
 import { Button } from '@/components/ui/button'
-import { Plus, Trash2, ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
+import { Plus, Trash2, ChevronLeft, ChevronRight, Calendar, GripVertical } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragStartEvent,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -223,6 +240,45 @@ export function Timetable() {
     [debouncedSave],
   )
 
+  // ── Drag-to-reorder ─────────────────────────────────────────────────────
+  const [activeDragId, setActiveDragId] = useState<string | null>(null)
+  const activeDragEntry = activeDragId
+    ? entries.find((e) => e.id === activeDragId) ?? null
+    : null
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  )
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveDragId(event.active.id as string)
+  }, [])
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      setActiveDragId(null)
+      const { active, over } = event
+      if (!over || active.id === over.id) return
+
+      setEntries((prev) => {
+        const oldIndex = prev.findIndex((e) => e.id === active.id)
+        const newIndex = prev.findIndex((e) => e.id === over.id)
+        if (oldIndex === -1 || newIndex === -1) return prev
+
+        const next = [...prev]
+        const [moved] = next.splice(oldIndex, 1)
+        next.splice(newIndex, 0, moved)
+        return next.map((e, i) => ({ ...e, order: i }))
+      })
+      debouncedSave()
+    },
+    [debouncedSave],
+  )
+
+  const handleDragCancel = useCallback(() => {
+    setActiveDragId(null)
+  }, [])
+
   // ── Date navigation ────────────────────────────────────────────────────
   const shiftDate = useCallback(
     (delta: number) => {
@@ -294,10 +350,19 @@ export function Timetable() {
       </div>
 
       {/* Table */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        modifiers={[restrictToVerticalAxis]}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
+      >
       <div className="flex-1 min-h-0 overflow-auto rounded-xl glass-thin">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="text-[11px] uppercase tracking-wider text-muted-foreground/60 select-none">
+              <th className="w-7 border-b border-white/[0.06]" />
               <th className="text-left font-medium px-3 py-2.5 border-b border-white/[0.06] w-[72px]">Start</th>
               <th className="text-left font-medium px-3 py-2.5 border-b border-white/[0.06] w-[72px]">End</th>
               <th className="text-left font-medium px-3 py-2.5 border-b border-white/[0.06] w-[68px]">Total</th>
@@ -309,6 +374,7 @@ export function Timetable() {
               <th className="w-8 border-b border-white/[0.06]" />
             </tr>
           </thead>
+          <SortableContext items={entries.map((e) => e.id)} strategy={verticalListSortingStrategy}>
           <tbody>
             <AnimatePresence mode="popLayout">
               {entries.map((entry) => (
@@ -322,8 +388,38 @@ export function Timetable() {
               ))}
             </AnimatePresence>
           </tbody>
+          </SortableContext>
         </table>
       </div>
+
+      {/* Drag overlay */}
+      <DragOverlay dropAnimation={{
+        duration: 200,
+        easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+      }}>
+        {activeDragEntry && (
+          <div
+            className="bg-card/95 backdrop-blur-xl border border-border/40 rounded-lg px-3 py-2 shadow-xl flex items-center gap-3 text-sm"
+            style={{ boxShadow: '0 20px 50px -12px rgba(0,0,0,0.15), 0 8px 24px -8px rgba(0,0,0,0.1)' }}
+          >
+            <GripVertical className="h-3.5 w-3.5 text-muted-foreground/40 flex-shrink-0" />
+            {activeDragEntry.plannedStart && (
+              <span className="text-muted-foreground/60 tabular-nums text-xs">
+                {activeDragEntry.plannedStart}–{activeDragEntry.plannedEnd}
+              </span>
+            )}
+            <span className="font-medium truncate">
+              {activeDragEntry.activityName || 'Untitled'}
+            </span>
+            {activeDragEntry.expectedMinutes > 0 && (
+              <span className="text-muted-foreground/50 text-xs ml-auto flex-shrink-0">
+                {fmtDuration(activeDragEntry.expectedMinutes)}
+              </span>
+            )}
+          </div>
+        )}
+      </DragOverlay>
+      </DndContext>
 
       {/* Add row button */}
       <div className="mt-3 flex justify-start">
@@ -353,6 +449,22 @@ function TimetableRow({
   onRemove: (id: string) => void
   canRemove: boolean
 }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: entry.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : ('auto' as const),
+  }
+
   const tdBase =
     'px-3 py-1.5 border-b border-white/[0.04] whitespace-nowrap align-middle'
 
@@ -368,6 +480,8 @@ function TimetableRow({
 
   return (
     <motion.tr
+      ref={setNodeRef}
+      style={style}
       layout
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
@@ -375,6 +489,18 @@ function TimetableRow({
       transition={{ duration: 0.2 }}
       className="group hover:bg-foreground/[0.02] transition-colors"
     >
+      {/* Drag handle */}
+      <td className={`${tdBase} w-7 text-center cursor-grab active:cursor-grabbing`}>
+        <button
+          {...attributes}
+          {...listeners}
+          className="opacity-0 group-hover:opacity-40 hover:!opacity-70 transition-opacity text-muted-foreground touch-none"
+          tabIndex={-1}
+        >
+          <GripVertical className="h-3.5 w-3.5" />
+        </button>
+      </td>
+
       {/* Planned Start */}
       <td className={tdBase}>
         <input
