@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [1.9.4] - 2026-03-05
+Row completion animation — pastel green background fills completed timetable rows
+
+### Added
+- Animated pastel green background (`rgba(52, 211, 153, 0.08)`) on timetable rows when both actual start and actual end times are filled
+- Smooth 0.5s ease-out `backgroundColor` transition via Framer Motion on `motion.tr`
+
+## [1.9.3] - 2026-03-05
+Smart time autofill for timetable rows with toggle and contextual help dialog
+
+### Added
+- Autofill toggle (on by default, pastel green) in timetable header — auto-populates empty Start fields on focus
+- Autofill logic: uses previous row's end time for sequential flow, or current time (rounded to nearest 5 min) for the first row; 24-hour format handles AM/PM and midnight wrapping naturally
+- Help button (circled `?`) next to toggle — opens a glassmorphism dialog explaining the autofill behaviour
+- `getAutofillTime`, `roundUp5`, `minutesToHHmm` helper functions
+
 ## [1.9.2] - 2026-03-05
 Timetable drag-and-drop animation and HTML hydration fix
 

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { TimetableEntry } from '@/lib/types'
 import { Button } from '@/components/ui/button'
-import { Plus, Trash2, ChevronLeft, ChevronRight, Calendar, GripVertical } from 'lucide-react'
+import { Plus, Trash2, ChevronLeft, ChevronRight, Calendar, GripVertical, HelpCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   DndContext,
@@ -22,6 +22,12 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -89,6 +95,42 @@ function prettyDate(dateStr: string): string {
   return label
 }
 
+/** Round minutes up to the nearest 5. */
+function roundUp5(minutes: number): number {
+  return Math.ceil(minutes / 5) * 5
+}
+
+/** Format total minutes since midnight as "HH:mm" (wraps at 24h). */
+function minutesToHHmm(total: number): string {
+  const wrapped = ((total % 1440) + 1440) % 1440
+  const h = Math.floor(wrapped / 60)
+  const m = wrapped % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
+
+/**
+ * Determine a smart autofill time for a row's plannedStart.
+ *
+ * Logic:
+ *  1. If the previous row has a plannedEnd, use that (sequential flow).
+ *  2. Otherwise, use current time rounded up to the nearest 5 minutes.
+ *
+ * The result is always in 24-hour "HH:mm" format, so AM/PM wrapping
+ * is handled naturally:
+ *   - Morning planning (e.g. 11:00 AM) → rows flow 11:00→11:30→12:00→…→23:55→00:00→…
+ *   - Afternoon planning (e.g. 16:50)   → rows flow 16:50→17:30→…
+ */
+function getAutofillTime(entries: TimetableEntry[], rowIndex: number): string {
+  // Look backwards for the nearest row with a plannedEnd
+  for (let i = rowIndex - 1; i >= 0; i--) {
+    if (entries[i].plannedEnd) return entries[i].plannedEnd
+  }
+  // Fallback: current time rounded up to nearest 5
+  const now = new Date()
+  const currentMinutes = now.getHours() * 60 + now.getMinutes()
+  return minutesToHHmm(roundUp5(currentMinutes))
+}
+
 // ---------------------------------------------------------------------------
 // Blank row factory
 // ---------------------------------------------------------------------------
@@ -131,6 +173,8 @@ export function Timetable() {
   const [date, setDate] = useState<string>(toDateStr(new Date()))
   const [entries, setEntries] = useState<TimetableEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [autofill, setAutofill] = useState(true)
+  const [helpOpen, setHelpOpen] = useState(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const entriesRef = useRef(entries)
   entriesRef.current = entries
@@ -336,8 +380,36 @@ export function Timetable() {
 
         <div className="flex-1" />
 
+        {/* Autofill toggle + help */}
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setHelpOpen(true)}
+            className="h-5 w-5 rounded-full border border-muted-foreground/20 flex items-center justify-center text-muted-foreground/40 hover:text-muted-foreground/70 hover:border-muted-foreground/40 transition-colors"
+            title="What is Autofill?"
+          >
+            <HelpCircle className="h-3 w-3" />
+          </button>
+          <button
+            onClick={() => setAutofill((v) => !v)}
+            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
+              autofill
+                ? 'bg-emerald-400/70 dark:bg-emerald-500/50'
+                : 'bg-foreground/10'
+            }`}
+          >
+            <span
+              className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                autofill ? 'translate-x-[18px]' : 'translate-x-[3px]'
+              }`}
+            />
+          </button>
+          <span className="text-[11px] text-muted-foreground/60 select-none">
+            Autofill
+          </span>
+        </div>
+
         {/* Summary pills */}
-        <div className="flex items-center gap-2 text-[11px] text-muted-foreground/70 tabular-nums select-none">
+        <div className="flex items-center gap-2 text-[11px] text-muted-foreground/70 tabular-nums select-none ml-3">
           <span className="px-2 py-0.5 rounded-md bg-foreground/[0.04]">
             Plan: {fmtDuration(totalExpected)}
           </span>
@@ -377,13 +449,16 @@ export function Timetable() {
           <SortableContext items={entries.map((e) => e.id)} strategy={verticalListSortingStrategy}>
           <tbody>
             <AnimatePresence mode="popLayout">
-              {entries.map((entry) => (
+              {entries.map((entry, index) => (
                 <TimetableRow
                   key={entry.id}
                   entry={entry}
                   onUpdate={updateEntry}
                   onRemove={removeRow}
                   canRemove={entries.length > 1}
+                  autofill={autofill}
+                  entries={entries}
+                  rowIndex={index}
                 />
               ))}
             </AnimatePresence>
@@ -430,6 +505,42 @@ export function Timetable() {
           </Button>
         </motion.div>
       </div>
+
+      {/* Autofill Help Dialog */}
+      <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
+        <DialogContent className="sm:max-w-md glass-overlay">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold">Autofill Logic</DialogTitle>
+          </DialogHeader>
+          <div className="text-sm text-muted-foreground space-y-3 leading-relaxed">
+            <p>
+              When <strong>Autofill</strong> is enabled, clicking on an empty <em>Start</em> time
+              field will automatically populate it with a smart default.
+            </p>
+            <div className="rounded-lg bg-foreground/[0.03] p-3 space-y-2 text-xs">
+              <p className="font-medium text-foreground/80">How it works:</p>
+              <ul className="list-disc pl-4 space-y-1">
+                <li>
+                  <strong>Sequential flow</strong> — if the row above has an end time, that
+                  value is used as this row&apos;s start. Events chain naturally.
+                </li>
+                <li>
+                  <strong>First row / no previous end</strong> — the current time, rounded
+                  up to the nearest 5 minutes, is used.
+                </li>
+                <li>
+                  <strong>AM / PM wrapping</strong> — times use 24-hour format
+                  internally, so the flow crosses noon and midnight
+                  seamlessly: …11:30 → 12:00 → 12:30… and …23:30 → 00:00 → 00:30…
+                </li>
+              </ul>
+            </div>
+            <p className="text-xs text-muted-foreground/50">
+              Toggle autofill off if you prefer to enter all times manually.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -443,11 +554,17 @@ function TimetableRow({
   onUpdate,
   onRemove,
   canRemove,
+  autofill,
+  entries,
+  rowIndex,
 }: {
   entry: TimetableEntry
   onUpdate: (id: string, patch: Partial<TimetableEntry>) => void
   onRemove: (id: string) => void
   canRemove: boolean
+  autofill: boolean
+  entries: TimetableEntry[]
+  rowIndex: number
 }) {
   const {
     attributes,
@@ -478,16 +595,24 @@ function TimetableRow({
   const isUnder = varianceText.includes('under')
   const isOnTime = varianceText === 'On time'
 
+  const isCompleted = !!(entry.actualStart && entry.actualEnd)
+
   return (
     <motion.tr
       ref={setNodeRef}
       style={style}
       layout
       initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
+      animate={{
+        opacity: 1,
+        y: 0,
+        backgroundColor: isCompleted
+          ? 'rgba(52, 211, 153, 0.08)'
+          : 'rgba(0, 0, 0, 0)',
+      }}
       exit={{ opacity: 0, x: -20, height: 0 }}
-      transition={{ duration: 0.2 }}
-      className="group hover:bg-foreground/[0.02] transition-colors"
+      transition={{ duration: 0.2, backgroundColor: { duration: 0.5, ease: 'easeOut' } }}
+      className="group hover:bg-foreground/[0.02] transition-[filter]"
     >
       {/* Drag handle */}
       <td className={`${tdBase} w-7 text-center cursor-grab active:cursor-grabbing`}>
@@ -507,6 +632,11 @@ function TimetableRow({
           type="time"
           value={entry.plannedStart}
           onChange={(e) => onUpdate(entry.id, { plannedStart: e.target.value })}
+          onFocus={() => {
+            if (autofill && !entry.plannedStart) {
+              onUpdate(entry.id, { plannedStart: getAutofillTime(entries, rowIndex) })
+            }
+          }}
           className={timeInputClass}
         />
       </td>
