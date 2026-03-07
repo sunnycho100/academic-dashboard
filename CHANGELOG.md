@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [1.9.5] - 2026-03-05
+Autopush toggle — cascade planned times when actual end is entered
+
+### Added
+- Autopush toggle (sky-blue, on by default) in timetable header — when Actual End is entered on a row, all subsequent unfinished rows' planned start/end times cascade forward, preserving each activity's duration
+- `handleActualEndChange` callback with cascade logic: stops at blank rows, skips completed rows
+- Help dialog updated to explain Autopush behaviour alongside Autofill
+
 ## [1.9.4] - 2026-03-05
 Row completion animation — pastel green background fills completed timetable rows
 

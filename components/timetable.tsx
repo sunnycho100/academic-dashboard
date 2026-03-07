@@ -174,10 +174,13 @@ export function Timetable() {
   const [entries, setEntries] = useState<TimetableEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [autofill, setAutofill] = useState(true)
+  const [autopush, setAutopush] = useState(true)
   const [helpOpen, setHelpOpen] = useState(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const entriesRef = useRef(entries)
   entriesRef.current = entries
+  const autopushRef = useRef(autopush)
+  autopushRef.current = autopush
   const dateRef = useRef(date)
   dateRef.current = date
 
@@ -261,6 +264,69 @@ export function Timetable() {
 
           return updated
         })
+        return next
+      })
+      debouncedSave()
+    },
+    [debouncedSave],
+  )
+
+  // ── Autopush: cascade planned times when actual end changes ─────────
+  const handleActualEndChange = useCallback(
+    (id: string, newActualEnd: string | null) => {
+      setEntries((prev) => {
+        const idx = prev.findIndex((e) => e.id === id)
+        if (idx === -1) return prev
+
+        const next = [...prev]
+
+        // Update the target row
+        const target = { ...next[idx], actualEnd: newActualEnd, updatedAt: new Date().toISOString() }
+        const actualS = target.actualStart
+        if (actualS && newActualEnd) {
+          target.actualMinutes = diffMinutes(actualS, newActualEnd)
+        } else {
+          target.actualMinutes = null
+        }
+        if (target.expectedMinutes > 0 && target.actualMinutes !== null) {
+          target.notes = varianceNote(target.expectedMinutes, target.actualMinutes)
+        } else if (!newActualEnd) {
+          target.notes = ''
+        }
+        next[idx] = target
+
+        // Autopush: cascade planned times for subsequent incomplete rows
+        if (autopushRef.current && newActualEnd) {
+          let cursor = newActualEnd
+          for (let i = idx + 1; i < next.length; i++) {
+            const row = next[i]
+            // Stop at blank rows (no plan, no activity)
+            if (!row.plannedStart && !row.plannedEnd && !row.activityName) break
+            // Skip completed rows
+            if (row.actualEnd) continue
+
+            const updated = { ...row }
+            const dur =
+              updated.expectedMinutes > 0
+                ? updated.expectedMinutes
+                : updated.plannedStart && updated.plannedEnd
+                  ? diffMinutes(updated.plannedStart, updated.plannedEnd)
+                  : 0
+
+            updated.plannedStart = cursor
+            if (dur > 0) {
+              const startMin = parseTime(cursor)
+              if (startMin !== null) {
+                updated.plannedEnd = minutesToHHmm(startMin + dur)
+                updated.expectedMinutes = dur
+              }
+            }
+            updated.updatedAt = new Date().toISOString()
+            next[i] = updated
+            cursor = updated.plannedEnd || cursor
+          }
+        }
+
         return next
       })
       debouncedSave()
@@ -408,6 +474,27 @@ export function Timetable() {
           </span>
         </div>
 
+        {/* Autopush toggle */}
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setAutopush((v) => !v)}
+            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
+              autopush
+                ? 'bg-sky-400/70 dark:bg-sky-500/50'
+                : 'bg-foreground/10'
+            }`}
+          >
+            <span
+              className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                autopush ? 'translate-x-[18px]' : 'translate-x-[3px]'
+              }`}
+            />
+          </button>
+          <span className="text-[11px] text-muted-foreground/60 select-none">
+            Autopush
+          </span>
+        </div>
+
         {/* Summary pills */}
         <div className="flex items-center gap-2 text-[11px] text-muted-foreground/70 tabular-nums select-none ml-3">
           <span className="px-2 py-0.5 rounded-md bg-foreground/[0.04]">
@@ -454,6 +541,7 @@ export function Timetable() {
                   key={entry.id}
                   entry={entry}
                   onUpdate={updateEntry}
+                  onActualEndChange={handleActualEndChange}
                   onRemove={removeRow}
                   canRemove={entries.length > 1}
                   autofill={autofill}
@@ -535,8 +623,17 @@ export function Timetable() {
                 </li>
               </ul>
             </div>
+            <div className="rounded-lg bg-foreground/[0.03] p-3 space-y-2 text-xs">
+              <p className="font-medium text-foreground/80">Autopush</p>
+              <p>
+                When enabled, entering an <strong>Actual End</strong> time on a row
+                automatically shifts the <em>planned</em> start &amp; end times of all
+                subsequent unfinished rows so they cascade from that point — keeping
+                each activity&apos;s planned duration intact.
+              </p>
+            </div>
             <p className="text-xs text-muted-foreground/50">
-              Toggle autofill off if you prefer to enter all times manually.
+              Toggle autofill / autopush off if you prefer full manual control.
             </p>
           </div>
         </DialogContent>
@@ -552,6 +649,7 @@ export function Timetable() {
 function TimetableRow({
   entry,
   onUpdate,
+  onActualEndChange,
   onRemove,
   canRemove,
   autofill,
@@ -560,6 +658,7 @@ function TimetableRow({
 }: {
   entry: TimetableEntry
   onUpdate: (id: string, patch: Partial<TimetableEntry>) => void
+  onActualEndChange: (id: string, actualEnd: string | null) => void
   onRemove: (id: string) => void
   canRemove: boolean
   autofill: boolean
@@ -682,7 +781,7 @@ function TimetableRow({
         <input
           type="time"
           value={entry.actualEnd ?? ''}
-          onChange={(e) => onUpdate(entry.id, { actualEnd: e.target.value || null })}
+          onChange={(e) => onActualEndChange(entry.id, e.target.value || null)}
           className={timeInputClass}
         />
       </td>
