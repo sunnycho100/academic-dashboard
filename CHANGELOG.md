@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [1.10.1] - 2026-03-14
+Security audit remediation — input validation, path traversal guard, and CSP header
+
+### Security
+- **CRITICAL** — `POST /api/time-records` and `PATCH /api/time-records/[id]`: added `CreateTimeRecordSchema` / `UpdateTimeRecordSchema` Zod validation; `startTime`/`endTime` validated as parseable dates before DB write; `duration` capped at 86400 seconds
+- **CRITICAL** — `lib/json-db.ts`: added `validateFilename()` guard rejecting any filename not matching `^[a-z0-9\-]+\.json$`, preventing path traversal attacks (e.g. `../../.env`)
+- **HIGH** — `POST /api/weekly-plan`: replaced bare `throw err` in catch block with a safe structured `500` response — stack traces no longer leak to clients
+- **HIGH** — `DELETE /api/weekly-plan`: replaced loose `if (!id)` check with `DeleteWeeklyPlanSchema` Zod validation (UUID format)
+- **HIGH** — `POST /api/timetable`: applied `CreateTimetableEntrySchema` Zod validation (schema existed but was not applied to the POST handler)
+- **HIGH** — `POST /api/tasks/reorder`: added `ReorderSchema` validating `orders` as a non-empty bounded array of `{ id, priorityOrder }` objects
+- **HIGH** — `POST /api/seed` and `POST /api/bulk`: added `SeedSchema` / `BulkActionSchema` Zod validation; `action` field constrained to `'clear' | 'import'` enum; all category/task fields type-checked at runtime
+- **MEDIUM** — `next.config.mjs`: added `Content-Security-Policy` header (`default-src 'self'`, restricts scripts, styles, images, fonts, connections, and frame embedding)
+- **MEDIUM** — All Zod schemas across 8 route files updated with `.max()` upper bounds on all string fields (titles: 255, types/colors: 100, notes: 5000) to prevent unbounded-string DB writes
+
 ## [1.10.0] - 2026-03-14
 Security hardening, component architecture refactor, and Vercel + Supabase deployment preparation
 

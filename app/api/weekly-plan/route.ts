@@ -70,7 +70,8 @@ export async function POST(req: NextRequest) {
     if (err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === 'P2002') {
       return NextResponse.json({ error: 'Task already planned for this day' }, { status: 409 })
     }
-    throw err
+    console.error('Failed to create weekly plan entry:', err)
+    return NextResponse.json({ error: 'Failed to create weekly plan entry' }, { status: 500 })
   }
 }
 
@@ -78,14 +79,21 @@ export async function POST(req: NextRequest) {
  * DELETE /api/weekly-plan
  * Body: { id: string } — removes a single weekly plan entry
  */
-export async function DELETE(req: NextRequest) {
-  const body = await req.json()
-  const { id } = body
+const DeleteWeeklyPlanSchema = z.object({
+  id: z.string().uuid(),
+})
 
-  if (!id) {
-    return NextResponse.json({ error: 'id required' }, { status: 400 })
+export async function DELETE(req: NextRequest) {
+  const parsed = DeleteWeeklyPlanSchema.safeParse(await req.json())
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  await prisma.weeklyPlanEntry.delete({ where: { id } })
-  return NextResponse.json({ deleted: true })
+  try {
+    await prisma.weeklyPlanEntry.delete({ where: { id: parsed.data.id } })
+    return NextResponse.json({ deleted: true })
+  } catch (error) {
+    console.error('Failed to delete weekly plan entry:', error)
+    return NextResponse.json({ error: 'Failed to delete weekly plan entry' }, { status: 500 })
+  }
 }

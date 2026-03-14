@@ -3,14 +3,14 @@ import { z } from 'zod'
 import { prisma } from '@/lib/db'
 
 const UpdateTaskSchema = z.object({
-  title: z.string().min(1).optional(),
-  type: z.string().min(1).optional(),
-  dueAt: z.string().nullable().optional(),
-  categoryId: z.string().min(1).optional(),
+  title: z.string().min(1).max(255).optional(),
+  type: z.string().min(1).max(100).optional(),
+  dueAt: z.string().max(50).nullable().optional(),
+  categoryId: z.string().min(1).max(255).optional(),
   estimatedDuration: z.number().nullable().optional(),
-  notes: z.string().nullable().optional(),
-  priorityOrder: z.number().optional(),
-  status: z.string().optional(),
+  notes: z.string().max(5000).nullable().optional(),
+  priorityOrder: z.number().int().min(0).optional(),
+  status: z.string().max(50).optional(),
   actualTimeSpent: z.number().nullable().optional(),
 })
 

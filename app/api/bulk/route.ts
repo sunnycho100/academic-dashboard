@@ -1,5 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { prisma } from '@/lib/db'
+
+const BulkCategorySchema = z.object({
+  id: z.string().min(1).max(255),
+  name: z.string().min(1).max(255),
+  color: z.string().min(1).max(100),
+  order: z.number().int().min(0).optional(),
+})
+
+const BulkTaskSchema = z.object({
+  title: z.string().min(1).max(255),
+  type: z.string().min(1).max(100),
+  dueAt: z.string().min(1),
+  status: z.string().max(50).optional(),
+  priorityOrder: z.number().int().min(0).optional(),
+  notes: z.string().max(5000).nullable().optional(),
+  estimatedDuration: z.number().nullable().optional(),
+  actualTimeSpent: z.number().nullable().optional(),
+  categoryId: z.string().min(1).max(255),
+})
+
+const BulkActionSchema = z.object({
+  action: z.enum(['clear', 'import']),
+  categories: z.array(BulkCategorySchema).optional(),
+  tasks: z.array(BulkTaskSchema).optional(),
+})
 
 // Bulk operations: clear all or import data
 export async function POST(request: NextRequest) {
@@ -7,8 +33,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   try {
-    const body = await request.json()
-    const { action, categories, tasks } = body
+    const parsed = BulkActionSchema.safeParse(await request.json())
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
+    }
+    const { action, categories, tasks } = parsed.data
 
     if (action === 'clear') {
       // Delete all tasks first (FK constraint), then categories
@@ -24,7 +53,7 @@ export async function POST(request: NextRequest) {
 
       // Create categories
       const createdCategories = await Promise.all(
-        (categories ?? []).map((cat: { name: string; color: string; order: number }) =>
+        (categories ?? []).map((cat) =>
           prisma.category.create({
             data: {
               name: cat.name,
@@ -38,7 +67,7 @@ export async function POST(request: NextRequest) {
       // Map old category IDs to new ones
       const categoryIdMap: Record<string, string> = {}
       ;(categories ?? []).forEach(
-        (oldCat: { id: string }, index: number) => {
+        (oldCat, index) => {
           categoryIdMap[oldCat.id] = createdCategories[index].id
         }
       )
@@ -46,17 +75,7 @@ export async function POST(request: NextRequest) {
       // Create tasks with mapped category IDs
       await Promise.all(
         (tasks ?? []).map(
-          (task: {
-            title: string
-            type: string
-            dueAt: string
-            status: string
-            priorityOrder: number
-            notes?: string
-            estimatedDuration?: number
-            actualTimeSpent?: number
-            categoryId: string
-          }) =>
+          (task) =>
             prisma.task.create({
               data: {
                 title: task.title,

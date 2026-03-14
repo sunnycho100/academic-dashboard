@@ -3,15 +3,15 @@ import { z } from 'zod'
 import { prisma } from '@/lib/db'
 
 const CreateTaskSchema = z.object({
-  title: z.string().min(1),
-  type: z.string().min(1),
-  dueAt: z.string().nullable().optional(),
-  status: z.string().optional(),
-  priorityOrder: z.number().optional(),
-  notes: z.string().nullable().optional(),
+  title: z.string().min(1).max(255),
+  type: z.string().min(1).max(100),
+  dueAt: z.string().max(50).nullable().optional(),
+  status: z.string().max(50).optional(),
+  priorityOrder: z.number().int().min(0).optional(),
+  notes: z.string().max(5000).nullable().optional(),
   estimatedDuration: z.number().nullable().optional(),
   actualTimeSpent: z.number().nullable().optional(),
-  categoryId: z.string().min(1),
+  categoryId: z.string().min(1).max(255),
 })
 
 export async function GET() {

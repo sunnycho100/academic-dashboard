@@ -1,5 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { prisma } from '@/lib/db'
+
+const UpdateTimeRecordSchema = z.object({
+  taskTitle: z.string().min(1).max(255).optional(),
+  categoryName: z.string().min(1).max(255).optional(),
+  categoryColor: z.string().min(1).max(100).optional(),
+  taskType: z.string().min(1).max(100).optional(),
+  startTime: z.string().min(1).optional(),
+  endTime: z.string().min(1).optional(),
+  duration: z.number().int().min(0).max(86400).optional(),
+})
 
 export async function PATCH(
   request: NextRequest,
@@ -7,15 +18,27 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params
-    const body = await request.json()
+    const parsed = UpdateTimeRecordSchema.safeParse(await request.json())
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
+    }
+    const body = parsed.data
 
     const data: Record<string, unknown> = {}
     if (body.taskTitle !== undefined) data.taskTitle = body.taskTitle
     if (body.categoryName !== undefined) data.categoryName = body.categoryName
     if (body.categoryColor !== undefined) data.categoryColor = body.categoryColor
     if (body.taskType !== undefined) data.taskType = body.taskType
-    if (body.startTime !== undefined) data.startTime = new Date(body.startTime)
-    if (body.endTime !== undefined) data.endTime = new Date(body.endTime)
+    if (body.startTime !== undefined) {
+      const st = new Date(body.startTime)
+      if (isNaN(st.getTime())) return NextResponse.json({ error: 'Invalid startTime' }, { status: 400 })
+      data.startTime = st
+    }
+    if (body.endTime !== undefined) {
+      const et = new Date(body.endTime)
+      if (isNaN(et.getTime())) return NextResponse.json({ error: 'Invalid endTime' }, { status: 400 })
+      data.endTime = et
+    }
     if (body.duration !== undefined) data.duration = body.duration
 
     // If start/end changed, recalculate duration automatically
@@ -23,7 +46,6 @@ export async function PATCH(
       let dur = Math.round(
         (new Date(body.endTime).getTime() - new Date(body.startTime).getTime()) / 1000
       )
-      // Guard against negative duration (should not happen if client handles midnight correctly)
       if (dur < 0) dur += 86400
       data.duration = dur
     }

@@ -48,22 +48,39 @@ export async function GET(request: NextRequest) {
  * POST /api/timetable
  * Create a new timetable entry.
  */
+const CreateTimetableEntrySchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be YYYY-MM-DD'),
+  order: z.number().int().min(0).default(0),
+  plannedStart: z.string().max(10).default(''),
+  plannedEnd: z.string().max(10).default(''),
+  expectedMinutes: z.number().int().min(0).default(0),
+  activityName: z.string().max(255).default(''),
+  actualStart: z.string().max(10).nullable().default(null),
+  actualEnd: z.string().max(10).nullable().default(null),
+  actualMinutes: z.number().int().min(0).nullable().default(null),
+  notes: z.string().max(2000).default(''),
+})
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const parsed = CreateTimetableEntrySchema.safeParse(await request.json())
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
+    }
+    const body = parsed.data
 
     const entry = await prisma.timetableEntry.create({
       data: {
         date: body.date,
-        order: body.order ?? 0,
-        plannedStart: body.plannedStart ?? '',
-        plannedEnd: body.plannedEnd ?? '',
-        expectedMinutes: body.expectedMinutes ?? 0,
-        activityName: body.activityName ?? '',
-        actualStart: body.actualStart ?? null,
-        actualEnd: body.actualEnd ?? null,
-        actualMinutes: body.actualMinutes ?? null,
-        notes: body.notes ?? '',
+        order: body.order,
+        plannedStart: body.plannedStart,
+        plannedEnd: body.plannedEnd,
+        expectedMinutes: body.expectedMinutes,
+        activityName: body.activityName,
+        actualStart: body.actualStart,
+        actualEnd: body.actualEnd,
+        actualMinutes: body.actualMinutes,
+        notes: body.notes,
       },
     })
 

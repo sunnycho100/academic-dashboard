@@ -1,5 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { prisma } from '@/lib/db'
+
+const SeedCategorySchema = z.object({
+  id: z.string().min(1).max(255),
+  name: z.string().min(1).max(255),
+  color: z.string().min(1).max(100),
+  order: z.number().int().min(0).optional(),
+})
+
+const SeedTaskSchema = z.object({
+  title: z.string().min(1).max(255),
+  type: z.string().min(1).max(100),
+  dueAt: z.string().min(1),
+  status: z.string().max(50).optional(),
+  priorityOrder: z.number().int().min(0).optional(),
+  notes: z.string().max(5000).nullable().optional(),
+  estimatedDuration: z.number().nullable().optional(),
+  actualTimeSpent: z.number().nullable().optional(),
+  categoryId: z.string().min(1).max(255),
+})
+
+const SeedSchema = z.object({
+  categories: z.array(SeedCategorySchema).default([]),
+  tasks: z.array(SeedTaskSchema).default([]),
+})
 
 // Seed the database from localStorage data (one-time migration)
 export async function POST(request: NextRequest) {
@@ -7,10 +32,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   try {
-    const body = await request.json()
-    const { categories, tasks } = body
+    const parsed = SeedSchema.safeParse(await request.json())
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
+    }
+    const { categories, tasks } = parsed.data
 
-    if (!categories?.length && !tasks?.length) {
+    if (!categories.length && !tasks.length) {
       return NextResponse.json({ seeded: false, message: 'No data to seed' })
     }
 

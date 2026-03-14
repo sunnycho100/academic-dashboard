@@ -44,7 +44,14 @@ function dateReviver(_key: string, value: unknown): unknown {
   return value
 }
 
+function validateFilename(filename: string): void {
+  if (!/^[a-z0-9\-]+\.json$/.test(filename)) {
+    throw new Error(`Invalid filename: ${filename}`)
+  }
+}
+
 async function readJsonFile<T>(filename: string): Promise<T[]> {
+  validateFilename(filename)
   await ensureDataDir()
   const filePath = path.join(DATA_DIR, filename)
   try {
@@ -57,6 +64,7 @@ async function readJsonFile<T>(filename: string): Promise<T[]> {
 }
 
 async function writeJsonFile<T>(filename: string, data: T[]): Promise<void> {
+  validateFilename(filename)
   await ensureDataDir()
   const filePath = path.join(DATA_DIR, filename)
   const tmpPath = filePath + '.tmp'

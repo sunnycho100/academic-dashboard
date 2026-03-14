@@ -3,9 +3,9 @@ import { z } from 'zod'
 import { prisma } from '@/lib/db'
 
 const CreateCategorySchema = z.object({
-  name: z.string().min(1),
-  color: z.string().min(1),
-  order: z.number().optional(),
+  name: z.string().min(1).max(255),
+  color: z.string().min(1).max(100),
+  order: z.number().int().min(0).optional(),
 })
 
 export async function GET() {

@@ -4,13 +4,13 @@ import { prisma } from '@/lib/db'
 
 const UpdateCompletedTaskSchema = z.object({
   deleted: z.boolean().optional(),
-  taskTitle: z.string().min(1).optional(),
-  categoryName: z.string().min(1).optional(),
-  categoryColor: z.string().min(1).optional(),
-  taskType: z.string().min(1).optional(),
+  taskTitle: z.string().min(1).max(255).optional(),
+  categoryName: z.string().min(1).max(255).optional(),
+  categoryColor: z.string().min(1).max(100).optional(),
+  taskType: z.string().min(1).max(100).optional(),
   actualTimeSpent: z.number().nullable().optional(),
   estimatedDuration: z.number().nullable().optional(),
-  notes: z.string().nullable().optional(),
+  notes: z.string().max(5000).nullable().optional(),
 })
 
 export async function PATCH(

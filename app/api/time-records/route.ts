@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/db'
 
+const CreateTimeRecordSchema = z.object({
+  taskId: z.string().max(255).nullable().optional(),
+  taskTitle: z.string().min(1).max(255),
+  categoryName: z.string().min(1).max(255),
+  categoryColor: z.string().min(1).max(100),
+  taskType: z.string().min(1).max(100),
+  startTime: z.string().min(1),
+  endTime: z.string().min(1),
+  duration: z.number().int().min(0).max(86400),
+})
+
 const QueryParamsSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   tz: z.coerce.number().int().min(-720).max(720).optional(),
@@ -81,7 +92,17 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const parsed = CreateTimeRecordSchema.safeParse(await request.json())
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
+    }
+    const body = parsed.data
+
+    const startTime = new Date(body.startTime)
+    const endTime = new Date(body.endTime)
+    if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+      return NextResponse.json({ error: 'Invalid date format' }, { status: 400 })
+    }
 
     const record = await prisma.timeRecord.create({
       data: {
@@ -90,9 +111,9 @@ export async function POST(request: NextRequest) {
         categoryName: body.categoryName,
         categoryColor: body.categoryColor,
         taskType: body.taskType,
-        startTime: new Date(body.startTime),
-        endTime: new Date(body.endTime),
-        duration: Math.max(0, body.duration),
+        startTime,
+        endTime,
+        duration: body.duration,
       },
     })
 
