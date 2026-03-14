@@ -72,6 +72,7 @@ export function Stats({ tasks, completedTodayCount, todayRemainingCount }: Stats
   const todayTotal = completedTodayCount + todayRemainingCount
   const completionPercent = todayTotal > 0 ? Math.round((completedTodayCount / todayTotal) * 100) : 0
   const dueSoonTasks = tasks.filter((t) => {
+    if (!t.dueAt) return false
     const dueDate = new Date(t.dueAt)
     const today = new Date()
     const twoDays = new Date(today)
@@ -79,6 +80,7 @@ export function Stats({ tasks, completedTodayCount, todayRemainingCount }: Stats
     return dueDate >= today && dueDate <= twoDays && t.status === 'todo'
   }).length
   const overdueTasks = tasks.filter((t) => {
+    if (!t.dueAt) return false
     const dueDate = new Date(t.dueAt)
     const today = new Date()
     today.setHours(0, 0, 0, 0)

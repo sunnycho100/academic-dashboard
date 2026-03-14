@@ -6,7 +6,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const dateParam = searchParams.get('date') // YYYY-MM-DD
     const tzOffsetParam = searchParams.get('tz') // minutes offset from UTC
-    const tzOffset = tzOffsetParam ? parseInt(tzOffsetParam, 10) : new Date().getTimezoneOffset()
+    const rawTzOffset = tzOffsetParam ? parseInt(tzOffsetParam, 10) : new Date().getTimezoneOffset()
+    const tzOffset = isNaN(rawTzOffset) ? 0 : Math.max(-720, Math.min(720, rawTzOffset))
     // startHour: hour-of-day when the user's day starts (e.g. 10 = 10 AM)
     const startHourParam = searchParams.get('startHour')
     const startHourOffset = startHourParam ? parseInt(startHourParam, 10) : 0
@@ -49,7 +50,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Sanitize: recalculate negative durations (from pre-fix midnight-crossing records)
-    const sanitized = records.map((r) => {
+    const sanitized = records.map((r: typeof records[number]) => {
       if (r.duration < 0) {
         const corrected = Math.round((r.endTime.getTime() - r.startTime.getTime()) / 1000)
         return { ...r, duration: corrected < 0 ? corrected + 86400 : corrected }

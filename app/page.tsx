@@ -35,7 +35,17 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
-import { Plus, Settings, Download, Upload, Trash2, Palette, CalendarDays, Clock } from 'lucide-react'
+import { Plus, Settings, Download, Upload, Trash2, Palette, CalendarDays, Clock, AlertTriangle } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { motion } from 'framer-motion'
 import { LandingSequence } from '@/components/landing-sequence'
 import { IdleOverlay } from '@/components/idle-overlay'
@@ -96,6 +106,7 @@ export default function Home() {
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
   const [completedTodayCount, setCompletedTodayCount] = useState(0)
   const [activeMainTab, setActiveMainTab] = useState<'catchup' | 'timetable'>('catchup')
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false)
   const completingRef = useRef<Set<string>>(new Set())
 
   // Idle / power-save detection (5 minutes of inactivity)
@@ -560,6 +571,20 @@ export default function Home() {
 
   const activeDragTask = activeDragId ? tasks.find((t) => t.id === activeDragId) : null
 
+  const handleDeleteAllTasks = async () => {
+    // Optimistic update: clear tasks and today panel
+    setTasks([])
+    setTodayTaskIds([])
+    localStorage.removeItem(TODAY_STORAGE_KEY)
+    setDeleteAllOpen(false)
+    // Delete all active tasks from DB (keeps completed-tasks & time-records intact)
+    try {
+      await fetch('/api/tasks', { method: 'DELETE' })
+    } catch (err) {
+      console.error('Failed to delete all tasks:', err)
+    }
+  }
+
   const handleExportData = () => {
     const data = { categories, tasks }
     const blob = new Blob([JSON.stringify(data, null, 2)], {
@@ -753,6 +778,17 @@ export default function Home() {
               </button>
             </div>
             <div className="flex items-center gap-2">
+              {activeMainTab === 'catchup' && tasks.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setDeleteAllOpen(true)}
+                  className="rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <Trash2 className="h-[1.2rem] w-[1.2rem]" />
+                  <span className="sr-only">Delete all tasks</span>
+                </Button>
+              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-lg">
@@ -1015,6 +1051,28 @@ export default function Home() {
         open={timeRecordsOpen}
         onOpenChange={setTimeRecordsOpen}
       />
+      <AlertDialog open={deleteAllOpen} onOpenChange={setDeleteAllOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Delete all tasks?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete all {tasks.length} active task{tasks.length !== 1 ? 's' : ''}? This will remove them from both the task list and today&apos;s plan. Your completed task history and time records will not be affected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAllTasks}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Yes, delete all tasks
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <ColorSchemeDialog
         open={colorSchemeOpen}
         onOpenChange={setColorSchemeOpen}

@@ -16,19 +16,23 @@ export async function GET(req: NextRequest) {
   const end = new Date(start)
   end.setDate(end.getDate() + 7)
 
-  const entries = await prisma.weeklyPlanEntry.findMany({
-    where: {
-      date: { gte: start, lt: end },
-    },
-    include: {
-      task: {
-        include: { category: true },
+  try {
+    const entries = await prisma.weeklyPlanEntry.findMany({
+      where: {
+        date: { gte: start, lt: end },
       },
-    },
-    orderBy: { createdAt: 'asc' },
-  })
-
-  return NextResponse.json(entries)
+      include: {
+        task: {
+          include: { category: true },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    })
+    return NextResponse.json(entries)
+  } catch (error) {
+    console.error('Failed to fetch weekly plan:', error)
+    return NextResponse.json({ error: 'Failed to fetch weekly plan' }, { status: 500 })
+  }
 }
 
 /**

@@ -50,6 +50,11 @@ yarn-error.log*
 # Local
 .cache/
 
+# Claude Code (local/machine-specific)
+.claude/settings.local.json
+skills-lock.json
+.claude/skills/**/*.zip
+
 /lib/generated/prisma
 
 # JSON data files (user data, not tracked)

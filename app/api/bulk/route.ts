@@ -3,6 +3,9 @@ import { prisma } from '@/lib/db'
 
 // Bulk operations: clear all or import data
 export async function POST(request: NextRequest) {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
   try {
     const body = await request.json()
     const { action, categories, tasks } = body

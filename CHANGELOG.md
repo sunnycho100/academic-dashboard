@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [1.9.6] - 2026-03-14
+API hardening — Zod input validation, production route guards, delete-all tasks, and TypeScript strict mode
+
+### Added
+- "Delete All Tasks" trash button in header (visible on Class Catch-up tab when tasks exist) — triggers `AlertDialog` confirmation showing task count; preserves completed-task history and time records
+- `DELETE /api/tasks` — bulk deletes all active tasks; production-guarded (`403 Forbidden` when `NODE_ENV=production`)
+- Zod validation schemas on `POST /api/tasks`, `POST /api/categories`, and `PUT /api/user-info` — returns structured 400 errors on invalid input
+- Production `403 Forbidden` guard on `POST /api/bulk` and `POST /api/seed` (dev/migration-only endpoints)
+
+### Changed
+- `next.config.mjs`: removed `typescript.ignoreBuildErrors: true` — TypeScript errors now fail the build
+- Timezone offset parameter in `GET /api/time-records` sanitised: `NaN` falls back to `0`, value clamped to `[-720, 720]` minutes
+- `GET /api/weekly-plan` query wrapped in `try/catch` with proper 500 error response
+- Framer Motion animation objects in `empty-state.tsx` typed as `Variants` to satisfy strict TypeScript
+
+### Fixed
+- `dueSoonTasks` and `overdueTasks` filters in `stats.tsx` now guard against `null` `dueAt` — prevents `new Date(null)` producing epoch date and falsely counting undated tasks as overdue
+
 ## [1.9.5] - 2026-03-05
 Autopush toggle — cascade planned times when actual end is entered
 

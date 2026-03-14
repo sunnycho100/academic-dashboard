@@ -1,5 +1,10 @@
+import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { NextResponse } from 'next/server'
+
+const UpdateUserInfoSchema = z.object({
+  name: z.string().min(1).max(100),
+})
 
 // GET /api/user-info — returns the user's display name
 export async function GET() {
@@ -19,7 +24,11 @@ export async function GET() {
 // PUT /api/user-info — update the user's display name
 export async function PUT(request: Request) {
   try {
-    const { name } = await request.json()
+    const parsed = UpdateUserInfoSchema.safeParse(await request.json())
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
+    }
+    const { name } = parsed.data
     const user = await prisma.userInfo.upsert({
       where: { id: 'default' },
       update: { name },
