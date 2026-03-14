@@ -1,9 +1,7 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { Task, Category, TaskType } from '@/lib/types'
+import { Task, Category } from '@/lib/types'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,14 +14,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { GripVertical, MoreVertical, Pencil, Copy, Trash2, StickyNote, ChevronRight, ChevronLeft, Target, Clock, TrendingUp, TrendingDown } from 'lucide-react'
+import { GripVertical, MoreVertical, Pencil, Copy, Trash2, StickyNote, ChevronRight, ChevronLeft, Target } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { motion } from 'framer-motion'
 import { childSpring } from '@/lib/liquidTransitions'
+import { InlineEdit } from '@/components/task/inline-edit'
+import { TaskMetadata } from '@/components/task/task-metadata'
 
 interface TaskRowProps {
   task: Task
@@ -39,176 +38,6 @@ interface TaskRowProps {
   isDragging?: boolean
   animationIndex?: number
   weeklyDayLabels?: string[]
-}
-
-function InlineEdit({
-  value,
-  onSave,
-  className,
-  type = 'text',
-}: {
-  value: string
-  onSave: (val: string) => void
-  className?: string
-  type?: 'text' | 'date'
-}) {
-  const [editing, setEditing] = useState(false)
-  const [editValue, setEditValue] = useState(value)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    if (editing) {
-      inputRef.current?.focus()
-      if (type === 'text') inputRef.current?.select()
-    }
-  }, [editing, type])
-
-  useEffect(() => {
-    setEditValue(value)
-  }, [value])
-
-  const commit = () => {
-    if (editValue.trim() && editValue !== value) {
-      onSave(editValue.trim())
-    } else {
-      setEditValue(value)
-    }
-    setEditing(false)
-  }
-
-  if (editing) {
-    return (
-      <Input
-        ref={inputRef}
-        type={type}
-        value={editValue}
-        onChange={(e) => setEditValue(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') commit()
-          if (e.key === 'Escape') {
-            setEditValue(value)
-            setEditing(false)
-          }
-        }}
-        className={cn('h-7 px-1.5 py-0 w-auto min-w-0 border-border/50 bg-background', className)}
-      />
-    )
-  }
-
-  return (
-    <span
-      onClick={() => setEditing(true)}
-      className={cn('cursor-pointer hover:bg-secondary/60 rounded px-1 -mx-1 transition-colors', className)}
-      title="Click to edit"
-    >
-      {type === 'date' && value ? new Date(value + 'T00:00:00').toLocaleDateString() : value}
-    </span>
-  )
-}
-
-function InlineDurationEdit({
-  minutes,
-  onSave,
-}: {
-  minutes: number | undefined
-  onSave: (val: number | undefined) => void
-}) {
-  const [editing, setEditing] = useState(false)
-  const [hours, setHours] = useState(minutes ? String(Math.floor(minutes / 60)) : '0')
-  const [mins, setMins] = useState(minutes ? String(minutes % 60) : '0')
-  const hoursRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    setHours(minutes ? String(Math.floor(minutes / 60)) : '0')
-    setMins(minutes ? String(minutes % 60) : '0')
-  }, [minutes])
-
-  useEffect(() => {
-    if (editing) hoursRef.current?.focus()
-  }, [editing])
-
-  const commit = () => {
-    const h = parseInt(hours || '0')
-    const m = parseInt(mins || '0')
-    const total = h * 60 + m
-    onSave(total > 0 ? total : undefined)
-    setEditing(false)
-  }
-
-  const formatDuration = (mins: number) => {
-    if (mins >= 60) {
-      const h = Math.floor(mins / 60)
-      const m = mins % 60
-      return m > 0 ? `${h}h ${m}m` : `${h}h`
-    }
-    return `${mins}m`
-  }
-
-  if (editing) {
-    return (
-      <span className="inline-flex items-center gap-1">
-        <Input
-          ref={hoursRef}
-          type="number"
-          min="0"
-          max="99"
-          value={hours}
-          onChange={(e) => setHours(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') commit()
-            if (e.key === 'Escape') {
-              setHours(minutes ? String(Math.floor(minutes / 60)) : '0')
-              setMins(minutes ? String(minutes % 60) : '0')
-              setEditing(false)
-            }
-          }}
-          className="h-7 text-xs px-1 py-0 w-10 border-border/50 bg-background"
-        />
-        <span className="text-[10px] text-muted-foreground">h</span>
-        <Input
-          type="number"
-          min="0"
-          max="59"
-          value={mins}
-          onChange={(e) => setMins(e.target.value)}
-          onBlur={commit}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') commit()
-            if (e.key === 'Escape') {
-              setHours(minutes ? String(Math.floor(minutes / 60)) : '0')
-              setMins(minutes ? String(minutes % 60) : '0')
-              setEditing(false)
-            }
-          }}
-          className="h-7 text-xs px-1 py-0 w-10 border-border/50 bg-background"
-        />
-        <span className="text-[10px] text-muted-foreground">m</span>
-      </span>
-    )
-  }
-
-  if (!minutes) {
-    return (
-      <span
-        onClick={() => setEditing(true)}
-        className="cursor-pointer hover:bg-secondary/60 rounded px-1 -mx-1 transition-colors text-muted-foreground/40 italic"
-        title="Click to set duration"
-      >
-        + time
-      </span>
-    )
-  }
-
-  return (
-    <span
-      onClick={() => setEditing(true)}
-      className="cursor-pointer hover:bg-secondary/60 rounded px-1 -mx-1 transition-colors"
-      title="Click to edit duration"
-    >
-      {formatDuration(minutes)}
-    </span>
-  )
 }
 
 export function TaskRow({
@@ -238,46 +67,6 @@ export function TaskRow({
     transform: CSS.Transform.toString(transform),
     transition,
   }
-
-  const dueDate = task.dueAt ? new Date(task.dueAt) : null
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  let daysDiff: number | null = null
-  let dueDateLabel = ''
-  let dueDateVariant: 'default' | 'secondary' | 'destructive' | 'outline' =
-    'secondary'
-  let dueDateClassName = ''
-
-  if (dueDate) {
-    const dueDateOnly = new Date(dueDate)
-    dueDateOnly.setHours(0, 0, 0, 0)
-
-    daysDiff = Math.floor(
-      (dueDateOnly.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-    )
-
-    if (daysDiff < 0) {
-      const daysOverdue = Math.abs(daysDiff)
-      dueDateLabel = `Overdue ${daysOverdue}d`
-      dueDateVariant = 'destructive'
-    } else if (daysDiff === 0) {
-      dueDateLabel = 'Due today'
-      dueDateVariant = 'default'
-      dueDateClassName = 'bg-red-500/20 text-red-500 dark:text-red-400 border-red-500/40 hover:bg-red-500/30 font-medium'
-    } else if (daysDiff === 1) {
-      dueDateLabel = 'Due tomorrow'
-      dueDateVariant = 'default'
-    } else {
-      dueDateLabel = `Due in ${daysDiff}d`
-      dueDateVariant = 'secondary'
-    }
-  } else {
-    dueDateLabel = 'No due date'
-    dueDateVariant = 'outline'
-  }
-
-  const isOverdue = dueDate !== null && daysDiff !== null && daysDiff < 0 && task.status !== 'done'
 
   return (
     <motion.div
@@ -349,90 +138,12 @@ export function TaskRow({
             </TooltipProvider>
           )}
         </div>
-        <div className="flex items-center gap-1.5">
-          <div
-            className="flex items-center gap-1.5 text-xs w-[68px] truncate flex-shrink-0"
-            style={{ color: category.color }}
-          >
-            <div
-              className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-              style={{ backgroundColor: category.color }}
-            />
-            <span className="truncate">{category.name}</span>
-          </div>
-          <span className="text-muted-foreground/40 text-xs flex-shrink-0">·</span>
-          <span className="text-xs text-muted-foreground/70 w-[68px] truncate flex-shrink-0">{task.type}</span>
-          <span className="text-muted-foreground/40 text-xs flex-shrink-0">·</span>
-          <span className="text-xs text-muted-foreground/70 w-[44px] flex-shrink-0">
-            {onSave ? (
-              <InlineDurationEdit
-                minutes={task.estimatedDuration}
-                onSave={(val) => onSave({ ...task, estimatedDuration: val })}
-              />
-            ) : (
-              task.estimatedDuration
-                ? (task.estimatedDuration >= 60
-                  ? `${Math.floor(task.estimatedDuration / 60)}h ${task.estimatedDuration % 60 > 0 ? `${task.estimatedDuration % 60}m` : ''}`
-                  : `${task.estimatedDuration}m`)
-                : null
-            )}
-          </span>
-          <span className="text-muted-foreground/40 text-xs flex-shrink-0">·</span>
-          <Badge
-            variant={dueDateVariant}
-            className={cn('text-xs font-normal flex-shrink-0', dueDateClassName)}
-          >
-            {dueDateLabel}
-          </Badge>
-          {/* Weekly day labels */}
-          {weeklyDayLabels && weeklyDayLabels.length > 0 && (
-            <>
-              <span className="text-muted-foreground/40 text-xs">·</span>
-              <span className="inline-flex items-center gap-1">
-                {weeklyDayLabels.map((day) => (
-                  <Badge
-                    key={day}
-                    variant="outline"
-                    className="text-[9px] px-1.5 py-0 h-4 font-medium text-violet-600 dark:text-violet-400 border-violet-400/40 bg-violet-500/10"
-                  >
-                    {day}
-                  </Badge>
-                ))}
-              </span>
-            </>
-          )}
-          {/* Completed time info */}
-          {task.status === 'done' && task.actualTimeSpent != null && task.actualTimeSpent > 0 && (
-            <>
-              <span className="text-muted-foreground/40 text-xs">·</span>
-              <span className="inline-flex items-center gap-1 text-xs text-primary font-medium">
-                <Clock className="h-3 w-3" />
-                {task.actualTimeSpent >= 60
-                  ? `${Math.floor(task.actualTimeSpent / 60)}h ${task.actualTimeSpent % 60 > 0 ? `${task.actualTimeSpent % 60}m` : ''}`
-                  : `${task.actualTimeSpent}m`}
-              </span>
-              {task.estimatedDuration != null && (
-                (() => {
-                  const diff = task.estimatedDuration - task.actualTimeSpent
-                  if (diff === 0) return null
-                  const absDiff = Math.abs(diff)
-                  const label = absDiff >= 60
-                    ? `${Math.floor(absDiff / 60)}h ${absDiff % 60 > 0 ? `${absDiff % 60}m` : ''}`
-                    : `${absDiff}m`
-                  return (
-                    <span className={cn(
-                      'inline-flex items-center gap-0.5 text-xs font-medium',
-                      diff > 0 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'
-                    )}>
-                      {diff > 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
-                      {diff > 0 ? `Saved ${label}` : `${label} over`}
-                    </span>
-                  )
-                })()
-              )}
-            </>
-          )}
-        </div>
+        <TaskMetadata
+          task={task}
+          category={category}
+          onSave={onSave}
+          weeklyDayLabels={weeklyDayLabels}
+        />
       </div>
 
       {/* Toggle Today's Plan button */}

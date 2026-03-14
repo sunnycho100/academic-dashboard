@@ -19,17 +19,8 @@ const storageMode = process.env.STORAGE_MODE || 'json'
 let _db: any
 
 if (storageMode === 'postgres') {
-  try {
-    const { prisma: p } = require('./prisma')
-    _db = p
-  } catch (error) {
-    console.error(
-      '⚠ Failed to initialise Prisma client. Falling back to JSON storage mode.',
-      error,
-    )
-    const { jsonDb } = require('./json-db')
-    _db = jsonDb
-  }
+  const { prisma: p } = require('./prisma')
+  _db = p
 } else {
   const { jsonDb } = require('./json-db')
   _db = jsonDb

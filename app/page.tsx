@@ -1,31 +1,21 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { Task, Category, SortOption, ViewMode, TaskType } from '@/lib/types'
+import { Task, Category, SortOption, ViewMode } from '@/lib/types'
 import { loadState } from '@/lib/store'
 import { CategorySidebar } from '@/components/category-sidebar'
 import { AddCategoryDialog } from '@/components/add-category-dialog'
 import { AddTaskDialog } from '@/components/add-task-sheet'
 import { EditTaskSheet } from '@/components/edit-task-sheet'
-import { TaskList } from '@/components/task-list'
-import { TodayPanel } from '@/components/today-panel'
 import { ThemeToggle } from '@/components/theme-toggle'
-import { Stats } from '@/components/stats'
 import { ClearDataDialog } from '@/components/clear-data-dialog'
 import { ImportDataDialog } from '@/components/import-data-dialog'
-import { EmptyState } from '@/components/empty-state'
 import { TimeRecordsDialog } from '@/components/time-records-dialog'
 import { ColorSchemeDialog } from '@/components/color-scheme-dialog'
-import { WeeklyPlan, type WeeklyPlanEntry, DAY_LABELS } from '@/components/weekly-plan'
+import { type WeeklyPlanEntry, DAY_LABELS } from '@/components/weekly-plan'
+import { CatchupContent } from '@/components/catchup-content'
+import { TimetableContent } from '@/components/timetable-content'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,9 +23,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Label } from '@/components/ui/label'
-import { Plus, Settings, Download, Upload, Trash2, Palette, CalendarDays, Clock, AlertTriangle } from 'lucide-react'
+import { Settings, Download, Upload, Trash2, Palette, Clock, AlertTriangle } from 'lucide-react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,7 +38,6 @@ import { motion } from 'framer-motion'
 import { LandingSequence } from '@/components/landing-sequence'
 import { IdleOverlay } from '@/components/idle-overlay'
 import { useIdleDetector } from '@/hooks/use-idle-detector'
-import { Timetable } from '@/components/timetable'
 import {
   DndContext,
   DragOverlay,
@@ -61,6 +48,8 @@ import {
   DragStartEvent,
   DragEndEvent,
 } from '@dnd-kit/core'
+import { useTasks } from '@/hooks/use-tasks'
+import { useCategories } from '@/hooks/use-categories'
 
 const TODAY_STORAGE_KEY = 'class-catchup-today'
 
@@ -115,6 +104,38 @@ export default function Home() {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   )
+
+  // Task & Category mutation hooks
+  const {
+    handleAddTask,
+    handleToggleTask,
+    handleSaveTask,
+    handleDuplicateTask,
+    handleDeleteTask,
+    handleDeleteAllTasks,
+  } = useTasks({
+    tasks,
+    setTasks,
+    setTodayTaskIds,
+    setCompletedTodayCount,
+    categories,
+    completingRef,
+  })
+
+  const {
+    handleAddCategory,
+    handleRemoveCategory,
+    handleRenameCategory,
+    handleReorderCategories,
+    handleCategoryColorChange,
+  } = useCategories({
+    categories,
+    setCategories,
+    setTasks,
+    setTodayTaskIds,
+    selectedCategoryId,
+    setSelectedCategoryId,
+  })
 
   useEffect(() => {
     async function loadData() {
@@ -233,209 +254,9 @@ export default function Home() {
     }
   }, [todayTaskIds, mounted])
 
-  const handleAddCategory = async (name: string) => {
-    const color = `hsl(${Math.random() * 360}, 70%, 50%)`
-    const order = categories.length
-    try {
-      const res = await fetch('/api/categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, color, order }),
-      })
-      const newCategory = await res.json()
-      setCategories([...categories, newCategory])
-    } catch (err) {
-      console.error('Failed to create category:', err)
-    }
-  }
-
-  const handleAddTask = async (taskData: {
-    title: string
-    categoryId: string
-    type: TaskType
-    dueAt: string | null
-    notes?: string
-    estimatedDuration?: number
-  }) => {
-    try {
-      const res = await fetch('/api/tasks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...taskData,
-          priorityOrder: tasks.length,
-        }),
-      })
-      const newTask = await res.json()
-      setTasks([...tasks, newTask])
-    } catch (err) {
-      console.error('Failed to create task:', err)
-    }
-  }
-
-  const handleToggleTask = async (id: string, timeSpentSeconds?: number) => {
-    const task = tasks.find((t) => t.id === id)
-    if (!task) return
-
-    // Guard: prevent double-click from creating duplicate completions
-    if (task.status === 'todo' && completingRef.current.has(id)) return
-    
-    const isCompletingTask = task.status === 'todo'
-    const actualMinutes =
-      timeSpentSeconds !== undefined ? Math.round(timeSpentSeconds / 60) : undefined
-
-    if (isCompletingTask) {
-      // Mark as in-progress to prevent double-click
-      completingRef.current.add(id)
-
-      // Optimistic: remove from UI immediately
-      setTasks((prev) => prev.filter((t) => t.id !== id))
-      setTodayTaskIds((prev) => prev.filter((tid) => tid !== id))
-      setCompletedTodayCount((prev) => prev + 1)
-
-      // Archive to CompletedTask table
-      const category = categories.find((c) => c.id === task.categoryId)
-      try {
-        await fetch('/api/completed-tasks', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            taskTitle: task.title,
-            categoryName: category?.name ?? 'Unknown',
-            categoryColor: category?.color ?? '#888',
-            taskType: task.type,
-            dueAt: task.dueAt,
-            actualTimeSpent: actualMinutes ?? task.actualTimeSpent ?? null,
-            estimatedDuration: task.estimatedDuration ?? null,
-            notes: task.notes ?? null,
-          }),
-        })
-      } catch (err) {
-        console.error('Failed to archive completed task:', err)
-      }
-
-      // Delete from active Task table
-      try {
-        await fetch(`/api/tasks/${id}`, { method: 'DELETE' })
-      } catch (err) {
-        console.error('Failed to delete completed task from active table:', err)
-      }
-
-      completingRef.current.delete(id)
-    } else {
-      // Un-completing (done → todo) — just toggle status
-      setTasks((prev) =>
-        prev.map((t) =>
-          t.id === id ? { ...t, status: 'todo' as const } : t
-        )
-      )
-      fetch(`/api/tasks/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'todo' }),
-      }).catch((err) => console.error('Failed to update task status:', err))
-    }
-  }
-
   const handleEditTask = (task: Task) => {
     setTaskToEdit(task)
     setEditTaskOpen(true)
-  }
-
-  const handleSaveTask = (updatedTask: Task) => {
-    // Optimistic update
-    setTasks((prev) =>
-      prev.map((task) =>
-        task.id === updatedTask.id ? updatedTask : task
-      )
-    )
-    // Persist to DB
-    fetch(`/api/tasks/${updatedTask.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: updatedTask.title,
-        categoryId: updatedTask.categoryId,
-        type: updatedTask.type,
-        dueAt: updatedTask.dueAt,
-        notes: updatedTask.notes ?? null,
-        estimatedDuration: updatedTask.estimatedDuration ?? null,
-      }),
-    }).catch((err) => console.error('Failed to update task:', err))
-  }
-
-  const handleDuplicateTask = async (task: Task) => {
-    try {
-      const res = await fetch('/api/tasks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: `${task.title} (Copy)`,
-          categoryId: task.categoryId,
-          type: task.type,
-          dueAt: task.dueAt,
-          notes: task.notes,
-          estimatedDuration: task.estimatedDuration,
-          priorityOrder: tasks.length,
-        }),
-      })
-      const newTask = await res.json()
-      setTasks([...tasks, newTask])
-    } catch (err) {
-      console.error('Failed to duplicate task:', err)
-    }
-  }
-
-  const handleDeleteTask = (id: string) => {
-    // Optimistic update
-    setTasks((prev) => prev.filter((task) => task.id !== id))
-    setTodayTaskIds((prev) => prev.filter((tid) => tid !== id))
-    // Persist
-    fetch(`/api/tasks/${id}`, { method: 'DELETE' })
-      .catch((err) => console.error('Failed to delete task:', err))
-  }
-
-  const handleRemoveCategory = (categoryId: string) => {
-    const removedTaskIds = tasks.filter((t) => t.categoryId === categoryId).map((t) => t.id)
-    // Optimistic update
-    setCategories(categories.filter((c) => c.id !== categoryId))
-    setTasks((prev) => prev.filter((t) => t.categoryId !== categoryId))
-    setTodayTaskIds((prev) => prev.filter((id) => !removedTaskIds.includes(id)))
-    if (selectedCategoryId === categoryId) {
-      setSelectedCategoryId(null)
-    }
-    // Persist (cascade deletes tasks in DB)
-    fetch(`/api/categories/${categoryId}`, { method: 'DELETE' })
-      .catch((err) => console.error('Failed to delete category:', err))
-  }
-
-  const handleRenameCategory = (categoryId: string, newName: string) => {
-    // Optimistic update
-    setCategories((prev) =>
-      prev.map((c) => (c.id === categoryId ? { ...c, name: newName } : c))
-    )
-    // Persist
-    fetch(`/api/categories/${categoryId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newName }),
-    }).catch((err) => console.error('Failed to rename category:', err))
-  }
-
-  const handleReorderCategories = (reorderedCategories: Category[]) => {
-    // Optimistic update with new order values
-    const updated = reorderedCategories.map((c, i) => ({ ...c, order: i }))
-    setCategories(updated)
-    // Persist each category's new order
-    Promise.all(
-      updated.map((c) =>
-        fetch(`/api/categories/${c.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ order: c.order }),
-        })
-      )
-    ).catch((err) => console.error('Failed to reorder categories:', err))
   }
 
   const handleAddToToday = (taskId: string) => {
@@ -570,20 +391,6 @@ export default function Home() {
   }
 
   const activeDragTask = activeDragId ? tasks.find((t) => t.id === activeDragId) : null
-
-  const handleDeleteAllTasks = async () => {
-    // Optimistic update: clear tasks and today panel
-    setTasks([])
-    setTodayTaskIds([])
-    localStorage.removeItem(TODAY_STORAGE_KEY)
-    setDeleteAllOpen(false)
-    // Delete all active tasks from DB (keeps completed-tasks & time-records intact)
-    try {
-      await fetch('/api/tasks', { method: 'DELETE' })
-    } catch (err) {
-      console.error('Failed to delete all tasks:', err)
-    }
-  }
 
   const handleExportData = () => {
     const data = { categories, tasks }
@@ -828,154 +635,38 @@ export default function Home() {
         {/* Content Area */}
         <div className="flex-1 flex flex-col overflow-hidden p-6">
           {activeMainTab === 'timetable' ? (
-            <motion.div
-              key="timetable"
-              initial={{ opacity: 0, x: 12 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.25 }}
-              className="flex flex-col h-full min-h-0"
-            >
-              <Timetable />
-            </motion.div>
+            <TimetableContent />
           ) : (
-          <>
-          {/* Show empty state if no categories exist */}
-          {categories.length === 0 ? (
-            <EmptyState onAddCategory={() => setAddCategoryOpen(true)} />
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-              className="flex flex-col h-full min-h-0"
-            >
-              {/* Stats */}
-              <Stats tasks={tasks} completedTodayCount={completedTodayCount} todayRemainingCount={todayTaskIds.length} />
-
-              {/* View Tabs + Add Task Button + Controls */}
-              <div className="flex items-center gap-3 mb-6 flex-wrap">
-                <motion.div whileTap={{ scale: 0.95 }}>
-                  <Button
-                    id="add-task-button"
-                    onClick={() => setAddTaskOpen(true)}
-                    className="rounded-lg shadow-sm"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Task
-                  </Button>
-                </motion.div>
-                <motion.div whileTap={{ scale: 0.95 }}>
-                  <Button
-                    variant={weeklyPlanOpen ? 'default' : 'outline'}
-                    onClick={() => setWeeklyPlanOpen(!weeklyPlanOpen)}
-                    className="rounded-lg shadow-sm"
-                  >
-                    <CalendarDays className="h-4 w-4 mr-2" />
-                    Weekly Plan
-                  </Button>
-                </motion.div>
-                <Tabs
-                  value={viewMode}
-                  onValueChange={(value) => setViewMode(value as ViewMode)}
-                >
-                  <TabsList className="rounded-lg">
-                    <TabsTrigger value="all" className="rounded-md">All</TabsTrigger>
-                    <TabsTrigger value="overdue" className="rounded-md">Overdue</TabsTrigger>
-                    <TabsTrigger value="due-soon" className="rounded-md">Due Soon</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-
-                <div className="flex-1" />
-
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="group-by-category"
-                      checked={groupByCategory}
-                      onCheckedChange={(checked) =>
-                        setGroupByCategory(checked as boolean)
-                      }
-                    />
-                    <Label
-                      htmlFor="group-by-category"
-                      className="text-sm font-normal cursor-pointer"
-                    >
-                      Group by category
-                    </Label>
-                  </div>
-
-                  <Select
-                    value={sortOption}
-                    onValueChange={(value) => setSortOption(value as SortOption)}
-                  >
-                    <SelectTrigger className="w-40 rounded-lg">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="due-date">Sort by due date</SelectItem>
-                      <SelectItem value="manual">Manual order</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <motion.div
-                    key={sortedTasks.length}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="text-sm text-muted-foreground/70 tabular-nums"
-                  >
-                    {sortedTasks.length} task{sortedTasks.length !== 1 ? 's' : ''}
-                  </motion.div>
-                </div>
-              </div>
-
-              {/* Weekly Plan (collapsible, above bento grid) */}
-              <WeeklyPlan
-                tasks={tasks}
-                categories={categories}
-                open={weeklyPlanOpen}
-                onOpenChange={setWeeklyPlanOpen}
-                onEntriesChange={handleWeeklyEntriesChange}
-                refreshKey={weeklyRefreshKey}
-              />
-
-              {/* Bento Grid: Task List + Today's Plan */}
-              <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-6 flex-1 min-h-0">
-                {/* Task List */}
-                <div className="min-w-0 min-h-0 flex flex-col overflow-hidden">
-                  <TaskList
-                    tasks={sortedTasks}
-                    categories={categories}
-                    groupByCategory={groupByCategory}
-                    onToggleTask={handleToggleTask}
-                    onEditTask={handleEditTask}
-                    onSaveTask={handleSaveTask}
-                    onDuplicateTask={handleDuplicateTask}
-                    onDeleteTask={handleDeleteTask}
-                    onAddToToday={handleAddToToday}
-                    onRemoveFromToday={handleRemoveFromToday}
-                    todayTaskIds={todayTaskIds}
-                    sortOption={sortOption}
-                    emptyMessage={emptyMessage}
-                    weeklyDayLabels={weeklyDayLabels}
-                  />
-                </div>
-
-                {/* Today's Plan — fills column height */}
-                <div className="min-h-0 flex flex-col overflow-hidden">
-                  <TodayPanel
-                    tasks={todayTaskIds.map((id) => tasks.find((t) => t.id === id)).filter(Boolean) as Task[]}
-                    allTasks={tasks}
-                    categories={categories}
-                    onRemoveFromToday={handleRemoveFromToday}
-                    onToggleTask={handleToggleTask}
-                    onReorderToday={handleReorderToday}
-                    isDragging={!!activeDragId}
-                  />
-                </div>
-              </div>
-            </motion.div>
-          )}
-          </>
+            <CatchupContent
+              tasks={tasks}
+              categories={categories}
+              sortedTasks={sortedTasks}
+              todayTaskIds={todayTaskIds}
+              activeDragId={activeDragId}
+              completedTodayCount={completedTodayCount}
+              viewMode={viewMode}
+              setViewMode={setViewMode}
+              sortOption={sortOption}
+              setSortOption={setSortOption}
+              groupByCategory={groupByCategory}
+              setGroupByCategory={setGroupByCategory}
+              weeklyPlanOpen={weeklyPlanOpen}
+              setWeeklyPlanOpen={setWeeklyPlanOpen}
+              weeklyRefreshKey={weeklyRefreshKey}
+              weeklyDayLabels={weeklyDayLabels}
+              emptyMessage={emptyMessage}
+              onAddTaskOpen={() => setAddTaskOpen(true)}
+              onAddCategoryOpen={() => setAddCategoryOpen(true)}
+              onToggleTask={handleToggleTask}
+              onEditTask={handleEditTask}
+              onSaveTask={handleSaveTask}
+              onDuplicateTask={handleDuplicateTask}
+              onDeleteTask={handleDeleteTask}
+              onAddToToday={handleAddToToday}
+              onRemoveFromToday={handleRemoveFromToday}
+              onReorderToday={handleReorderToday}
+              onWeeklyEntriesChange={handleWeeklyEntriesChange}
+            />
           )}
         </div>
       </div>
@@ -1065,7 +756,10 @@ export default function Home() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDeleteAllTasks}
+              onClick={() => {
+                handleDeleteAllTasks()
+                setDeleteAllOpen(false)
+              }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Yes, delete all tasks
@@ -1077,22 +771,7 @@ export default function Home() {
         open={colorSchemeOpen}
         onOpenChange={setColorSchemeOpen}
         categories={categories}
-        onCategoryColorChange={async (id, color) => {
-          // Optimistic update
-          setCategories((prev) =>
-            prev.map((c) => (c.id === id ? { ...c, color } : c))
-          )
-          // Persist to DB
-          try {
-            await fetch(`/api/categories/${id}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ color }),
-            })
-          } catch (err) {
-            console.error('Failed to update category color:', err)
-          }
-        }}
+        onCategoryColorChange={handleCategoryColorChange}
       />
     </div>
     </DndContext>

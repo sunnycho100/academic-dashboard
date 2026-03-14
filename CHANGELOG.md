@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [1.10.0] - 2026-03-14
+Security hardening, component architecture refactor, and Vercel + Supabase deployment preparation
+
+### Security
+- Zod validation added to all previously unguarded API routes: `PATCH /api/categories/[id]`, `PATCH /api/tasks/[id]`, `POST /api/completed-tasks`, `PATCH /api/completed-tasks/[id]`, `PUT /api/timetable`, `POST /api/weekly-plan` — all return structured 400 errors on invalid input
+- `GET /api/time-records` query params (`date`, `tz`, `startHour`, `endHour`) now validated with Zod before use
+- Production `403 Forbidden` guard added to `DELETE /api/completed-tasks/cleanup` (housekeeping-only endpoint)
+- Security headers added in `next.config.mjs` for all routes: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: origin-when-cross-origin`, `Permissions-Policy` (camera/mic/geo disabled), `X-DNS-Prefetch-Control: on`
+
+### Changed (Architecture — Component Refactor)
+- `components/time-records-dialog.tsx`: 1,359 → 844 lines — extracted `TimeBlock`, `MetricCard`, `CurrentTimeLine`, `TimeRecordForm` into `components/time-records/`; shared helpers and types moved to `components/time-records/helpers.ts`
+- `components/today-panel.tsx`: 923 → 643 lines — extracted `FocusModeOverlay`, `SortableTodayItem`, `RollingCounter` into `components/today/`
+- `app/page.tsx`: 1,103 → 782 lines — task CRUD mutations extracted to `hooks/use-tasks.ts`; category CRUD mutations extracted to `hooks/use-categories.ts`; Catch-up tab JSX extracted to `components/catchup-content.tsx`; Timetable tab JSX extracted to `components/timetable-content.tsx`
+- `components/task-row.tsx`: extracted `InlineEdit`, `InlineDurationEdit`, `TaskMetadata` into `components/task/`
+- `components/timetable.tsx`: extracted `TimetableRow` into `components/timetable/`; auto-fill/autopush logic extracted to `hooks/use-timetable-logic.ts`
+- `components/add-task-sheet.tsx` and `components/edit-task-sheet.tsx` unified into `components/task-form-sheet.tsx` with `mode: "add" | "edit"` prop; originals converted to thin wrappers for backward-compatible imports
+
+### Changed (Deployment Config)
+- `prisma/schema.prisma`: added `directUrl = env("DIRECT_URL")` to datasource for Prisma migration support against Supabase connection pooler
+- `lib/prisma.ts`: `pg.Pool` now configured with serverless-appropriate settings (`max: 5`, `idleTimeoutMillis: 30000`, `connectionTimeoutMillis: 10000`)
+- `lib/db.ts`: removed silent try/catch fallback to JSON mode — postgres mode now throws on Prisma initialisation failure rather than silently degrading
+
 ## [1.9.6] - 2026-03-14
 API hardening — Zod input validation, production route guards, delete-all tasks, and TypeScript strict mode
 

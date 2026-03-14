@@ -1,19 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { prisma } from '@/lib/db'
+
+const QueryParamsSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  tz: z.coerce.number().int().min(-720).max(720).optional(),
+  startHour: z.coerce.number().int().min(0).max(23).optional(),
+  endHour: z.coerce.number().int().min(0).max(23).optional(),
+})
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const dateParam = searchParams.get('date') // YYYY-MM-DD
-    const tzOffsetParam = searchParams.get('tz') // minutes offset from UTC
-    const rawTzOffset = tzOffsetParam ? parseInt(tzOffsetParam, 10) : new Date().getTimezoneOffset()
-    const tzOffset = isNaN(rawTzOffset) ? 0 : Math.max(-720, Math.min(720, rawTzOffset))
-    // startHour: hour-of-day when the user's day starts (e.g. 10 = 10 AM)
-    const startHourParam = searchParams.get('startHour')
-    const startHourOffset = startHourParam ? parseInt(startHourParam, 10) : 0
-    // endHour: hours past midnight to extend the day window (e.g. 3 = until 3 AM next day)
-    const endHourParam = searchParams.get('endHour')
-    const endHourExtension = endHourParam ? parseInt(endHourParam, 10) : 0
+    const paramsParsed = QueryParamsSchema.safeParse({
+      date: searchParams.get('date') ?? undefined,
+      tz: searchParams.get('tz') ?? undefined,
+      startHour: searchParams.get('startHour') ?? undefined,
+      endHour: searchParams.get('endHour') ?? undefined,
+    })
+    if (!paramsParsed.success) {
+      return NextResponse.json({ error: paramsParsed.error.flatten() }, { status: 400 })
+    }
+    const dateParam = paramsParsed.data.date ?? null
+    const tzOffset = paramsParsed.data.tz ?? new Date().getTimezoneOffset()
+    const startHourOffset = paramsParsed.data.startHour ?? 0
+    const endHourExtension = paramsParsed.data.endHour ?? 0
 
     let startOfDay: Date
     let endOfDay: Date

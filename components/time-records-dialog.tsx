@@ -20,318 +20,30 @@ import { cn } from '@/lib/utils'
 import { format, addDays, subDays } from 'date-fns'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Input } from '@/components/ui/input'
-import { loadPersonalDevColors } from '@/components/color-scheme-dialog'
-
-interface TimeRecord {
-  id: string
-  taskId: string | null
-  taskTitle: string
-  categoryName: string
-  categoryColor: string
-  taskType: string
-  startTime: string
-  endTime: string
-  duration: number // seconds
-}
+import {
+  MetricCard,
+  TimeBlock,
+  CurrentTimeLine,
+  TimeRecordForm,
+  type TimeRecord,
+  type NewRecordForm,
+  HOUR_HEIGHT,
+  QUARTER_HEIGHT,
+  DEFAULT_START_HOUR,
+  DEFAULT_END_HOUR,
+  formatDurationShort,
+  formatTimeLabel,
+  formatHourLabel,
+  formatHourOption,
+  getCurrentTimePosition,
+  getLogicalToday,
+  isLogicalToday,
+  buildDateFromLogicalDay,
+} from '@/components/time-records'
 
 interface TimeRecordsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-}
-
-// ── Constants ──
-const DEFAULT_START_HOUR = 6 // 6 AM
-const DEFAULT_END_HOUR = 24 // midnight
-const HOUR_HEIGHT = 80 // px per hour
-const QUARTER_HEIGHT = HOUR_HEIGHT / 4
-
-/**
- * Return the "logical today" date given day boundaries.
- * If timelineEndHour > 24 (e.g. 27 = 3 AM next day) and the current wall-clock
- * time is past midnight but before the extension hour, we are still in the
- * previous calendar day's logical window.
- */
-function getLogicalToday(timelineStartHour: number, timelineEndHour: number): Date {
-  const now = new Date()
-  const currentHour = now.getHours()
-  // Extension hours past midnight (e.g. endHour 27 → extensionHour 3)
-  const extensionHour = timelineEndHour > 24 ? timelineEndHour - 24 : 0
-  // If it's between midnight and the extension hour, we're still in yesterday's logical day
-  if (extensionHour > 0 && currentHour < extensionHour) {
-    return subDays(now, 1)
-  }
-  // Also if it's before the day-start hour (e.g. 10 AM) and there IS an extension,
-  // the previous day's window has already ended — this is a new day not yet started.
-  // In that case we still show "today" as the current calendar date.
-  return now
-}
-
-function isLogicalToday(
-  date: Date,
-  timelineStartHour: number,
-  timelineEndHour: number
-): boolean {
-  const logicalToday = getLogicalToday(timelineStartHour, timelineEndHour)
-  return date.toDateString() === logicalToday.toDateString()
-}
-
-/**
- * Build a Date from a selectedDate (logical day) and a HH:mm time string,
- * accounting for post-midnight extension hours.
- *
- * For a 10 AM–3 AM day boundary viewing Feb 6:
- *   - "14:30" → Feb 6 14:30 (within the day's main period)
- *   - "00:28" → Feb 7 00:28 (post-midnight extension, next calendar day)
- *   - "02:15" → Feb 7 02:15 (post-midnight extension, next calendar day)
- *   - "10:00" → Feb 6 10:00 (start of day)
- */
-function buildDateFromLogicalDay(
-  selectedDate: Date,
-  timeStr: string,
-  timelineStartHour: number,
-  timelineEndHour: number,
-): Date {
-  const dateStr = format(selectedDate, 'yyyy-MM-dd')
-  const dt = new Date(`${dateStr}T${timeStr}:00`)
-  const hour = dt.getHours()
-  const extensionHour = timelineEndHour > 24 ? timelineEndHour - 24 : 0
-
-  // If the day extends past midnight and this time falls in the post-midnight
-  // extension window (hour < extensionHour AND hour < startHour), then the
-  // wall-clock time is on the NEXT calendar day.
-  if (extensionHour > 0 && hour < extensionHour && hour < timelineStartHour) {
-    dt.setDate(dt.getDate() + 1)
-  }
-
-  return dt
-}
-
-// ── Helpers ──
-function formatDurationShort(seconds: number): string {
-  const abs = Math.abs(seconds)
-  const sign = seconds < 0 ? '-' : ''
-  const h = Math.floor(abs / 3600)
-  const m = Math.floor((abs % 3600) / 60)
-  if (h > 0 && m > 0) return `${sign}${h}h ${m}m`
-  if (h > 0) return `${sign}${h}h`
-  return `${sign}${m}m`
-}
-
-function formatTimeLabel(date: Date): string {
-  return format(date, 'h:mm a')
-}
-
-function formatHourLabel(hour: number): string {
-  const h = hour % 24
-  const h12 = h % 12 === 0 ? 12 : h % 12
-  const ampm = h < 12 ? 'AM' : 'PM'
-  return `${h12}:00 ${ampm}`
-}
-
-function formatHourOption(hour: number, isNextDay: boolean): string {
-  const h = hour % 24
-  const h12 = h % 12 === 0 ? 12 : h % 12
-  const ampm = h < 12 ? 'AM' : 'PM'
-  return `${h12} ${ampm}${isNextDay ? ' (+1)' : ''}`
-}
-
-function getBlockPosition(startTime: Date, endTime: Date, timelineStartHour: number) {
-  let startHour = startTime.getHours() + startTime.getMinutes() / 60
-  let endHour = endTime.getHours() + endTime.getMinutes() / 60
-  // If times are past midnight (before timeline start), treat as next-day hours
-  if (startHour < timelineStartHour) startHour += 24
-  if (endHour < timelineStartHour) endHour += 24
-  // Only wrap to next day if endHour is significantly before startHour (cross-midnight),
-  // not when they're equal (zero-duration) or nearly equal
-  if (endHour < startHour) endHour += 24
-  const top = (startHour - timelineStartHour) * HOUR_HEIGHT + 16 // 16px top padding
-  const height = Math.max((endHour - startHour) * HOUR_HEIGHT, 24) // min 24px
-  return { top, height }
-}
-
-function getCurrentTimePosition(timelineStartHour: number, timelineEndHour: number): number | null {
-  const now = new Date()
-  let currentHour = now.getHours() + now.getMinutes() / 60
-  if (currentHour < timelineStartHour) currentHour += 24
-  if (currentHour < timelineStartHour || currentHour > timelineEndHour) return null
-  return (currentHour - timelineStartHour) * HOUR_HEIGHT + 16 // 16px top padding
-}
-
-// ── Metric Card (animated, glassmorphism) ──
-function MetricCard({
-  icon: Icon,
-  label,
-  value,
-  iconColor,
-  gradient,
-  delay,
-  show,
-}: {
-  icon: React.ElementType
-  label: string
-  value: string
-  iconColor: string
-  gradient: string
-  delay: number
-  show: boolean
-}) {
-  return (
-    <motion.div
-      className="flex-1 min-w-[110px] rounded-xl border border-white/[0.08] p-3 flex flex-col gap-1.5 relative overflow-hidden group"
-      initial={{ opacity: 0, y: 12, scale: 0.95 }}
-      animate={{
-        opacity: show ? 1 : 0,
-        y: show ? 0 : 12,
-        scale: show ? 1 : 0.95,
-      }}
-      transition={{
-        type: 'spring',
-        stiffness: 350,
-        damping: 25,
-        delay,
-      }}
-    >
-      {/* Gradient background */}
-      <div className={cn('absolute inset-0 opacity-[0.07] dark:opacity-[0.12]', gradient)} />
-      {/* Glass surface */}
-      <div className="absolute inset-0 backdrop-blur-xl bg-white/[0.03] dark:bg-white/[0.02]" />
-      {/* Inset highlight */}
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-      <div className="relative z-10">
-        <div className="flex items-center gap-2">
-          <div
-            className="h-6 w-6 rounded-lg flex items-center justify-center backdrop-blur-sm"
-            style={{ backgroundColor: iconColor + '18' }}
-          >
-            <Icon className="h-3.5 w-3.5" style={{ color: iconColor }} />
-          </div>
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">{label}</span>
-        </div>
-        <span className="text-xl font-bold tabular-nums tracking-tight mt-1 block">{value}</span>
-      </div>
-    </motion.div>
-  )
-}
-
-// ── TimeBlock (glassmorphism) ──
-// Progressive content: show less info as duration shrinks
-//   ≥ 60 min  → full: category–type, task title, time range · duration
-//   30–59 min → compact: task title + time · duration
-//   < 30 min  → minimal: task title only
-function TimeBlock({ record, index, timelineStartHour }: { record: TimeRecord; index: number; timelineStartHour: number }) {
-  const start = new Date(record.startTime)
-  const end = new Date(record.endTime)
-  const { top, height } = getBlockPosition(start, end, timelineStartHour)
-
-  const durationMin = record.duration / 60
-  const isFull = durationMin >= 60
-  const isCompact = durationMin >= 30 && durationMin < 60
-  const isMinimal = durationMin < 30
-  const color = record.categoryColor
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: 30, scaleY: 0.85 }}
-      animate={{ opacity: 1, x: 0, scaleY: 1 }}
-      exit={{ opacity: 0, x: -20, scaleY: 0.9 }}
-      transition={{
-        type: 'spring',
-        stiffness: 350,
-        damping: 28,
-        delay: index * 0.06,
-      }}
-      className="absolute left-[72px] right-3 rounded-xl overflow-hidden cursor-default group"
-      style={{
-        top: `${top}px`,
-        height: `${height}px`,
-      }}
-      title={`${record.taskTitle}\n${record.categoryName} – ${record.taskType}\n${formatTimeLabel(start)} – ${formatTimeLabel(end)}\n${formatDurationShort(record.duration)}`}
-    >
-      {/* Layered glass background */}
-      <div className="absolute inset-0 rounded-xl" style={{ backgroundColor: color, opacity: 0.75 }} />
-      <div className="absolute inset-0 rounded-xl backdrop-blur-md bg-gradient-to-br from-white/20 via-transparent to-black/10" />
-      {/* Top inset highlight */}
-      <div className="absolute inset-x-0 top-0 h-px rounded-t-xl" style={{ background: `linear-gradient(to right, ${color}00, ${color}80, ${color}00)` }} />
-      {/* Left accent bar */}
-      <div className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 8px ${color}60` }} />
-      {/* Border */}
-      <div className="absolute inset-0 rounded-xl border" style={{ borderColor: `${color}30` }} />
-      <div className={cn(
-        "h-full px-3.5 flex flex-col justify-center text-white relative z-10",
-        isMinimal ? 'py-0.5' : 'py-2'
-      )}>
-        {/* Full: show category–type header */}
-        {isFull && (
-          <p className="font-bold text-[13px] leading-tight truncate drop-shadow-sm">
-            {record.categoryName} – {record.taskType}
-          </p>
-        )}
-        {/* Full & Compact: show task title */}
-        {(isFull || isCompact) && (
-          <p className={cn(
-            'truncate font-medium drop-shadow-sm',
-            isFull ? 'text-[12px] text-white/85 mt-0.5' : 'text-[13px] font-bold text-white'
-          )}>
-            {record.taskTitle}
-          </p>
-        )}
-        {/* Minimal: task title only, sized to fit */}
-        {isMinimal && (
-          <p className={cn(
-            'font-bold truncate drop-shadow-sm text-white',
-            durationMin < 10 ? 'text-[10px]' : 'text-[12px]'
-          )}>
-            {record.taskTitle}
-          </p>
-        )}
-        {/* Full & Compact: show time range */}
-        {!isMinimal && (
-          <p className={cn(
-            'text-white/65 tabular-nums font-medium',
-            isFull ? 'text-[10px] mt-1' : 'text-[9px] mt-0.5'
-          )}>
-            {formatTimeLabel(start)} – {formatTimeLabel(end)} · {formatDurationShort(record.duration)}
-          </p>
-        )}
-      </div>
-    </motion.div>
-  )
-}
-
-// ── Current Time Indicator ──
-function CurrentTimeLine({ date, timelineStartHour, timelineEndHour }: { date: Date; timelineStartHour: number; timelineEndHour: number }) {
-  const [position, setPosition] = useState<number | null>(null)
-
-  useEffect(() => {
-    const now = new Date()
-    const isToday = isLogicalToday(date, timelineStartHour, timelineEndHour)
-    if (!isToday) {
-      setPosition(null)
-      return
-    }
-
-    const update = () => setPosition(getCurrentTimePosition(timelineStartHour, timelineEndHour))
-    update()
-    const interval = setInterval(update, 30000)
-    return () => clearInterval(interval)
-  }, [date, timelineStartHour, timelineEndHour])
-
-  if (position === null) return null
-
-  return (
-    <div
-      className="absolute left-0 right-0 z-20 pointer-events-none"
-      style={{ top: `${position}px` }}
-    >
-      <div className="relative flex items-center">
-        <div className="absolute left-[72px] right-3 h-[2px] bg-gradient-to-r from-rose-500 via-rose-400 to-rose-500/50 shadow-[0_0_6px_rgba(244,63,94,0.4)]" />
-        <div className="absolute left-[66px] w-3 h-3 rounded-full bg-rose-500 border-2 border-background shadow-[0_0_8px_rgba(244,63,94,0.5)]" />
-        <span className="absolute right-4 -top-3 bg-rose-500/90 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-0.5 rounded-md tabular-nums shadow-lg">
-          {format(new Date(), 'h:mm a')}
-        </span>
-      </div>
-    </div>
-  )
 }
 
 // ── Main Component ──
@@ -345,10 +57,8 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({ taskTitle: '', startTime: '', endTime: '' })
   const [addingNew, setAddingNew] = useState(false)
-  const [newForm, setNewForm] = useState({ taskTitle: '', categoryName: '', categoryColor: '#6366f1', taskType: '', startTime: '', endTime: '' })
+  const [newForm, setNewForm] = useState<NewRecordForm>({ taskTitle: '', categoryName: '', categoryColor: '#6366f1', taskType: '', startTime: '', endTime: '' })
   const [categories, setCategories] = useState<{ name: string; color: string }[]>([])
-  const [customCategoryMode, setCustomCategoryMode] = useState(false)
-  const [customCategoryName, setCustomCategoryName] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // Configurable day boundaries
@@ -396,8 +106,6 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
       return () => clearTimeout(timer)
     } else {
       setShowContent(false)
-      setCustomCategoryMode(false)
-      setCustomCategoryName('')
     }
   }, [open])
 
@@ -994,134 +702,13 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
 
                         {/* Add new record form */}
                         {addingNew && (
-                          <motion.div
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="rounded-xl border border-primary/30 bg-primary/5 px-3 py-3 space-y-2"
-                          >
-                            {/* Quick-pick presets for Personal Dev */}
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-[10px] text-muted-foreground mr-1">Quick:</span>
-                              {(() => {
-                                const pdColors = loadPersonalDevColors()
-                                return [
-                                  { label: 'Reading', key: 'reading' },
-                                  { label: 'Project', key: 'project' },
-                                  { label: 'Job App', key: 'job-application' },
-                                ].map((preset) => {
-                                  const color = pdColors[preset.key]
-                                  return (
-                                    <Button
-                                      key={preset.label}
-                                      type="button"
-                                      variant={newForm.taskTitle === preset.label && newForm.categoryName === 'Personal Dev' ? 'secondary' : 'outline'}
-                                      size="sm"
-                                      className="h-6 px-2 text-[10px] gap-1"
-                                      onClick={() => setNewForm({
-                                        ...newForm,
-                                        taskTitle: preset.label,
-                                        categoryName: 'Personal Dev',
-                                        categoryColor: color,
-                                        taskType: preset.label,
-                                      })}
-                                    >
-                                      <div className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-                                      {preset.label}
-                                    </Button>
-                                  )
-                                })
-                              })()}
-                            </div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <Input
-                                value={newForm.taskTitle}
-                                onChange={(e) => setNewForm({ ...newForm, taskTitle: e.target.value })}
-                                className="h-7 text-xs flex-1 min-w-[100px]"
-                                placeholder="Title (e.g. A02 Review)"
-                              />
-                              {customCategoryMode ? (
-                                <div className="flex items-center gap-1">
-                                  <Input
-                                    value={customCategoryName}
-                                    onChange={(e) => setCustomCategoryName(e.target.value)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter' && customCategoryName.trim()) {
-                                        setNewForm({ ...newForm, categoryName: customCategoryName.trim(), categoryColor: '#6366f1' })
-                                        setCustomCategoryMode(false)
-                                        setCustomCategoryName('')
-                                      }
-                                      if (e.key === 'Escape') { setCustomCategoryMode(false); setCustomCategoryName('') }
-                                    }}
-                                    autoFocus
-                                    className="h-7 text-xs w-[90px]"
-                                    placeholder="New category"
-                                  />
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 px-1.5 text-xs text-primary"
-                                    onClick={() => {
-                                      if (customCategoryName.trim()) {
-                                        setNewForm({ ...newForm, categoryName: customCategoryName.trim(), categoryColor: '#6366f1' })
-                                      }
-                                      setCustomCategoryMode(false)
-                                      setCustomCategoryName('')
-                                    }}
-                                  >
-                                    OK
-                                  </Button>
-                                </div>
-                              ) : (
-                                <select
-                                  value={newForm.categoryName}
-                                  onChange={(e) => {
-                                    if (e.target.value === '__add_new__') {
-                                      setCustomCategoryMode(true)
-                                      return
-                                    }
-                                    const cat = categories.find((c) => c.name === e.target.value)
-                                    setNewForm({ ...newForm, categoryName: e.target.value, categoryColor: cat?.color || '#6366f1' })
-                                  }}
-                                  className="h-7 rounded-md border border-white/10 bg-white/5 backdrop-blur-sm px-2 text-xs text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring min-w-[100px]"
-                                >
-                                  <option value="">Category</option>
-                                  {categories.map((cat) => (
-                                    <option key={cat.name} value={cat.name}>{cat.name}</option>
-                                  ))}
-                                  <option value="__add_new__">+ Add New</option>
-                                </select>
-                              )}
-                              <Input
-                                type="time"
-                                value={newForm.startTime}
-                                onChange={(e) => setNewForm({ ...newForm, startTime: e.target.value })}
-                                className="h-7 text-xs w-[90px]"
-                              />
-                              <span className="text-xs text-muted-foreground">–</span>
-                              <Input
-                                type="time"
-                                value={newForm.endTime}
-                                onChange={(e) => setNewForm({ ...newForm, endTime: e.target.value })}
-                                className="h-7 text-xs w-[90px]"
-                              />
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 px-2 text-xs text-primary"
-                                onClick={handleAddNew}
-                              >
-                                Save
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 px-2 text-xs"
-                                onClick={() => setAddingNew(false)}
-                              >
-                                Cancel
-                              </Button>
-                            </div>
-                          </motion.div>
+                          <TimeRecordForm
+                            form={newForm}
+                            onFormChange={setNewForm}
+                            categories={categories}
+                            onSave={handleAddNew}
+                            onCancel={() => setAddingNew(false)}
+                          />
                         )}
 
                         {records.length === 0 && !addingNew && (
@@ -1143,115 +730,13 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                             transition={{ duration: 0.2 }}
                             className="px-4 py-3 border-b border-white/10 flex-shrink-0"
                           >
-                            <div className="rounded-xl border border-primary/30 bg-primary/5 px-3 py-3 space-y-2">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="text-[10px] text-muted-foreground mr-1">Quick:</span>
-                                {(() => {
-                                  const pdColors = loadPersonalDevColors()
-                                  return [
-                                    { label: 'Reading', key: 'reading' },
-                                    { label: 'Project', key: 'project' },
-                                    { label: 'Job App', key: 'job-application' },
-                                  ].map((preset) => {
-                                    const color = pdColors[preset.key]
-                                    return (
-                                      <Button
-                                        key={preset.label}
-                                        type="button"
-                                        variant={newForm.taskTitle === preset.label && newForm.categoryName === 'Personal Dev' ? 'secondary' : 'outline'}
-                                        size="sm"
-                                        className="h-6 px-2 text-[10px] gap-1"
-                                        onClick={() => setNewForm({
-                                          ...newForm,
-                                          taskTitle: preset.label,
-                                          categoryName: 'Personal Dev',
-                                          categoryColor: color,
-                                          taskType: preset.label,
-                                        })}
-                                      >
-                                        <div className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-                                        {preset.label}
-                                      </Button>
-                                    )
-                                  })
-                                })()}
-                              </div>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <Input
-                                  value={newForm.taskTitle}
-                                  onChange={(e) => setNewForm({ ...newForm, taskTitle: e.target.value })}
-                                  className="h-7 text-xs flex-1 min-w-[100px]"
-                                  placeholder="Title (e.g. A02 Review)"
-                                />
-                                {customCategoryMode ? (
-                                  <div className="flex items-center gap-1">
-                                    <Input
-                                      value={customCategoryName}
-                                      onChange={(e) => setCustomCategoryName(e.target.value)}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && customCategoryName.trim()) {
-                                          setNewForm({ ...newForm, categoryName: customCategoryName.trim(), categoryColor: '#6366f1' })
-                                          setCustomCategoryMode(false)
-                                          setCustomCategoryName('')
-                                        }
-                                        if (e.key === 'Escape') { setCustomCategoryMode(false); setCustomCategoryName('') }
-                                      }}
-                                      autoFocus
-                                      className="h-7 text-xs w-[90px]"
-                                      placeholder="New category"
-                                    />
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-7 px-1.5 text-xs text-primary"
-                                      onClick={() => {
-                                        if (customCategoryName.trim()) {
-                                          setNewForm({ ...newForm, categoryName: customCategoryName.trim(), categoryColor: '#6366f1' })
-                                        }
-                                        setCustomCategoryMode(false)
-                                        setCustomCategoryName('')
-                                      }}
-                                    >
-                                      OK
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <select
-                                    value={newForm.categoryName}
-                                    onChange={(e) => {
-                                      if (e.target.value === '__add_new__') {
-                                        setCustomCategoryMode(true)
-                                        return
-                                      }
-                                      const cat = categories.find((c) => c.name === e.target.value)
-                                      setNewForm({ ...newForm, categoryName: e.target.value, categoryColor: cat?.color || '#6366f1' })
-                                    }}
-                                    className="h-7 rounded-md border border-white/10 bg-white/5 backdrop-blur-sm px-2 text-xs text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring min-w-[100px]"
-                                  >
-                                    <option value="">Category</option>
-                                    {categories.map((cat) => (
-                                      <option key={cat.name} value={cat.name}>{cat.name}</option>
-                                    ))}
-                                    <option value="__add_new__">+ Add New</option>
-                                  </select>
-                                )}
-                                <Input
-                                  type="time"
-                                  value={newForm.startTime}
-                                  onChange={(e) => setNewForm({ ...newForm, startTime: e.target.value })}
-                                  className="h-7 text-xs w-[90px]"
-                                />
-                                <span className="text-xs text-muted-foreground">–</span>
-                                <Input
-                                  type="time"
-                                  value={newForm.endTime}
-                                  onChange={(e) => setNewForm({ ...newForm, endTime: e.target.value })}
-                                  className="h-7 text-xs w-[90px]"
-                                />
-                                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-primary" onClick={handleAddNew}>Save</Button>
-                                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setAddingNew(false)}>Cancel</Button>
-                              </div>
-                            </div>
+                            <TimeRecordForm
+                              form={newForm}
+                              onFormChange={setNewForm}
+                              categories={categories}
+                              onSave={handleAddNew}
+                              onCancel={() => setAddingNew(false)}
+                            />
                           </motion.div>
                         )}
                       </AnimatePresence>

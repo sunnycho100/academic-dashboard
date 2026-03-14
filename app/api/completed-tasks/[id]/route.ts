@@ -1,5 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { prisma } from '@/lib/db'
+
+const UpdateCompletedTaskSchema = z.object({
+  deleted: z.boolean().optional(),
+  taskTitle: z.string().min(1).optional(),
+  categoryName: z.string().min(1).optional(),
+  categoryColor: z.string().min(1).optional(),
+  taskType: z.string().min(1).optional(),
+  actualTimeSpent: z.number().nullable().optional(),
+  estimatedDuration: z.number().nullable().optional(),
+  notes: z.string().nullable().optional(),
+})
 
 export async function PATCH(
   request: NextRequest,
@@ -7,10 +19,14 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params
-    const body = await request.json()
+    const parsed = UpdateCompletedTaskSchema.safeParse(await request.json())
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
+    }
+    const body = parsed.data
 
     // Soft-delete / restore
-    if ('deleted' in body) {
+    if (body.deleted !== undefined) {
       const task = await prisma.completedTask.update({
         where: { id },
         data: {

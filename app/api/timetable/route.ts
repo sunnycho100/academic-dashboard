@@ -1,5 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { prisma } from '@/lib/db'
+
+const TimetableEntrySchema = z.object({
+  id: z.string().optional(),
+  order: z.number(),
+  plannedStart: z.string(),
+  plannedEnd: z.string(),
+  expectedMinutes: z.number(),
+  activityName: z.string(),
+  actualStart: z.string().nullable(),
+  actualEnd: z.string().nullable(),
+  actualMinutes: z.number().nullable(),
+  notes: z.string(),
+})
+
+const BulkUpdateSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be YYYY-MM-DD'),
+  entries: z.array(TimetableEntrySchema),
+})
 
 /**
  * GET /api/timetable?date=YYYY-MM-DD
@@ -64,22 +83,11 @@ export async function POST(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { date, entries } = body as {
-      date: string
-      entries: Array<{
-        id?: string
-        order: number
-        plannedStart: string
-        plannedEnd: string
-        expectedMinutes: number
-        activityName: string
-        actualStart: string | null
-        actualEnd: string | null
-        actualMinutes: number | null
-        notes: string
-      }>
+    const parsed = BulkUpdateSchema.safeParse(await request.json())
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
     }
+    const { date, entries } = parsed.data
 
     // Delete all existing entries for this date
     await prisma.timetableEntry.deleteMany({ where: { date } })

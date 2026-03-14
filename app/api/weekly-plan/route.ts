@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { prisma } from '@/lib/db'
+
+const CreateWeeklyPlanSchema = z.object({
+  taskId: z.string().uuid(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be YYYY-MM-DD'),
+})
 
 /**
  * GET /api/weekly-plan?weekStart=YYYY-MM-DD
@@ -41,12 +47,11 @@ export async function GET(req: NextRequest) {
  * Assigns a task to a specific day.
  */
 export async function POST(req: NextRequest) {
-  const body = await req.json()
-  const { taskId, date } = body
-
-  if (!taskId || !date) {
-    return NextResponse.json({ error: 'taskId and date required' }, { status: 400 })
+  const parsed = CreateWeeklyPlanSchema.safeParse(await req.json())
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
+  const { taskId, date } = parsed.data
 
   const dateObj = new Date(date + 'T00:00:00.000Z')
 

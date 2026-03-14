@@ -1,5 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { prisma } from '@/lib/db'
+
+const CreateCompletedTaskSchema = z.object({
+  taskTitle: z.string().min(1),
+  categoryName: z.string().min(1),
+  categoryColor: z.string().min(1),
+  taskType: z.string().min(1),
+  estimatedDuration: z.number().nullable().optional(),
+  actualTimeSpent: z.number().nullable().optional(),
+  dueAt: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+})
 
 export async function GET() {
   try {
@@ -19,7 +31,11 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const parsed = CreateCompletedTaskSchema.safeParse(await request.json())
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
+    }
+    const body = parsed.data
 
     const timeDifference =
       body.estimatedDuration != null && body.actualTimeSpent != null
