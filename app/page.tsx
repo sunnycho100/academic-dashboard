@@ -23,7 +23,8 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
-import { Settings, Download, Upload, Trash2, Palette, Clock, AlertTriangle, LogOut } from 'lucide-react'
+import { Settings, Download, Upload, Trash2, Palette, Clock, AlertTriangle, LogOut, UserPen } from 'lucide-react'
+import { EditPersonalInfoDialog } from '@/components/edit-personal-info-dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -95,6 +96,7 @@ export default function Home() {
   const [completedTodayCount, setCompletedTodayCount] = useState(0)
   const [activeMainTab, setActiveMainTab] = useState<'catchup' | 'timetable'>('catchup')
   const [deleteAllOpen, setDeleteAllOpen] = useState(false)
+  const [editPersonalInfoOpen, setEditPersonalInfoOpen] = useState(false)
   const [user, setUser] = useState<{ id: string; email: string } | null>(null)
   const completingRef = useRef<Set<string>>(new Set())
 
@@ -618,6 +620,10 @@ export default function Home() {
                       {user.email}
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setEditPersonalInfoOpen(true)}>
+                      <UserPen className="h-4 w-4 mr-2" />
+                      Edit Personal Info
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleSignOut}>
                       <LogOut className="h-4 w-4 mr-2" />
                       Sign Out
@@ -771,6 +777,10 @@ export default function Home() {
         onOpenChange={setColorSchemeOpen}
         categories={categories}
         onCategoryColorChange={handleCategoryColorChange}
+      />
+      <EditPersonalInfoDialog
+        open={editPersonalInfoOpen}
+        onOpenChange={setEditPersonalInfoOpen}
       />
     </div>
     </DndContext>

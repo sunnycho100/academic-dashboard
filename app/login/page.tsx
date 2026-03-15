@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -57,7 +58,7 @@ export default function LoginPage() {
       router.push('/')
       router.refresh()
     } else {
-      const { error: signUpError } = await supabase.auth.signUp({
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
       })
@@ -66,6 +67,18 @@ export default function LoginPage() {
         setLoading(false)
         return
       }
+
+      // Save display name if provided
+      if (signUpData.session && displayName.trim()) {
+        try {
+          await fetch('/api/user-info', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: displayName.trim() }),
+          })
+        } catch {}
+      }
+
       setMessage('Check your email for a confirmation link.')
       setLoading(false)
     }
@@ -76,6 +89,7 @@ export default function LoginPage() {
     setError(null)
     setMessage(null)
     setConfirmPassword('')
+    setDisplayName('')
   }
 
   return (
@@ -93,6 +107,20 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {mode === 'sign-up' && (
+              <div className="space-y-2">
+                <Label htmlFor="display-name">What should we call you?</Label>
+                <Input
+                  id="display-name"
+                  type="text"
+                  placeholder="Your name"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  autoComplete="name"
+                  disabled={loading}
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
