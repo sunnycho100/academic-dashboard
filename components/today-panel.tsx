@@ -551,43 +551,46 @@ export function TodayPanel({
                             </div>
                           </div>
 
-                          {/* Complete Button (right side) */}
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => {
-                              const elapsedSeconds = getElapsedSeconds(task.id)
-                              if (hasStarted) {
-                                stopTimer(task.id)
-                              }
-                              onToggleTask(task.id, elapsedSeconds)
-                            }}
-                            className={cn(
-                              'flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center transition-all',
-                              task.status === 'done'
-                                ? 'bg-green-500/20 text-green-600 dark:text-green-400'
-                                : 'opacity-0 group-hover:opacity-100 bg-muted/60 hover:bg-green-500/20 text-muted-foreground hover:text-green-600'
-                            )}
-                            title={task.status === 'done' ? 'Completed' : 'Mark as complete'}
-                          >
-                            <Check className="h-4 w-4" />
-                          </motion.button>
+                          {/* Action Buttons (right side) */}
+                          <div className="flex-shrink-0 flex items-center gap-1.5 ml-1 z-10">
+                            {/* Complete Button */}
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={() => {
+                                const elapsedSeconds = getElapsedSeconds(task.id)
+                                if (hasStarted) {
+                                  stopTimer(task.id)
+                                }
+                                onToggleTask(task.id, elapsedSeconds)
+                              }}
+                              className={cn(
+                                'h-9 w-9 rounded-lg flex items-center justify-center transition-all',
+                                task.status === 'done'
+                                  ? 'bg-green-500/20 text-green-600 dark:text-green-400'
+                                  : 'opacity-0 group-hover:opacity-100 bg-muted/60 hover:bg-green-500/20 text-muted-foreground hover:text-green-600'
+                              )}
+                              title={task.status === 'done' ? 'Completed' : 'Mark as complete'}
+                            >
+                              <Check className="h-4 w-4" />
+                            </motion.button>
 
-                          {/* Return to backlog (top-right corner) */}
-                          <motion.button
-                            whileHover={{ scale: 1.15, x: 2 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => {
-                              if (hasStarted) {
-                                stopTimer(task.id)
-                              }
-                              onRemoveFromToday(task.id)
-                            }}
-                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-200 h-6 w-6 rounded-md flex items-center justify-center hover:bg-muted/60 text-muted-foreground/50 hover:text-foreground/70"
-                            title="Return to backlog"
-                          >
-                            <ChevronLeft className="h-3.5 w-3.5" />
-                          </motion.button>
+                            {/* Return to backlog */}
+                            <motion.button
+                              whileHover={{ scale: 1.1, x: -2 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={() => {
+                                if (hasStarted) {
+                                  stopTimer(task.id)
+                                }
+                                onRemoveFromToday(task.id)
+                              }}
+                              className="opacity-0 group-hover:opacity-100 transition-all duration-200 h-9 w-7 rounded-lg flex items-center justify-center hover:bg-muted/60 text-muted-foreground/50 hover:text-foreground/70"
+                              title="Return to backlog"
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                            </motion.button>
+                          </div>
                         </motion.div>
                       )}
                     </SortableTodayItem>

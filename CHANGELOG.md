@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [2.1.1] - 2026-03-15
+Timetable autofill polish and Time Records scroll fix
+
+### Added
+- **Timetable AM/PM carry-over** — When Autofill is on and the user tabs into an empty Planned End field, the AM/PM half-day is pre-set to match the start time so only the digits need adjusting.
+
+### Changed
+- **Autofill help dialog** — Condensed the Autofill & Autopush descriptions for brevity.
+
+### Fixed
+- **Time Records initial scroll** — Replaced the delayed `setTimeout` scroll with an immediate callback-ref scroll, eliminating the visible flash from 6 AM to the current time when opening the dialog.
+
 ## [2.1.0] - 2026-03-15
 UI/UX Polish, Animation Refinements, and Layout Scaling
 

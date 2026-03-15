@@ -244,42 +244,27 @@ export function Timetable() {
       <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
         <DialogContent className="sm:max-w-md glass-overlay">
           <DialogHeader>
-            <DialogTitle className="text-base font-semibold">Autofill Logic</DialogTitle>
+            <DialogTitle className="text-base font-semibold">Autofill &amp; Autopush</DialogTitle>
           </DialogHeader>
           <div className="text-sm text-muted-foreground space-y-3 leading-relaxed">
-            <p>
-              When <strong>Autofill</strong> is enabled, clicking on an empty <em>Start</em> time
-              field will automatically populate it with a smart default.
-            </p>
             <div className="rounded-lg bg-foreground/[0.03] p-3 space-y-2 text-xs">
-              <p className="font-medium text-foreground/80">How it works:</p>
-              <ul className="list-disc pl-4 space-y-1">
-                <li>
-                  <strong>Sequential flow</strong> — if the row above has an end time, that
-                  value is used as this row&apos;s start. Events chain naturally.
-                </li>
-                <li>
-                  <strong>First row / no previous end</strong> — the current time, rounded
-                  up to the nearest 5 minutes, is used.
-                </li>
-                <li>
-                  <strong>AM / PM wrapping</strong> — times use 24-hour format
-                  internally, so the flow crosses noon and midnight
-                  seamlessly: …11:30 → 12:00 → 12:30… and …23:30 → 00:00 → 00:30…
-                </li>
-              </ul>
+              <p className="font-medium text-foreground/80">Autofill</p>
+              <p>
+                Clicking an empty <em>Start</em> field auto-fills it from the previous row&apos;s
+                end time (or the current time rounded to 5 min if no previous row exists).
+                Tabbing into an empty <em>End</em> field carries over the start time&apos;s AM/PM
+                so you only need to adjust the digits.
+              </p>
             </div>
             <div className="rounded-lg bg-foreground/[0.03] p-3 space-y-2 text-xs">
               <p className="font-medium text-foreground/80">Autopush</p>
               <p>
-                When enabled, entering an <strong>Actual End</strong> time on a row
-                automatically shifts the <em>planned</em> start &amp; end times of all
-                subsequent unfinished rows so they cascade from that point — keeping
-                each activity&apos;s planned duration intact.
+                Entering an <strong>Actual End</strong> time cascades all subsequent
+                unfinished rows forward, preserving each activity&apos;s planned duration.
               </p>
             </div>
             <p className="text-xs text-muted-foreground/50">
-              Toggle autofill / autopush off if you prefer full manual control.
+              Toggle either off for full manual control.
             </p>
           </div>
         </DialogContent>

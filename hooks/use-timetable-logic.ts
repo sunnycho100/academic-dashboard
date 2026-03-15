@@ -103,6 +103,19 @@ export function getAutofillTime(entries: TimetableEntry[], rowIndex: number): st
   return minutesToHHmm(roundUp5(currentMinutes))
 }
 
+/**
+ * Return an AM/PM-matched placeholder for the end time field.
+ * Copies the start time's half-day (AM/PM) so the user only needs to
+ * adjust hours and minutes. Returns "12:00" (PM) or "00:00" (AM) based
+ * on the start time.
+ */
+export function getEndTimeAmPmDefault(startTime: string): string | null {
+  const mins = parseTime(startTime)
+  if (mins === null) return null
+  // 720 minutes = 12:00 (noon). >= 720 means PM.
+  return mins >= 720 ? '12:00' : '00:00'
+}
+
 // ---------------------------------------------------------------------------
 // Blank row factory
 // ---------------------------------------------------------------------------

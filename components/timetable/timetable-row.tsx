@@ -5,7 +5,7 @@ import { GripVertical, Trash2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { fmtDuration, getAutofillTime } from '@/hooks/use-timetable-logic'
+import { fmtDuration, getAutofillTime, getEndTimeAmPmDefault } from '@/hooks/use-timetable-logic'
 
 export interface TimetableRowProps {
   entry: TimetableEntry
@@ -109,6 +109,12 @@ export function TimetableRow({
           type="time"
           value={entry.plannedEnd}
           onChange={(e) => onUpdate(entry.id, { plannedEnd: e.target.value })}
+          onFocus={() => {
+            if (autofill && !entry.plannedEnd && entry.plannedStart) {
+              const ampmDefault = getEndTimeAmPmDefault(entry.plannedStart)
+              if (ampmDefault) onUpdate(entry.id, { plannedEnd: ampmDefault })
+            }
+          }}
           className={timeInputClass}
         />
       </td>
