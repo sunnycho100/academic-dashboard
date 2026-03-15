@@ -18,7 +18,8 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Plus, CalendarDays } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
+import { viewTransitionVariants } from '@/lib/liquidTransitions'
 
 export interface CatchupContentProps {
   tasks: Task[]
@@ -100,19 +101,19 @@ export function CatchupContent({
 
       {/* View Tabs + Add Task Button + Controls */}
       <div className="flex items-center gap-3 mb-6 flex-wrap">
-        <motion.div whileTap={{ scale: 0.95 }}>
+        <motion.div whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.02 }}>
           <Button
             id="add-task-button"
             onClick={onAddTaskOpen}
-            className="rounded-lg shadow-sm"
+            className="rounded-lg shadow-sm glass-shimmer-on-hover"
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Task
           </Button>
         </motion.div>
-        <motion.div whileTap={{ scale: 0.95 }}>
+        <motion.div whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.02 }}>
           <Button
-            variant={weeklyPlanOpen ? 'default' : 'outline'}
+            variant={weeklyPlanOpen ? 'default' : 'glass'}
             onClick={() => setWeeklyPlanOpen(!weeklyPlanOpen)}
             className="rounded-lg shadow-sm"
           >
@@ -185,7 +186,15 @@ export function CatchupContent({
       />
 
       {/* Bento Grid: Task List + Today's Plan */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-6 flex-1 min-h-0">
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={viewMode}
+          variants={viewTransitionVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-6 flex-1 min-h-0"
+        >
         {/* Task List */}
         <div className="min-w-0 min-h-0 flex flex-col overflow-hidden">
           <TaskList
@@ -219,7 +228,8 @@ export function CatchupContent({
             userId={userId}
           />
         </div>
-      </div>
+      </motion.div>
+      </AnimatePresence>
     </motion.div>
   )
 }

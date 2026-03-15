@@ -132,10 +132,10 @@ export function Stats({ tasks, completedTodayCount, todayRemainingCount }: Stats
         <motion.div
           key={stat.label}
           variants={liquidStaggerChild}
-          whileHover={{ y: -4, transition: { duration: 0.2 } }}
+          whileHover={{ y: -5, scale: 1.02, transition: { type: 'spring', stiffness: 300, damping: 25 } }}
           whileTap={{ scale: 0.97 }}
         >
-          <Card className={`relative overflow-hidden rounded-2xl transition-all duration-300 hover:shadow-lg h-full glass-interactive ${stat.bgGlow}`}>
+          <Card className={`relative overflow-hidden rounded-2xl transition-all duration-300 hover:shadow-lg h-full glass-interactive glass-hover-glow ${stat.bgGlow}`}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                 {stat.label}
@@ -149,7 +149,13 @@ export function Stats({ tasks, completedTodayCount, todayRemainingCount }: Stats
                     </span>
                   </div>
                 ) : (
-                  <stat.icon className="h-4 w-4" style={{ color: stat.color }} />
+                  <motion.div
+                    initial={{ scale: 0, rotate: -45 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.2 + index * 0.05 }}
+                  >
+                    <stat.icon className="h-4 w-4" style={{ color: stat.color }} />
+                  </motion.div>
                 )}
               </div>
             </CardHeader>
@@ -163,7 +169,7 @@ export function Stats({ tasks, completedTodayCount, todayRemainingCount }: Stats
                 style={{ backgroundColor: stat.color }}
                 initial={{ width: 0 }}
                 animate={{ width: '100%' }}
-                transition={{ duration: 0.6, delay: 0.3 + index * 0.1 }}
+                transition={{ duration: 0.6, delay: 0.3 + index * 0.1, ease: [0.23, 1, 0.32, 1] }}
               />
             </CardContent>
           </Card>

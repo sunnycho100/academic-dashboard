@@ -96,6 +96,14 @@ const config: Config = {
           from: { opacity: '0', transform: 'translateY(12px)' },
           to: { opacity: '1', transform: 'translateY(0)' },
         },
+        'glass-glow': {
+          '0%, 100%': { boxShadow: '0 0 12px rgba(99, 102, 241, 0.08)' },
+          '50%': { boxShadow: '0 0 20px rgba(99, 102, 241, 0.15)' },
+        },
+        'blur-in': {
+          from: { opacity: '0', filter: 'blur(8px)', transform: 'scale(0.96)' },
+          to: { opacity: '1', filter: 'blur(0)', transform: 'scale(1)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -103,6 +111,8 @@ const config: Config = {
         shimmer: 'shimmer 1.8s ease-in-out infinite',
         'status-pulse': 'status-pulse 2s ease-in-out infinite',
         'message-enter': 'message-enter 0.3s ease-out both',
+        'glass-glow': 'glass-glow 3s ease-in-out infinite',
+        'blur-in': 'blur-in 0.4s cubic-bezier(0.23, 1, 0.32, 1) both',
       },
     },
   },

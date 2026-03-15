@@ -75,23 +75,26 @@ export function TaskRow({
       {...attributes}
       {...listeners}
       layout
-      initial={{ opacity: 0, y: 8, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -6, transition: { duration: 0.15 } }}
+      initial={{ opacity: 0, y: 8, scale: 0.97, filter: 'blur(2px)' }}
+      animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+      exit={{ opacity: 0, y: -6, scale: 0.98, transition: { duration: 0.15 } }}
       transition={childSpring}
-      whileHover={{ y: -2, transition: { duration: 0.15 } }}
+      whileHover={{ y: -3, transition: { type: 'spring', stiffness: 300, damping: 25 } }}
       whileTap={{ scale: 0.995 }}
       className={cn(
-        'group relative flex items-center gap-3 p-3 rounded-xl glass-thin glass-interactive cursor-grab active:cursor-grabbing touch-none',
-        'hover:shadow-md',
-        isDragging && 'opacity-50 shadow-lg scale-[1.02] z-50',
+        'group relative flex items-center gap-3 p-3 rounded-xl glass-thin glass-interactive glass-hover-glow cursor-grab active:cursor-grabbing touch-none',
+        'hover:shadow-lg',
+        isDragging && 'opacity-60 shadow-xl scale-[1.02] z-50 ring-2 ring-primary/20',
         task.status === 'done' && 'opacity-50'
       )}
     >
       {/* Category left accent bar */}
       <div
-        className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full transition-opacity duration-200 opacity-0 group-hover:opacity-100"
-        style={{ backgroundColor: category.color }}
+        className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100 group-hover:shadow-sm"
+        style={{
+          backgroundColor: category.color,
+          boxShadow: `0 0 6px ${category.color}40`,
+        }}
       />
 
       <div className="flex-shrink-0">

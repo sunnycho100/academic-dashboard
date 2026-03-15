@@ -58,8 +58,7 @@ export function ColorSchemeDialog({
   useEffect(() => {
     if (open) {
       setDevColors(loadPersonalDevColors())
-      const timer = setTimeout(() => setShowContent(true), 100)
-      return () => clearTimeout(timer)
+      setShowContent(true)
     } else {
       setShowContent(false)
     }

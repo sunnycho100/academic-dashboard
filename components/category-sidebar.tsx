@@ -133,9 +133,9 @@ export function CategorySidebar({
             <button
               onClick={() => onSelectCategory(null)}
               className={cn(
-                'relative w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200',
+                'relative w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer',
                 selectedCategoryId === null
-                  ? 'text-foreground'
+                  ? 'text-foreground bg-white/5'
                   : 'hover:bg-white/5 text-muted-foreground'
               )}
             >
@@ -169,10 +169,10 @@ export function CategorySidebar({
                   }
                 }}
                 className={cn(
-                  'relative w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2.5',
+                  'relative w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2.5 cursor-pointer',
                   editMode && 'pr-20',
                   !editMode && selectedCategoryId === category.id
-                    ? 'text-foreground'
+                    ? 'text-foreground bg-white/5'
                     : !editMode
                       ? 'hover:bg-white/5 text-foreground/80'
                       : 'hover:bg-white/5 text-foreground/80 cursor-text'
@@ -186,11 +186,11 @@ export function CategorySidebar({
                   />
                 )}
                 <div
-                  className="relative z-10 w-2 h-2 rounded-full flex-shrink-0"
+                  className="relative z-10 w-2 h-2 rounded-full flex-shrink-0 transition-shadow duration-300"
                   style={{
                     backgroundColor: category.color,
                     boxShadow: !editMode && selectedCategoryId === category.id
-                      ? `0 0 0 2px ${category.color}40, 0 0 0 4px ${category.color}20`
+                      ? `0 0 0 2px ${category.color}40, 0 0 0 4px ${category.color}20, 0 0 8px ${category.color}30`
                       : 'none',
                   }}
                 />

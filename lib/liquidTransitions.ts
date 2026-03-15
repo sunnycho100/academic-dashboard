@@ -101,3 +101,72 @@ export const sidebarPillSpring: Transition = {
   damping: 28,
   stiffness: 180,
 };
+
+// ── Snappy button press spring ────────────────────────────────────
+
+export const buttonPressSpring: Transition = {
+  type: "spring",
+  stiffness: 400,
+  damping: 20,
+  mass: 0.5,
+};
+
+// ── Tab content view transition ───────────────────────────────────
+
+export const viewTransitionVariants: Variants = {
+  initial: { opacity: 0, y: 6, scale: 0.995, filter: "blur(2px)" },
+  animate: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    filter: "blur(0px)",
+    transition: {
+      type: "spring",
+      stiffness: 260,
+      damping: 30,
+      mass: 0.8,
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -4,
+    scale: 0.995,
+    filter: "blur(1px)",
+    transition: {
+      type: "tween",
+      duration: 0.15,
+      ease: [0.4, 0, 1, 1],
+    },
+  },
+};
+
+// ── Glass card hover with depth increase ──────────────────────────
+
+export const glassCardHover = {
+  whileHover: {
+    y: -4,
+    scale: 1.01,
+    transition: { type: "spring", stiffness: 300, damping: 25 },
+  },
+  whileTap: {
+    scale: 0.97,
+    transition: { type: "spring", stiffness: 400, damping: 20 },
+  },
+};
+
+// ── Smooth entrance with blur dissolve ────────────────────────────
+
+export const blurEntranceVariants: Variants = {
+  initial: { opacity: 0, filter: "blur(8px)", scale: 0.96 },
+  animate: {
+    opacity: 1,
+    filter: "blur(0px)",
+    scale: 1,
+    transition: {
+      type: "spring",
+      stiffness: 200,
+      damping: 28,
+      mass: 0.9,
+    },
+  },
+};
