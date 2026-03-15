@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2 } from 'lucide-react'
@@ -93,8 +93,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-background">
-      <Card className="w-full max-w-sm">
+    <div className="min-h-screen flex items-center justify-center px-4">
+      <div className="w-full max-w-sm glass-thick rounded-2xl text-card-foreground shadow-2xl">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">
             {mode === 'sign-in' ? 'Sign In' : 'Create Account'}
@@ -197,7 +197,7 @@ export default function LoginPage() {
             )}
           </div>
         </CardContent>
-      </Card>
+      </div>
     </div>
   )
 }
