@@ -60,3 +60,4 @@ skills-lock.json
 # JSON data files (user data, not tracked)
 data/*.json
 !data/.gitkeep
+.agents/

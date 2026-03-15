@@ -42,7 +42,15 @@ export function InlineDurationEdit({ minutes, onSave }: InlineDurationEditProps)
 
   if (editing) {
     return (
-      <span className="inline-flex items-center gap-1">
+      <span 
+        className="inline-flex items-center gap-1 bg-background/50 rounded p-0.5 shadow-sm transition-all duration-700 ease-out border border-border/50"
+        onBlur={(e) => {
+          // If the new focus target is not within this span, commit changes
+          if (!e.currentTarget.contains(e.relatedTarget)) {
+            commit()
+          }
+        }}
+      >
         <Input
           ref={hoursRef}
           type="number"
@@ -58,16 +66,15 @@ export function InlineDurationEdit({ minutes, onSave }: InlineDurationEditProps)
               setEditing(false)
             }
           }}
-          className="h-7 text-xs px-1 py-0 w-10 border-border/50 bg-background"
+          className="h-7 text-xs px-1 py-0 w-10 border-none bg-transparent shadow-none focus-visible:ring-0 text-center"
         />
-        <span className="text-[10px] text-muted-foreground">h</span>
+        <span className="text-[10px] text-muted-foreground font-medium -ml-1 pr-1">h</span>
         <Input
           type="number"
           min="0"
           max="59"
           value={mins}
           onChange={(e) => setMins(e.target.value)}
-          onBlur={commit}
           onKeyDown={(e) => {
             if (e.key === 'Enter') commit()
             if (e.key === 'Escape') {
@@ -76,9 +83,9 @@ export function InlineDurationEdit({ minutes, onSave }: InlineDurationEditProps)
               setEditing(false)
             }
           }}
-          className="h-7 text-xs px-1 py-0 w-10 border-border/50 bg-background"
+          className="h-7 text-xs px-1 py-0 w-10 border-none bg-transparent shadow-none focus-visible:ring-0 text-center"
         />
-        <span className="text-[10px] text-muted-foreground">m</span>
+        <span className="text-[10px] text-muted-foreground font-medium -ml-1 pr-1">m</span>
       </span>
     )
   }

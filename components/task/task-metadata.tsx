@@ -53,7 +53,7 @@ export function TaskMetadata({ task, category, onSave, weeklyDayLabels }: TaskMe
   return (
     <div className="flex items-center gap-1.5">
       <div
-        className="flex items-center gap-1.5 text-xs w-[68px] truncate flex-shrink-0"
+        className="flex items-center gap-1.5 text-xs w-auto max-w-[7.5rem] min-w-[5rem] truncate flex-shrink-0 transition-all duration-700 ease-in-out"
         style={{ color: category.color }}
       >
         <div
@@ -63,9 +63,9 @@ export function TaskMetadata({ task, category, onSave, weeklyDayLabels }: TaskMe
         <span className="truncate">{category.name}</span>
       </div>
       <span className="text-muted-foreground/40 text-xs flex-shrink-0">·</span>
-      <span className="text-xs text-muted-foreground/70 w-[68px] truncate flex-shrink-0">{task.type}</span>
+      <span className="text-xs text-muted-foreground/70 w-[4.25rem] truncate flex-shrink-0 transition-all duration-700 ease-in-out">{task.type}</span>
       <span className="text-muted-foreground/40 text-xs flex-shrink-0">·</span>
-      <span className="text-xs text-muted-foreground/70 w-[44px] flex-shrink-0">
+      <span className="text-xs text-muted-foreground/70 w-[2.75rem] [&:has(input)]:w-auto flex-shrink-0 transition-all duration-700 ease-out">
         {onSave ? (
           <InlineDurationEdit
             minutes={task.estimatedDuration}

@@ -540,41 +540,41 @@ export default function Home() {
         <header className="border-b border-white/10 glass-thick px-6 py-4 sticky top-0 z-30">
           <div className="flex items-center justify-between">
             {/* Tab navigation */}
-            <div className="flex items-center gap-1 rounded-lg bg-foreground/[0.04] p-0.5">
+            <div className="flex items-center gap-1.5 rounded-xl bg-foreground/[0.03] p-1.5 border border-foreground/[0.05] shadow-inner dark:bg-background/40">
               <button
                 onClick={() => setActiveMainTab('catchup')}
-                className={`relative px-3.5 py-1.5 text-sm font-semibold rounded-md transition-all duration-200 ${
+                className={`relative px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${
                   activeMainTab === 'catchup'
                     ? 'text-foreground'
-                    : 'text-muted-foreground/60 hover:text-muted-foreground'
+                    : 'text-muted-foreground/70 hover:text-foreground hover:bg-foreground/[0.02]'
                 }`}
               >
                 {activeMainTab === 'catchup' && (
                   <motion.div
                     layoutId="mainTabIndicator"
-                    className="absolute inset-0 rounded-md glass-thin shadow-sm"
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    className="absolute inset-0 rounded-lg bg-background shadow-sm border border-border/50"
+                    transition={{ type: 'spring', stiffness: 450, damping: 35 }}
                   />
                 )}
-                <span className="relative z-10">Class Catch-up</span>
+                <span className="relative z-10 tracking-tight">Class Catch-up</span>
               </button>
               <button
                 onClick={() => setActiveMainTab('timetable')}
-                className={`relative px-3.5 py-1.5 text-sm font-semibold rounded-md transition-all duration-200 flex items-center gap-1.5 ${
+                className={`relative px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 flex items-center gap-2 ${
                   activeMainTab === 'timetable'
                     ? 'text-foreground'
-                    : 'text-muted-foreground/60 hover:text-muted-foreground'
+                    : 'text-muted-foreground/70 hover:text-foreground hover:bg-foreground/[0.02]'
                 }`}
               >
                 {activeMainTab === 'timetable' && (
                   <motion.div
                     layoutId="mainTabIndicator"
-                    className="absolute inset-0 rounded-md glass-thin shadow-sm"
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    className="absolute inset-0 rounded-lg bg-background shadow-sm border border-border/50"
+                    transition={{ type: 'spring', stiffness: 450, damping: 35 }}
                   />
                 )}
-                <Clock className="h-3.5 w-3.5 relative z-10" />
-                <span className="relative z-10">Timetable</span>
+                <Clock className="h-4 w-4 relative z-10" />
+                <span className="relative z-10 tracking-tight">Timetable</span>
               </button>
             </div>
             <div className="flex items-center gap-2">
