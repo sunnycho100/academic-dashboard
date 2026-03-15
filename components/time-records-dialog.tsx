@@ -385,7 +385,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
               }}
             >
               <motion.div
-                className="relative glass-overlay border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+                className="relative glass-overlay border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col w-full"
                 style={{ maxHeight: '85vh' }}
                 initial={{ boxShadow: '0 0 0 0 rgba(59, 130, 246, 0)' }}
                 animate={{
@@ -595,7 +595,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                   transition={{ duration: 0.3, delay: 0.2 }}
                 >
                   {loading ? (
-                    <div className="flex items-center justify-center h-64 text-muted-foreground">
+                    <div className="flex items-center justify-center text-muted-foreground" style={{ maxHeight: 'calc(85vh - 300px)', minHeight: '400px' }}>
                       <motion.div
                         className="flex items-center gap-2"
                         initial={{ opacity: 0 }}

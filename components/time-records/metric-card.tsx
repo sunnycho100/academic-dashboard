@@ -25,11 +25,13 @@ export function MetricCard({
   return (
     <motion.div
       className="flex-1 min-w-[110px] rounded-xl border border-white/[0.08] p-3 flex flex-col gap-1.5 relative overflow-hidden group"
-      initial={{ opacity: 0, y: 12, scale: 0.95 }}
+      style={{ WebkitMaskImage: '-webkit-radial-gradient(white, black)' }}
+      initial={{ opacity: 0, y: 12, scale: 0.95, z: 0 }}
       animate={{
         opacity: show ? 1 : 0,
         y: show ? 0 : 12,
         scale: show ? 1 : 0.95,
+        z: 0,
       }}
       transition={{
         type: 'spring',
