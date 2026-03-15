@@ -52,7 +52,13 @@ import {
 import { useTasks } from '@/hooks/use-tasks'
 import { useCategories } from '@/hooks/use-categories'
 import { createClient } from '@/lib/supabase/client'
-import defaultCategories from '@/data/categories.json'
+
+const DEFAULT_CATEGORIES: Category[] = [
+  { id: 'demo-1', userId: '', name: 'CS 400', color: 'hsl(110, 70%, 50%)', order: 1 },
+  { id: 'demo-2', userId: '', name: 'ECE 222', color: 'hsl(5, 70%, 50%)', order: 2 },
+  { id: 'demo-3', userId: '', name: 'CS 354', color: 'hsl(76, 70%, 50%)', order: 3 },
+  { id: 'demo-4', userId: '', name: 'ECE 340', color: 'hsl(15, 70%, 50%)', order: 4 },
+]
 
 function loadTodayIds(userId: string | null): string[] {
   if (typeof window === 'undefined' || !userId) return []
@@ -152,7 +158,7 @@ export default function Home() {
 
         if (!authUser) {
           // Guest mode: load default categories, empty tasks
-          setCategories(defaultCategories as unknown as Category[])
+          setCategories(DEFAULT_CATEGORIES)
           setTasks([])
           setMounted(true)
           return
