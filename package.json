@@ -15,6 +15,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^3.9.1",
     "@prisma/adapter-pg": "^7.4.0",
+    "@prisma/client": "^7.4.0",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
     "@radix-ui/react-aspect-ratio": "1.1.1",
@@ -70,7 +71,6 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@prisma/client": "^7.4.0",
     "@tailwindcss/postcss": "^4.1.13",
     "@types/node": "^22",
     "@types/pg": "^8.16.0",
