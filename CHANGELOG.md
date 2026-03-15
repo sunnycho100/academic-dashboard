@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [2.1.0] - 2026-03-15
+UI/UX Polish, Animation Refinements, and Layout Scaling
+
+### Added
+- **Global Layout Scaling** — Applied `font-size: 75%` to the root `<html>` element, natively scaling all Tailwind `rem`-based utilities down to 75% screen size by default.
+- **Viewport Scaling Overrides** — Added override classes for `100vh/vw` (mapped to `133.33vh/vw`) to ensure the dashboard spanning saturates the entire monitor under the new 75% scale without exhibiting black borders.
+
+### Changed
+- **Navigation Tabs Redesign** — Transformed the top "Class Catch-up" and "Timetable" navigation buttons into a premium, pill-shaped segmented control with a solid elevated background and smooth layout animations.
+- **Task Row Animations** — Slowed the inline duration edit expansion transition from 300ms to 700ms `ease-out` for a significantly smoother and more deliberate pushing animation.
+- **Duration Edit UX** — Automatically commits changes and collapses the duration edit box gracefully when the user clicks away (`onBlur` bounding box check).
+
+### Fixed
+- **Popover Positioning Bugs** — Fixed all native Radix UI (`@radix-ui`) dropdown menus, tooltips, and popovers spawning in incorrect/detached locations. Solved by replacing the non-standard CSS `zoom` and `transform` properties with root EM (`rem`) font-size scaling, allowing Floating UI coordinate functions to compute perfectly.
+- **Category Name Truncation** — Expanded the `max-width` allowance on task badges from `68px` to `7.5rem` to prevent long course codes (e.g. "COMP SCI 400") from truncating aggressively.
+- **Duration Badge Overlap** — Refactored the spacing to dynamically expand using the `[&:has(input)]:w-auto` pseudo-selector, resolving the bug where editing the time overlapped and blocked clicks on the "no due date" badge.
+
 ## [2.0.0] - 2026-03-14
 Multi-user authentication via Supabase Auth — email+password sign-up/sign-in with per-user data isolation
 

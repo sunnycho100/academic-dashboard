@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Clock,
@@ -60,6 +60,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
   const [newForm, setNewForm] = useState<NewRecordForm>({ taskTitle: '', categoryName: '', categoryColor: '#6366f1', taskType: '', startTime: '', endTime: '' })
   const [categories, setCategories] = useState<{ name: string; color: string }[]>([])
   const scrollRef = useRef<HTMLDivElement>(null)
+  const hasInitialScrolled = useRef(false)
 
   // Configurable day boundaries
   const [timelineStartHour, setTimelineStartHour] = useState(DEFAULT_START_HOUR)
@@ -127,23 +128,36 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
       })
   }, [open, selectedDate, timelineStartHour, timelineEndHour])
 
-  // Scroll to first record or current time on load
+  // Reset initial-scroll flag when dialog reopens
   useEffect(() => {
-    if (!open || loading || !scrollRef.current) return
-    const timer = setTimeout(() => {
-      const container = scrollRef.current
-      if (!container) return
+    if (!open) hasInitialScrolled.current = false
+  }, [open])
+
+  // Callback ref: scroll to current time immediately on mount (no flash)
+  const scrollRefCallback = useCallback((node: HTMLDivElement | null) => {
+    scrollRef.current = node
+    if (node && !hasInitialScrolled.current) {
       const pos = getCurrentTimePosition(timelineStartHour, timelineEndHour)
       if (pos !== null) {
-        container.scrollTop = Math.max(0, pos - 100)
-      } else if (records.length > 0) {
-        const firstStart = new Date(records[0].startTime)
-        let firstHour = firstStart.getHours() + firstStart.getMinutes() / 60
-        if (firstHour < timelineStartHour) firstHour += 24
-        container.scrollTop = Math.max(0, (firstHour - timelineStartHour) * HOUR_HEIGHT - 40)
+        node.scrollTop = Math.max(0, pos - 100)
       }
-    }, 200)
-    return () => clearTimeout(timer)
+      hasInitialScrolled.current = true
+    }
+  }, [timelineStartHour, timelineEndHour])
+
+  // After records load, scroll to first record if current time isn't visible
+  useEffect(() => {
+    if (!open || loading || !scrollRef.current) return
+    const container = scrollRef.current
+    const pos = getCurrentTimePosition(timelineStartHour, timelineEndHour)
+    if (pos !== null) {
+      container.scrollTop = Math.max(0, pos - 100)
+    } else if (records.length > 0) {
+      const firstStart = new Date(records[0].startTime)
+      let firstHour = firstStart.getHours() + firstStart.getMinutes() / 60
+      if (firstHour < timelineStartHour) firstHour += 24
+      container.scrollTop = Math.max(0, (firstHour - timelineStartHour) * HOUR_HEIGHT - 40)
+    }
   }, [open, loading, records, timelineStartHour, timelineEndHour])
 
   // ── Analytics ──
@@ -740,7 +754,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                         )}
                       </AnimatePresence>
                       <div
-                        ref={scrollRef}
+                        ref={scrollRefCallback}
                         className="flex-1 overflow-y-auto px-2"
                       >
                       <div
