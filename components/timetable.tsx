@@ -168,12 +168,12 @@ export function Timetable() {
               className="text-[11px] uppercase tracking-wider text-muted-foreground/60 select-none"
             >
               <th className="w-7 border-b border-white/[0.06]" />
-              <th className="text-left font-medium px-3 py-2.5 border-b border-white/[0.06] w-[72px]">Start</th>
-              <th className="text-left font-medium px-3 py-2.5 border-b border-white/[0.06] w-[72px]">End</th>
+              <th className="text-left font-medium px-3 py-2.5 border-b border-white/[0.06] w-[110px]">Start</th>
+              <th className="text-left font-medium px-3 py-2.5 border-b border-white/[0.06] w-[110px]">End</th>
               <th className="text-left font-medium px-3 py-2.5 border-b border-white/[0.06] w-[68px]">Total</th>
               <th className="text-left font-medium px-3 py-2.5 border-b border-white/[0.06]">Activity</th>
-              <th className="text-left font-medium px-3 py-2.5 border-b border-white/[0.06] w-[72px]">Act. Start</th>
-              <th className="text-left font-medium px-3 py-2.5 border-b border-white/[0.06] w-[72px]">Act. End</th>
+              <th className="text-left font-medium px-3 py-2.5 border-b border-white/[0.06] w-[110px]">Act. Start</th>
+              <th className="text-left font-medium px-3 py-2.5 border-b border-white/[0.06] w-[110px]">Act. End</th>
               <th className="text-left font-medium px-3 py-2.5 border-b border-white/[0.06] w-[68px]">Act. Dur</th>
               <th className="text-left font-medium px-3 py-2.5 border-b border-white/[0.06] w-[120px]">Notes</th>
               <th className="w-8 border-b border-white/[0.06]" />
