@@ -23,7 +23,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
-import { Settings, Download, Upload, Trash2, Palette, Clock, AlertTriangle, LogOut, UserPen } from 'lucide-react'
+import { Settings, Download, Upload, Trash2, Palette, Clock, AlertTriangle, LogOut, UserPen, LogIn } from 'lucide-react'
 import { EditPersonalInfoDialog } from '@/components/edit-personal-info-dialog'
 import {
   AlertDialog,
@@ -52,6 +52,7 @@ import {
 import { useTasks } from '@/hooks/use-tasks'
 import { useCategories } from '@/hooks/use-categories'
 import { createClient } from '@/lib/supabase/client'
+import defaultCategories from '@/data/categories.json'
 
 function loadTodayIds(userId: string | null): string[] {
   if (typeof window === 'undefined' || !userId) return []
@@ -149,7 +150,15 @@ export default function Home() {
           setUser({ id: authUser.id, email: authUser.email || '' })
         }
 
-        // Try loading from database first
+        if (!authUser) {
+          // Guest mode: load default categories, empty tasks
+          setCategories(defaultCategories as unknown as Category[])
+          setTasks([])
+          setMounted(true)
+          return
+        }
+
+        // Authenticated: load from database
         const [catRes, taskRes] = await Promise.all([
           fetch('/api/categories'),
           fetch('/api/tasks'),
@@ -605,7 +614,7 @@ export default function Home() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              {user && (
+              {user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="rounded-full">
@@ -630,6 +639,11 @@ export default function Home() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+              ) : (
+                <Button variant="ghost" size="icon" className="rounded-full" onClick={() => window.location.href = '/login'}>
+                  <LogIn className="h-4 w-4" />
+                  <span className="sr-only">Log in</span>
+                </Button>
               )}
               <ThemeToggle />
             </div>
