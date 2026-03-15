@@ -8,6 +8,7 @@ import { CardContent, CardDescription, CardHeader, CardTitle } from '@/component
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 type AuthMode = 'sign-in' | 'sign-up'
 
@@ -94,16 +95,31 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="w-full max-w-sm glass-thick rounded-2xl text-card-foreground shadow-2xl">
+      <motion.div
+        className="w-full max-w-sm glass-thick rounded-2xl text-card-foreground shadow-2xl"
+        initial={{ opacity: 0, scale: 0.92, y: 24 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
+      >
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">
-            {mode === 'sign-in' ? 'Sign In' : 'Create Account'}
-          </CardTitle>
-          <CardDescription>
-            {mode === 'sign-in'
-              ? 'Enter your credentials to access your dashboard'
-              : 'Create an account to get started'}
-          </CardDescription>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={mode}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25 }}
+            >
+              <CardTitle className="text-2xl">
+                {mode === 'sign-in' ? 'Sign In' : 'Create Account'}
+              </CardTitle>
+              <CardDescription className="mt-1.5">
+                {mode === 'sign-in'
+                  ? 'Enter your credentials to access your dashboard'
+                  : 'Create an account to get started'}
+              </CardDescription>
+            </motion.div>
+          </AnimatePresence>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -197,7 +213,7 @@ export default function LoginPage() {
             )}
           </div>
         </CardContent>
-      </div>
+      </motion.div>
     </div>
   )
 }
