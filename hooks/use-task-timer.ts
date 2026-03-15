@@ -27,22 +27,28 @@ export interface TaskMeta {
   taskType: string
 }
 
-const STORAGE_KEY = 'class-catchup-timers'
+const STORAGE_KEY_PREFIX = 'class-catchup-timers'
 
-function loadTimerData(): TaskTimerData {
+function getStorageKey(userId?: string): string {
+  return userId ? `${STORAGE_KEY_PREFIX}-${userId}` : STORAGE_KEY_PREFIX
+}
+
+function loadTimerData(userId?: string): TaskTimerData {
   if (typeof window === 'undefined') return {}
+  if (!userId) return {}
   try {
-    const stored = localStorage.getItem(STORAGE_KEY)
+    const stored = localStorage.getItem(getStorageKey(userId))
     return stored ? JSON.parse(stored) : {}
   } catch {
     return {}
   }
 }
 
-function saveTimerData(data: TaskTimerData) {
+function saveTimerData(data: TaskTimerData, userId?: string) {
   if (typeof window === 'undefined') return
+  if (!userId) return
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+    localStorage.setItem(getStorageKey(userId), JSON.stringify(data))
   } catch {}
 }
 
@@ -73,7 +79,7 @@ async function saveTimeRecord(
   }
 }
 
-export function useTaskTimers(taskIds: string[]) {
+export function useTaskTimers(taskIds: string[], userId?: string) {
   const [timerStates, setTimerStates] = useState<TaskTimerData>({})
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   // Keep a ref mirror so side-effects can read latest state outside the setter
@@ -83,11 +89,15 @@ export function useTaskTimers(taskIds: string[]) {
   const taskMetaRef = useRef<Record<string, TaskMeta>>({})
   // Guard: don't save to localStorage until we've loaded first
   const loadedRef = useRef(false)
+  // Track userId in a ref for beforeunload handler
+  const userIdRef = useRef(userId)
+  useEffect(() => { userIdRef.current = userId }, [userId])
 
   // Load timer states on mount — reconcile elapsed for any running timers
   // that accumulated time while the component was unmounted (idle mode, tab close, etc.)
   useEffect(() => {
-    const loaded = loadTimerData()
+    if (!userId) return
+    const loaded = loadTimerData(userId)
     const now = Date.now()
     const reconciled: TaskTimerData = {}
     for (const [taskId, state] of Object.entries(loaded)) {
@@ -108,14 +118,14 @@ export function useTaskTimers(taskIds: string[]) {
     }
     loadedRef.current = true
     setTimerStates(reconciled)
-  }, [])
+  }, [userId])
 
   // Save timer states whenever they change — but only after initial load
   // to prevent overwriting localStorage with {} on mount
   useEffect(() => {
     if (!loadedRef.current) return
-    saveTimerData(timerStates)
-  }, [timerStates])
+    saveTimerData(timerStates, userId)
+  }, [timerStates, userId])
 
   // Flush running timer segments to DB on page unload / tab close
   // so time is never silently lost
@@ -151,7 +161,7 @@ export function useTaskTimers(taskIds: string[]) {
               segmentStartedAt: endTime,
               lastTickAt: endTime,
             }
-            saveTimerData(updated)
+            saveTimerData(updated, userIdRef.current)
           }
         }
       }

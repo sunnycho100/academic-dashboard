@@ -17,9 +17,11 @@ interface LandingSequenceProps {
   children: React.ReactNode
   /** Skip the greeting entirely (e.g. returning from power-save mode) */
   skip?: boolean
+  /** Authenticated user email — used as fallback name (prefix before @) */
+  userEmail?: string
 }
 
-export function LandingSequence({ onComplete, children, skip }: LandingSequenceProps) {
+export function LandingSequence({ onComplete, children, skip, userEmail }: LandingSequenceProps) {
   const [phase, setPhase] = useState<'loading' | 'greeting' | 'reveal' | 'done'>(
     skip ? 'done' : 'loading'
   )
@@ -46,17 +48,19 @@ export function LandingSequence({ onComplete, children, skip }: LandingSequenceP
 
   // Fetch user name from DB
   useEffect(() => {
+    const emailFallback = userEmail ? userEmail.split('@')[0] : 'User'
     fetch('/api/user-info')
       .then((res) => res.json())
       .then((data) => {
-        setUserName(data.name || 'User')
+        const name = data.name && data.name !== 'User' ? data.name : emailFallback
+        setUserName(name)
         setPhase('greeting')
       })
       .catch(() => {
-        setUserName('User')
+        setUserName(emailFallback)
         setPhase('greeting')
       })
-  }, [])
+  }, [userEmail])
 
   const writeDuration = prefersReducedMotion ? 0.4 : WRITE_DURATION
 

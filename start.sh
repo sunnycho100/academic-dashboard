@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Academic Dashboard — JSON Mode Startup Script
-# No Docker or PostgreSQL required. Data stored in data/*.json files.
+# Academic Dashboard — Startup Script
+# Requires PostgreSQL (via Supabase or Docker).
 
 set -e
 
@@ -14,7 +14,6 @@ NC='\033[0m' # No Color
 
 echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║   Academic Dashboard - Class Catch-up  ║${NC}"
-echo -e "${BLUE}║           ▸ JSON Mode ◂                ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════╝${NC}"
 echo ""
 
@@ -48,17 +47,9 @@ else
     echo -e "${GREEN}✓ Dependencies already installed${NC}"
 fi
 
-# Create data directory if it doesn't exist
-if [ ! -d "data" ]; then
-    mkdir -p data
-    echo -e "${GREEN}✓ Created data/ directory${NC}"
-else
-    echo -e "${GREEN}✓ Data directory exists${NC}"
-fi
-
 echo ""
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${GREEN}Starting development server (JSON mode)...${NC}"
+echo -e "${GREEN}Building production bundle...${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
@@ -94,8 +85,15 @@ open_browser() {
     fi
 }
 
-# Open browser in background
+# Open browser in background AFTER the build completes, so the server has time to start
+pnpm build
+
+echo ""
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${GREEN}Build complete — starting production server...${NC}"
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
+
 open_browser &
 
-# Start the development server in JSON mode
-STORAGE_MODE=json pnpm dev
+pnpm start

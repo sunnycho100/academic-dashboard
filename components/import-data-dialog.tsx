@@ -11,7 +11,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { AppState } from '@/lib/store'
+import { Category, Task } from '@/lib/types'
+
+export interface AppState {
+  categories: Category[]
+  tasks: Task[]
+}
 
 interface ImportDataDialogProps {
   open: boolean

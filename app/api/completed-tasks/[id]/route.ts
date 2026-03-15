@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/db'
+import { getAuthenticatedUser } from '@/lib/auth'
 
 const UpdateCompletedTaskSchema = z.object({
   deleted: z.boolean().optional(),
@@ -18,7 +19,14 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const userId = await getAuthenticatedUser()
     const { id } = await params
+
+    const existing = await prisma.completedTask.findUnique({ where: { id } })
+    if (!existing || existing.userId !== userId) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+
     const parsed = UpdateCompletedTaskSchema.safeParse(await request.json())
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
@@ -48,13 +56,9 @@ export async function PATCH(
 
     // Recalculate timeDifference when either time value changes
     if (body.actualTimeSpent !== undefined || body.estimatedDuration !== undefined) {
-      // Fetch current record for the other value if not provided
-      const current = await prisma.completedTask.findUnique({ where: { id } })
-      if (current) {
-        const est = body.estimatedDuration ?? current.estimatedDuration
-        const act = body.actualTimeSpent ?? current.actualTimeSpent
-        data.timeDifference = est != null && act != null ? est - act : null
-      }
+      const est = body.estimatedDuration ?? existing.estimatedDuration
+      const act = body.actualTimeSpent ?? existing.actualTimeSpent
+      data.timeDifference = est != null && act != null ? est - act : null
     }
 
     const task = await prisma.completedTask.update({
@@ -64,6 +68,7 @@ export async function PATCH(
 
     return NextResponse.json(task)
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('Failed to update completed task:', error)
     return NextResponse.json(
       { error: 'Failed to update completed task' },

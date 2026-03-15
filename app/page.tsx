@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Task, Category, SortOption, ViewMode } from '@/lib/types'
-import { loadState } from '@/lib/store'
 import { CategorySidebar } from '@/components/category-sidebar'
 import { AddCategoryDialog } from '@/components/add-category-dialog'
 import { AddTaskDialog } from '@/components/add-task-sheet'
@@ -20,10 +19,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
-import { Settings, Download, Upload, Trash2, Palette, Clock, AlertTriangle } from 'lucide-react'
+import { Settings, Download, Upload, Trash2, Palette, Clock, AlertTriangle, LogOut } from 'lucide-react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,21 +50,20 @@ import {
 } from '@dnd-kit/core'
 import { useTasks } from '@/hooks/use-tasks'
 import { useCategories } from '@/hooks/use-categories'
+import { createClient } from '@/lib/supabase/client'
 
-const TODAY_STORAGE_KEY = 'class-catchup-today'
-
-function loadTodayIds(): string[] {
-  if (typeof window === 'undefined') return []
+function loadTodayIds(userId: string | null): string[] {
+  if (typeof window === 'undefined' || !userId) return []
   try {
-    const stored = localStorage.getItem(TODAY_STORAGE_KEY)
+    const stored = localStorage.getItem(`class-catchup-today-${userId}`)
     return stored ? JSON.parse(stored) : []
   } catch { return [] }
 }
 
-function saveTodayIds(ids: string[]) {
-  if (typeof window === 'undefined') return
+function saveTodayIds(ids: string[], userId: string | null) {
+  if (typeof window === 'undefined' || !userId) return
   try {
-    localStorage.setItem(TODAY_STORAGE_KEY, JSON.stringify(ids))
+    localStorage.setItem(`class-catchup-today-${userId}`, JSON.stringify(ids))
   } catch {}
 }
 
@@ -96,6 +95,7 @@ export default function Home() {
   const [completedTodayCount, setCompletedTodayCount] = useState(0)
   const [activeMainTab, setActiveMainTab] = useState<'catchup' | 'timetable'>('catchup')
   const [deleteAllOpen, setDeleteAllOpen] = useState(false)
+  const [user, setUser] = useState<{ id: string; email: string } | null>(null)
   const completingRef = useRef<Set<string>>(new Set())
 
   // Idle / power-save detection (5 minutes of inactivity)
@@ -140,6 +140,13 @@ export default function Home() {
   useEffect(() => {
     async function loadData() {
       try {
+        // Fetch authenticated user
+        const supabase = createClient()
+        const { data: { user: authUser } } = await supabase.auth.getUser()
+        if (authUser) {
+          setUser({ id: authUser.id, email: authUser.email || '' })
+        }
+
         // Try loading from database first
         const [catRes, taskRes] = await Promise.all([
           fetch('/api/categories'),
@@ -148,54 +155,14 @@ export default function Home() {
         const dbCategories = await catRes.json()
         const dbTasks = await taskRes.json()
 
-        if (dbCategories.length > 0 || dbTasks.length > 0) {
-          // DB has data — use it
-          setCategories(dbCategories)
-          setTasks(
-            dbTasks.map((t: Record<string, unknown>) => ({
-              ...t,
-              dueAt: t.dueAt == null ? null : typeof t.dueAt === 'string' ? t.dueAt : new Date(t.dueAt as number).toISOString(),
-              createdAt: typeof t.createdAt === 'string' ? t.createdAt : new Date(t.createdAt as number).toISOString(),
-            }))
-          )
-        } else {
-          // DB empty — seed from localStorage if available
-          const localState = loadState()
-          if (localState.categories.length > 0 || localState.tasks.length > 0) {
-            const seedRes = await fetch('/api/seed', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                categories: localState.categories,
-                tasks: localState.tasks,
-              }),
-            })
-            const seedData = await seedRes.json()
-            if (seedData.seeded) {
-              // Map todayTaskIds from old IDs to new IDs
-              const oldTodayIds = loadTodayIds()
-              const idMap = seedData.categoryIdMap as Record<string, string>
-              // We need to map task IDs too — build from title+category matching
-              const taskIdMap: Record<string, string> = {}
-              localState.tasks.forEach((oldTask) => {
-                const newTask = (seedData.tasks as Array<{ id: string; title: string; categoryId: string }>)
-                  .find((nt) => nt.title === oldTask.title && nt.categoryId === (idMap[oldTask.categoryId] ?? oldTask.categoryId))
-                if (newTask) taskIdMap[oldTask.id] = newTask.id
-              })
-              const newTodayIds = oldTodayIds
-                .map((oldId) => taskIdMap[oldId])
-                .filter(Boolean)
-              setTodayTaskIds(newTodayIds)
-              saveTodayIds(newTodayIds)
-
-              setCategories(seedData.categories)
-              setTasks(seedData.tasks)
-            } else {
-              setCategories(localState.categories)
-              setTasks(localState.tasks)
-            }
-          }
-        }
+        setCategories(dbCategories)
+        setTasks(
+          dbTasks.map((t: Record<string, unknown>) => ({
+            ...t,
+            dueAt: t.dueAt == null ? null : typeof t.dueAt === 'string' ? t.dueAt : new Date(t.dueAt as number).toISOString(),
+            createdAt: typeof t.createdAt === 'string' ? t.createdAt : new Date(t.createdAt as number).toISOString(),
+          }))
+        )
 
         // Auto-cleanup: permanently delete tasks soft-deleted >3 days ago
         fetch('/api/completed-tasks/cleanup', { method: 'DELETE' })
@@ -237,22 +204,31 @@ export default function Home() {
           console.error('Failed to fetch completed tasks count:', err)
         }
       } catch (err) {
-        console.error('Failed to load from DB, falling back to localStorage:', err)
-        const state = loadState()
-        setCategories(state.categories)
-        setTasks(state.tasks)
+        console.error('Failed to load data:', err)
       }
-      setTodayTaskIds(loadTodayIds())
       setMounted(true)
     }
     loadData()
   }, [])
 
+  // Load today IDs once user is available
   useEffect(() => {
-    if (mounted) {
-      saveTodayIds(todayTaskIds)
+    if (user) {
+      setTodayTaskIds(loadTodayIds(user.id))
     }
-  }, [todayTaskIds, mounted])
+  }, [user])
+
+  useEffect(() => {
+    if (mounted && user) {
+      saveTodayIds(todayTaskIds, user.id)
+    }
+  }, [todayTaskIds, mounted, user])
+
+  const handleSignOut = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    window.location.href = '/login'
+  }
 
   const handleEditTask = (task: Task) => {
     setTaskToEdit(task)
@@ -412,7 +388,7 @@ export default function Home() {
     setTasks([])
     setTodayTaskIds([])
     localStorage.removeItem('class-catchup-data')
-    localStorage.removeItem(TODAY_STORAGE_KEY)
+    if (user) localStorage.removeItem(`class-catchup-today-${user.id}`)
     setClearDataOpen(false)
     // Clear DB
     fetch('/api/bulk', {
@@ -516,10 +492,10 @@ export default function Home() {
          The dashboard stays mounted (hidden via CSS) so timers,
          intervals, and all hook state remain alive.
          On wake-up the overlay unmounts and the dashboard is revealed. */}
-    {isIdle && <IdleOverlay onWakeUp={resetIdle} />}
+    {isIdle && <IdleOverlay onWakeUp={resetIdle} userId={user?.id} />}
 
     <div style={isIdle ? { visibility: 'hidden', pointerEvents: 'none' } : undefined}>
-    <LandingSequence onComplete={() => setLandingComplete(true)} skip={landingComplete}>
+    <LandingSequence onComplete={() => setLandingComplete(true)} skip={landingComplete} userEmail={user?.email}>
     <DndContext
       sensors={sensors}
       collisionDetection={pointerWithin}
@@ -627,6 +603,28 @@ export default function Home() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              {user && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="rounded-full">
+                      <div className="h-7 w-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold uppercase">
+                        {user.email.charAt(0)}
+                      </div>
+                      <span className="sr-only">User menu</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel className="font-normal text-xs text-muted-foreground truncate max-w-[200px]">
+                      {user.email}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut}>
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
               <ThemeToggle />
             </div>
           </div>
@@ -666,6 +664,7 @@ export default function Home() {
               onRemoveFromToday={handleRemoveFromToday}
               onReorderToday={handleReorderToday}
               onWeeklyEntriesChange={handleWeeklyEntriesChange}
+              userId={user?.id}
             />
           )}
         </div>

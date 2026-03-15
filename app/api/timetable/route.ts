@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/db'
+import { getAuthenticatedUser } from '@/lib/auth'
 
 const TimetableEntrySchema = z.object({
   id: z.string().optional(),
@@ -26,16 +27,18 @@ const BulkUpdateSchema = z.object({
  */
 export async function GET(request: NextRequest) {
   try {
+    const userId = await getAuthenticatedUser()
     const { searchParams } = new URL(request.url)
     const date = searchParams.get('date') ?? new Date().toISOString().split('T')[0]
 
     const entries = await prisma.timetableEntry.findMany({
-      where: { date },
+      where: { date, userId },
       orderBy: { order: 'asc' },
     })
 
     return NextResponse.json(entries)
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('Failed to fetch timetable entries:', error)
     return NextResponse.json(
       { error: 'Failed to fetch timetable entries' },
@@ -63,6 +66,7 @@ const CreateTimetableEntrySchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const userId = await getAuthenticatedUser()
     const parsed = CreateTimetableEntrySchema.safeParse(await request.json())
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
@@ -71,6 +75,7 @@ export async function POST(request: NextRequest) {
 
     const entry = await prisma.timetableEntry.create({
       data: {
+        userId,
         date: body.date,
         order: body.order,
         plannedStart: body.plannedStart,
@@ -86,6 +91,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(entry, { status: 201 })
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('Failed to create timetable entry:', error)
     return NextResponse.json(
       { error: 'Failed to create timetable entry' },
@@ -100,20 +106,22 @@ export async function POST(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
+    const userId = await getAuthenticatedUser()
     const parsed = BulkUpdateSchema.safeParse(await request.json())
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
     }
     const { date, entries } = parsed.data
 
-    // Delete all existing entries for this date
-    await prisma.timetableEntry.deleteMany({ where: { date } })
+    // Delete all existing entries for this date scoped to user
+    await prisma.timetableEntry.deleteMany({ where: { date, userId } })
 
     // Recreate them
     const created = []
     for (const e of entries) {
       const entry = await prisma.timetableEntry.create({
         data: {
+          userId,
           date,
           order: e.order,
           plannedStart: e.plannedStart,
@@ -131,6 +139,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json(created)
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('Failed to update timetable entries:', error)
     return NextResponse.json(
       { error: 'Failed to update timetable entries' },

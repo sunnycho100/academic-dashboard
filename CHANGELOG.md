@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [2.0.0] - 2026-03-14
+Multi-user authentication via Supabase Auth — email+password sign-up/sign-in with per-user data isolation
+
+### Added
+- **Supabase Auth integration** — `@supabase/supabase-js` + `@supabase/ssr` with browser, server, and middleware client utilities (`lib/supabase/`)
+- **Login page** (`app/login/page.tsx`) — email+password form with sign-in/sign-up toggle, error handling, and email confirmation flow
+- **Route protection** (`proxy.ts`) — Next.js 16 `proxy` convention; session refresh on every request; unauthenticated users redirected to `/login`
+- **API auth helper** (`lib/auth.ts`) — `getAuthenticatedUser()` returns Supabase `user.id` or throws 401; used by all 15 API routes
+- **Auth callback** (`app/auth/callback/route.ts`) — handles Supabase email confirmation code exchange
+- **User avatar + sign-out** dropdown menu in dashboard header (`app/page.tsx`)
+
+### Fixed
+- **CSP `connect-src`** — added `https://*.supabase.co` to Content-Security-Policy; `'self'`-only policy blocked all browser-side Supabase auth/API calls (`TypeError: Failed to fetch`)
+
+### Changed
+- **All 7 Prisma models** (`Category`, `Task`, `CompletedTask`, `TimeRecord`, `WeeklyPlanEntry`, `UserInfo`, `TimetableEntry`) — added `userId` column with `@@index([userId])`; `UserInfo` switched from singleton `id="default"` to `@@unique([userId])`
+- **All 15 API routes** — wrapped with `getAuthenticatedUser()` + `userId` scoping on all queries; item routes verify ownership before update/delete
+- **localStorage keys** namespaced by userId: `class-catchup-timers-{userId}`, `class-catchup-today-{userId}` — prevents cross-user timer/state leakage
+- **`lib/types.ts`** — added `userId: string` to `Category`, `Task`, `TimetableEntry` interfaces
+- **`components/landing-sequence.tsx`** — accepts `userEmail` prop; falls back to email prefix if display name is empty
+- **`hooks/use-task-timer.ts`** — accepts `userId` param for namespaced storage key
+
+### Removed
+- **JSON storage mode** — deleted `lib/json-db.ts` (~600 lines), `lib/store.ts`; `lib/db.ts` simplified to a direct Prisma re-export
+- **`STORAGE_MODE` env var** — removed from `lib/db.ts`, `start.sh`, `db_start.sh`, `package.json` scripts (`dev:json`, `dev:postgres`, `migrate:json` dropped)
+- **localStorage seed migration** — removed `loadState()` fallback + `/api/seed` migration flow from `app/page.tsx`
+
+## [1.10.2] - 2026-03-14
+Local production preview via `start.sh` — matches Vercel build output
+
+### Changed
+- `start.sh`: replaced `pnpm dev` with `pnpm build && pnpm start` so the local script runs a production bundle (`NODE_ENV=production`, optimised output, no hot reload) identical to the Vercel deployment; header updated to reflect "JSON Mode (Production)"
+- `start.sh`: moved `open_browser &` to after the build step completes — previously the browser was launched 3 seconds after script start (mid-build), causing a "localhost cannot be reached" error; now fires immediately post-build so `next start` is ready before the tab opens
+
 ## [1.10.1] - 2026-03-14
 Security audit remediation — input validation, path traversal guard, and CSP header
 

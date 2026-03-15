@@ -112,6 +112,7 @@ export const DEFAULT_ROW_COUNT = 20
 export function blankEntry(date: string, order: number): TimetableEntry {
   return {
     id: crypto.randomUUID(),
+    userId: '',
     date,
     order,
     plannedStart: '',

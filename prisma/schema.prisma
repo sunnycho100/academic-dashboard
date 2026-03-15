@@ -11,19 +11,23 @@ datasource db {
 }
 
 model Category {
-  id    String @id @default(uuid())
-  name  String
-  color String
-  order Int    @default(0)
+  id     String @id @default(uuid())
+  userId String
+  name   String
+  color  String
+  order  Int    @default(0)
 
   tasks Task[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model Task {
   id                String   @id @default(uuid())
+  userId            String
   title             String
   type              String   // Lecture, Discussion, Lab, Assignment, Exam Prep
   dueAt             DateTime?
@@ -41,6 +45,7 @@ model Task {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([userId])
   @@index([categoryId])
   @@index([status])
   @@index([dueAt])
@@ -48,6 +53,7 @@ model Task {
 
 model CompletedTask {
   id                String   @id @default(uuid())
+  userId            String
   taskTitle         String
   categoryName      String
   categoryColor     String
@@ -61,6 +67,7 @@ model CompletedTask {
   deletedAt         DateTime? // soft delete timestamp
   createdAt         DateTime @default(now())
 
+  @@index([userId])
   @@index([completedAt])
   @@index([categoryName])
   @@index([taskType])
@@ -69,6 +76,7 @@ model CompletedTask {
 
 model TimeRecord {
   id            String   @id @default(uuid())
+  userId        String
   taskId        String?  // nullable — task may have been deleted
   taskTitle     String
   categoryName  String
@@ -79,12 +87,14 @@ model TimeRecord {
   duration      Int      // in seconds
   createdAt     DateTime @default(now())
 
+  @@index([userId])
   @@index([startTime])
   @@index([taskId])
 }
 
 model WeeklyPlanEntry {
   id     String   @id @default(uuid())
+  userId String
   taskId String
   task   Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   date   DateTime // the calendar date this task is planned for
@@ -92,12 +102,37 @@ model WeeklyPlanEntry {
   createdAt DateTime @default(now())
 
   @@unique([taskId, date])
+  @@index([userId])
   @@index([date])
 }
 
 model UserInfo {
-  id        String   @id @default("default")
+  id        String   @id @default(uuid())
+  userId    String
   name      String   @default("User")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@unique([userId])
+  @@index([userId])
+}
+
+model TimetableEntry {
+  id              String   @id @default(uuid())
+  userId          String
+  date            String
+  order           Int      @default(0)
+  plannedStart    String
+  plannedEnd      String
+  expectedMinutes Int
+  activityName    String
+  actualStart     String?
+  actualEnd       String?
+  actualMinutes   Int?
+  notes           String   @default("")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@index([date])
 }

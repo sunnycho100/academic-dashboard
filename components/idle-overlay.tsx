@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { Moon, Play, Zap } from 'lucide-react'
 
 // ── Storage keys (must match use-task-timer.ts & personal-dev-tracker.tsx) ──
-const TASK_TIMER_KEY = 'class-catchup-timers'
+const TASK_TIMER_KEY_PREFIX = 'class-catchup-timers'
 const PERSONAL_DEV_KEY = 'personal-dev-timers'
 
 interface RunningTimer {
@@ -14,12 +14,13 @@ interface RunningTimer {
 }
 
 /** Read running timers from localStorage (no React tree needed). */
-function getRunningTimers(): RunningTimer[] {
+function getRunningTimers(userId?: string): RunningTimer[] {
   const timers: RunningTimer[] = []
 
-  // Task timers
+  // Task timers (namespaced by userId)
+  const taskTimerKey = userId ? `${TASK_TIMER_KEY_PREFIX}-${userId}` : TASK_TIMER_KEY_PREFIX
   try {
-    const raw = localStorage.getItem(TASK_TIMER_KEY)
+    const raw = localStorage.getItem(taskTimerKey)
     if (raw) {
       const data = JSON.parse(raw)
       for (const [taskId, state] of Object.entries(data) as [string, any][]) {
@@ -81,6 +82,7 @@ function formatDate(date: Date): string {
 
 interface IdleOverlayProps {
   onWakeUp: () => void
+  userId?: string
 }
 
 /**
@@ -92,7 +94,7 @@ interface IdleOverlayProps {
  * - Listens for any interaction to fire onWakeUp
  * - Glassmorphism design matching the dashboard aesthetic
  */
-export function IdleOverlay({ onWakeUp }: IdleOverlayProps) {
+export function IdleOverlay({ onWakeUp, userId }: IdleOverlayProps) {
   const [runningTimers, setRunningTimers] = useState<RunningTimer[]>([])
   const [elapsed, setElapsed] = useState<Record<string, number>>({})
   const [now, setNow] = useState(() => new Date())
@@ -100,7 +102,7 @@ export function IdleOverlay({ onWakeUp }: IdleOverlayProps) {
 
   // Load initial running timers
   useEffect(() => {
-    const timers = getRunningTimers()
+    const timers = getRunningTimers(userId)
     setRunningTimers(timers)
 
     const nowMs = Date.now()
@@ -109,12 +111,12 @@ export function IdleOverlay({ onWakeUp }: IdleOverlayProps) {
       e[i] = Math.max(0, Math.floor((nowMs - new Date(t.segmentStartedAt).getTime()) / 1000))
     })
     setElapsed(e)
-  }, [])
+  }, [userId])
 
   // Update elapsed & clock every 10 seconds — lightweight, keeps timer display accurate
   useEffect(() => {
     const interval = setInterval(() => {
-      const timers = getRunningTimers()
+      const timers = getRunningTimers(userId)
       setRunningTimers(timers)
       const nowMs = Date.now()
       const e: Record<string, number> = {}

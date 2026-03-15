@@ -49,6 +49,7 @@ export interface CatchupContentProps {
   onRemoveFromToday: (taskId: string) => void
   onReorderToday: (reorderedIds: string[]) => void
   onWeeklyEntriesChange: (entries: WeeklyPlanEntry[]) => void
+  userId?: string
 }
 
 export function CatchupContent({
@@ -80,6 +81,7 @@ export function CatchupContent({
   onRemoveFromToday,
   onReorderToday,
   onWeeklyEntriesChange,
+  userId,
 }: CatchupContentProps) {
   // Show empty state if no categories exist
   if (categories.length === 0) {
@@ -214,6 +216,7 @@ export function CatchupContent({
             onToggleTask={onToggleTask}
             onReorderToday={onReorderToday}
             isDragging={!!activeDragId}
+            userId={userId}
           />
         </div>
       </div>

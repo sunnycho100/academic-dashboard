@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/db'
+import { getAuthenticatedUser } from '@/lib/auth'
 
 const BulkCategorySchema = z.object({
   id: z.string().min(1).max(255),
@@ -33,6 +34,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   try {
+    const userId = await getAuthenticatedUser()
     const parsed = BulkActionSchema.safeParse(await request.json())
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
@@ -40,22 +42,23 @@ export async function POST(request: NextRequest) {
     const { action, categories, tasks } = parsed.data
 
     if (action === 'clear') {
-      // Delete all tasks first (FK constraint), then categories
-      await prisma.task.deleteMany()
-      await prisma.category.deleteMany()
+      // Delete all tasks first (FK constraint), then categories — scoped to user
+      await prisma.task.deleteMany({ where: { userId } })
+      await prisma.category.deleteMany({ where: { userId } })
       return NextResponse.json({ success: true })
     }
 
     if (action === 'import') {
-      // Clear existing data first
-      await prisma.task.deleteMany()
-      await prisma.category.deleteMany()
+      // Clear existing data first — scoped to user
+      await prisma.task.deleteMany({ where: { userId } })
+      await prisma.category.deleteMany({ where: { userId } })
 
       // Create categories
       const createdCategories = await Promise.all(
         (categories ?? []).map((cat) =>
           prisma.category.create({
             data: {
+              userId,
               name: cat.name,
               color: cat.color,
               order: cat.order ?? 0,
@@ -78,6 +81,7 @@ export async function POST(request: NextRequest) {
           (task) =>
             prisma.task.create({
               data: {
+                userId,
                 title: task.title,
                 type: task.type,
                 dueAt: new Date(task.dueAt),
@@ -93,13 +97,14 @@ export async function POST(request: NextRequest) {
       )
 
       // Fetch and return the new state
-      const newCategories = await prisma.category.findMany({ orderBy: { order: 'asc' } })
-      const newTasks = await prisma.task.findMany({ orderBy: { priorityOrder: 'asc' } })
+      const newCategories = await prisma.category.findMany({ where: { userId }, orderBy: { order: 'asc' } })
+      const newTasks = await prisma.task.findMany({ where: { userId }, orderBy: { priorityOrder: 'asc' } })
       return NextResponse.json({ categories: newCategories, tasks: newTasks })
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('Bulk operation failed:', error)
     return NextResponse.json(
       { error: 'Bulk operation failed' },

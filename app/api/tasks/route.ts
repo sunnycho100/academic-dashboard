@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/db'
+import { getAuthenticatedUser } from '@/lib/auth'
 
 const CreateTaskSchema = z.object({
   title: z.string().min(1).max(255),
@@ -16,11 +17,14 @@ const CreateTaskSchema = z.object({
 
 export async function GET() {
   try {
+    const userId = await getAuthenticatedUser()
     const tasks = await prisma.task.findMany({
+      where: { userId },
       orderBy: { priorityOrder: 'asc' },
     })
     return NextResponse.json(tasks)
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('Failed to fetch tasks:', error)
     return NextResponse.json(
       { error: 'Failed to fetch tasks' },
@@ -34,9 +38,11 @@ export async function DELETE() {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   try {
-    await prisma.task.deleteMany({})
+    const userId = await getAuthenticatedUser()
+    await prisma.task.deleteMany({ where: { userId } })
     return NextResponse.json({ success: true })
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('Failed to delete all tasks:', error)
     return NextResponse.json(
       { error: 'Failed to delete all tasks' },
@@ -47,6 +53,7 @@ export async function DELETE() {
 
 export async function POST(request: NextRequest) {
   try {
+    const userId = await getAuthenticatedUser()
     const parsed = CreateTaskSchema.safeParse(await request.json())
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
@@ -63,10 +70,12 @@ export async function POST(request: NextRequest) {
         estimatedDuration: body.estimatedDuration ?? null,
         actualTimeSpent: body.actualTimeSpent ?? null,
         categoryId: body.categoryId,
+        userId,
       },
     })
     return NextResponse.json(task, { status: 201 })
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('Failed to create task:', error)
     return NextResponse.json(
       { error: 'Failed to create task' },

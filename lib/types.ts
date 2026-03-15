@@ -2,6 +2,7 @@ export type TaskType = 'Lecture' | 'Discussion' | 'Lab' | 'Assignment' | 'Exam P
 
 export interface Category {
   id: string
+  userId: string
   name: string
   color: string
   order: number
@@ -9,6 +10,7 @@ export interface Category {
 
 export interface Task {
   id: string
+  userId: string
   categoryId: string
   title: string
   type: TaskType
@@ -30,6 +32,7 @@ export type ViewMode = 'all' | 'overdue' | 'due-soon'
 
 export interface TimetableEntry {
   id: string
+  userId: string
   date: string              // ISO date string, e.g. "2025-06-15"
   order: number             // display order within the day
   plannedStart: string      // "HH:mm" format

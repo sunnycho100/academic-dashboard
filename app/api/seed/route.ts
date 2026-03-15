@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/db'
+import { getAuthenticatedUser } from '@/lib/auth'
 
 const SeedCategorySchema = z.object({
   id: z.string().min(1).max(255),
@@ -32,6 +33,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   try {
+    const userId = await getAuthenticatedUser()
     const parsed = SeedSchema.safeParse(await request.json())
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
@@ -42,8 +44,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ seeded: false, message: 'No data to seed' })
     }
 
-    // Check if DB already has data
-    const existingCategories = await prisma.category.count()
+    // Check if DB already has data for this user
+    const existingCategories = await prisma.category.count({ where: { userId } })
     if (existingCategories > 0) {
       return NextResponse.json({ seeded: false, message: 'Database already has data' })
     }
@@ -53,6 +55,7 @@ export async function POST(request: NextRequest) {
     for (const cat of categories) {
       const created = await prisma.category.create({
         data: {
+          userId,
           name: cat.name,
           color: cat.color,
           order: cat.order ?? 0,
@@ -67,6 +70,7 @@ export async function POST(request: NextRequest) {
       if (!newCategoryId) continue // skip tasks with invalid category
       await prisma.task.create({
         data: {
+          userId,
           title: task.title,
           type: task.type,
           dueAt: new Date(task.dueAt),
@@ -81,8 +85,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Return the new state
-    const newCategories = await prisma.category.findMany({ orderBy: { order: 'asc' } })
-    const newTasks = await prisma.task.findMany({ orderBy: { priorityOrder: 'asc' } })
+    const newCategories = await prisma.category.findMany({ where: { userId }, orderBy: { order: 'asc' } })
+    const newTasks = await prisma.task.findMany({ where: { userId }, orderBy: { priorityOrder: 'asc' } })
 
     return NextResponse.json({
       seeded: true,
@@ -91,6 +95,7 @@ export async function POST(request: NextRequest) {
       categoryIdMap,
     })
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('Seed operation failed:', error)
     return NextResponse.json(
       { error: 'Seed operation failed' },

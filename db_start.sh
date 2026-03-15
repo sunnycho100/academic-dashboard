@@ -131,5 +131,5 @@ open_browser() {
 # Open browser in background
 open_browser &
 
-# Start the development server in database mode
-STORAGE_MODE=postgres pnpm dev
+# Start the development server
+pnpm dev

@@ -27,6 +27,7 @@ interface TodayPanelProps {
   onToggleTask: (id: string, timeSpentSeconds?: number) => void
   onReorderToday: (reorderedIds: string[]) => void
   isDragging?: boolean
+  userId?: string
 }
 
 function formatDuration(minutes: number) {
@@ -60,6 +61,7 @@ export function TodayPanel({
   onToggleTask,
   onReorderToday,
   isDragging = false,
+  userId,
 }: TodayPanelProps) {
   const { isOver, setNodeRef } = useDroppable({ id: 'today-drop-zone' })
   const [focusMode, setFocusMode] = useState(false)
@@ -76,7 +78,7 @@ export function TodayPanel({
     stopTimer,
     getTotalStudyTime,
     registerTaskMeta,
-  } = useTaskTimers(tasks.map(t => t.id))
+  } = useTaskTimers(tasks.map(t => t.id), userId)
 
   // Register task metadata so time records include category info
   useEffect(() => {

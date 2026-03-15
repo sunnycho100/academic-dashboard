@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/db'
+import { getAuthenticatedUser } from '@/lib/auth'
 
 const CreateTimeRecordSchema = z.object({
   taskId: z.string().max(255).nullable().optional(),
@@ -22,6 +23,7 @@ const QueryParamsSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
+    const userId = await getAuthenticatedUser()
     const { searchParams } = new URL(request.url)
     const paramsParsed = QueryParamsSchema.safeParse({
       date: searchParams.get('date') ?? undefined,
@@ -63,6 +65,7 @@ export async function GET(request: NextRequest) {
 
     const records = await prisma.timeRecord.findMany({
       where: {
+        userId,
         startTime: {
           gte: startOfDay,
           lte: endOfDay,
@@ -82,6 +85,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(sanitized)
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('Failed to fetch time records:', error)
     return NextResponse.json(
       { error: 'Failed to fetch time records' },
@@ -92,6 +96,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const userId = await getAuthenticatedUser()
     const parsed = CreateTimeRecordSchema.safeParse(await request.json())
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
@@ -106,6 +111,7 @@ export async function POST(request: NextRequest) {
 
     const record = await prisma.timeRecord.create({
       data: {
+        userId,
         taskId: body.taskId ?? null,
         taskTitle: body.taskTitle,
         categoryName: body.categoryName,
@@ -119,6 +125,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(record, { status: 201 })
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('Failed to create time record:', error)
     return NextResponse.json(
       { error: 'Failed to create time record' },

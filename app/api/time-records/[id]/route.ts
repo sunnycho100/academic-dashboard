@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/db'
+import { getAuthenticatedUser } from '@/lib/auth'
 
 const UpdateTimeRecordSchema = z.object({
   taskTitle: z.string().min(1).max(255).optional(),
@@ -17,7 +18,14 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const userId = await getAuthenticatedUser()
     const { id } = await params
+
+    const existing = await prisma.timeRecord.findUnique({ where: { id } })
+    if (!existing || existing.userId !== userId) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+
     const parsed = UpdateTimeRecordSchema.safeParse(await request.json())
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
@@ -57,6 +65,7 @@ export async function PATCH(
 
     return NextResponse.json(record)
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('Failed to update time record:', error)
     return NextResponse.json(
       { error: 'Failed to update time record' },
@@ -70,10 +79,18 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const userId = await getAuthenticatedUser()
     const { id } = await params
+
+    const existing = await prisma.timeRecord.findUnique({ where: { id } })
+    if (!existing || existing.userId !== userId) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+
     await prisma.timeRecord.delete({ where: { id } })
     return NextResponse.json({ success: true })
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('Failed to delete time record:', error)
     return NextResponse.json(
       { error: 'Failed to delete time record' },
