@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Task, Category } from '@/lib/types'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
-import { Clock, Target, Sparkles, Maximize2, ChevronLeft, Play, Pause, Check, GripVertical } from 'lucide-react'
+import { Clock, Target, Sparkles, Maximize2, ChevronLeft, Play, Pause, Check, GripVertical, History } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -14,6 +14,12 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { useTaskTimers } from '@/hooks/use-task-timer'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { PersonalDevTracker } from '@/components/personal-dev-tracker'
 import { RollingCounter } from '@/components/today/rolling-counter'
 import { SortableTodayItem } from '@/components/today/sortable-today-item'
@@ -26,6 +32,8 @@ interface TodayPanelProps {
   onRemoveFromToday: (taskId: string) => void
   onToggleTask: (id: string, timeSpentSeconds?: number) => void
   onReorderToday: (reorderedIds: string[]) => void
+  onCarryOverYesterday?: () => void
+  hasYesterdayTasks?: boolean
   isDragging?: boolean
   userId?: string
 }
@@ -60,6 +68,8 @@ export function TodayPanel({
   onRemoveFromToday,
   onToggleTask,
   onReorderToday,
+  onCarryOverYesterday,
+  hasYesterdayTasks = false,
   isDragging = false,
   userId,
 }: TodayPanelProps) {
@@ -270,6 +280,25 @@ export function TodayPanel({
                 <Maximize2 className="h-3 w-3" />
               </Button>
             )}
+            {hasYesterdayTasks && onCarryOverYesterday && (
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-xl h-6 w-6 text-muted-foreground/40 hover:text-primary"
+                      onClick={onCarryOverYesterday}
+                    >
+                      <History className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs">
+                    Carry over unfinished tasks from yesterday
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
         </div>
 
@@ -373,6 +402,19 @@ export function TodayPanel({
             <p className="text-[9px] text-muted-foreground/20 mt-0.5">
               Drag tasks here
             </p>
+
+            {/* Carry over yesterday's tasks */}
+            {hasYesterdayTasks && onCarryOverYesterday && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3 text-xs h-7 gap-1.5 rounded-lg border-dashed"
+                onClick={onCarryOverYesterday}
+              >
+                <History className="h-3 w-3" />
+                Carry over yesterday&apos;s unfinished tasks
+              </Button>
+            )}
 
             {/* Ghost placeholder when dragging over */}
             <AnimatePresence>

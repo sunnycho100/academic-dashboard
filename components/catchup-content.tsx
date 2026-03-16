@@ -49,6 +49,8 @@ export interface CatchupContentProps {
   onAddToToday: (taskId: string) => void
   onRemoveFromToday: (taskId: string) => void
   onReorderToday: (reorderedIds: string[]) => void
+  onCarryOverYesterday?: () => void
+  hasYesterdayTasks?: boolean
   onWeeklyEntriesChange: (entries: WeeklyPlanEntry[]) => void
   userId?: string
 }
@@ -81,6 +83,8 @@ export function CatchupContent({
   onAddToToday,
   onRemoveFromToday,
   onReorderToday,
+  onCarryOverYesterday,
+  hasYesterdayTasks,
   onWeeklyEntriesChange,
   userId,
 }: CatchupContentProps) {
@@ -224,6 +228,8 @@ export function CatchupContent({
             onRemoveFromToday={onRemoveFromToday}
             onToggleTask={onToggleTask}
             onReorderToday={onReorderToday}
+            onCarryOverYesterday={onCarryOverYesterday}
+            hasYesterdayTasks={hasYesterdayTasks}
             isDragging={!!activeDragId}
             userId={userId}
           />

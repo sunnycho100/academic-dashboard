@@ -75,6 +75,33 @@ function saveTodayIds(ids: string[], userId: string | null) {
   } catch {}
 }
 
+function getTodayDateKey(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/** On day change, archive current today IDs as "previous day" */
+function archivePreviousDayIfNeeded(userId: string, currentIds: string[]) {
+  if (typeof window === 'undefined') return
+  const dateKey = `class-catchup-today-date-${userId}`
+  const prevKey = `class-catchup-yesterday-${userId}`
+  const storedDate = localStorage.getItem(dateKey)
+  const today = getTodayDateKey()
+  if (storedDate && storedDate !== today) {
+    // Day changed — archive whatever was in today as yesterday
+    localStorage.setItem(prevKey, JSON.stringify(currentIds))
+  }
+  localStorage.setItem(dateKey, today)
+}
+
+function loadYesterdayIds(userId: string | null): string[] {
+  if (typeof window === 'undefined' || !userId) return []
+  try {
+    const stored = localStorage.getItem(`class-catchup-yesterday-${userId}`)
+    return stored ? JSON.parse(stored) : []
+  } catch { return [] }
+}
+
 export default function Home() {
   const [categories, setCategories] = useState<Category[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
@@ -228,10 +255,12 @@ export default function Home() {
     loadData()
   }, [])
 
-  // Load today IDs once user is available
+  // Load today IDs once user is available & archive previous day if date changed
   useEffect(() => {
     if (user) {
-      setTodayTaskIds(loadTodayIds(user.id))
+      const ids = loadTodayIds(user.id)
+      archivePreviousDayIfNeeded(user.id, ids)
+      setTodayTaskIds(ids)
     }
   }, [user])
 
@@ -265,6 +294,22 @@ export default function Home() {
   const handleReorderToday = (reorderedIds: string[]) => {
     setTodayTaskIds(reorderedIds)
   }
+
+  /** Carry over incomplete tasks from yesterday's plan */
+  const handleCarryOverYesterday = useCallback(() => {
+    if (!user) return
+    const yesterdayIds = loadYesterdayIds(user.id)
+    if (yesterdayIds.length === 0) return
+    // Only add tasks that still exist, are incomplete, and aren't already in today
+    const newIds = yesterdayIds.filter(
+      (id) =>
+        !todayTaskIds.includes(id) &&
+        tasks.some((t) => t.id === id && t.status === 'todo')
+    )
+    if (newIds.length > 0) {
+      setTodayTaskIds((prev) => [...prev, ...newIds])
+    }
+  }, [user, todayTaskIds, tasks])
 
   const handleGlobalDragStart = (event: DragStartEvent) => {
     // Strip today- prefix so the drag overlay shows the correct task
@@ -689,6 +734,10 @@ export default function Home() {
               onAddToToday={handleAddToToday}
               onRemoveFromToday={handleRemoveFromToday}
               onReorderToday={handleReorderToday}
+              onCarryOverYesterday={handleCarryOverYesterday}
+              hasYesterdayTasks={user ? loadYesterdayIds(user.id).some(
+                (id) => !todayTaskIds.includes(id) && tasks.some((t) => t.id === id && t.status === 'todo')
+              ) : false}
               onWeeklyEntriesChange={handleWeeklyEntriesChange}
               userId={user?.id}
             />
