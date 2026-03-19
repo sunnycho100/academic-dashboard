@@ -22,27 +22,32 @@ interface LandingSequenceProps {
 }
 
 export function LandingSequence({ onComplete, children, skip, userEmail }: LandingSequenceProps) {
-  const [phase, setPhase] = useState<'loading' | 'greeting' | 'reveal' | 'done'>(() => {
-    if (skip) return 'done'
+  // Track whether the animation was skipped at init time (settings-driven)
+  const [shouldAnimate] = useState(() => {
+    if (skip) return false
     if (typeof window !== 'undefined') {
       try {
         const freq = localStorage.getItem('welcome-animation-frequency') || 'always'
-        if (freq === 'never') return 'done'
+        if (freq === 'never') return false
         if (freq === 'daily') {
           const lastPlayed = localStorage.getItem('welcome-animation-last-played')
           const d = new Date()
           const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-          if (lastPlayed === today) return 'done'
+          if (lastPlayed === today) return false
           localStorage.setItem('welcome-animation-last-played', today)
         }
       } catch {}
     }
-    return 'loading'
+    return true
   })
+
+  const [phase, setPhase] = useState<'loading' | 'greeting' | 'reveal' | 'done'>(
+    shouldAnimate ? 'loading' : 'done'
+  )
 
   // Ensure onComplete is called if we bypassed during init
   useEffect(() => {
-    if (phase === 'done' && !skip) {
+    if (!shouldAnimate && !skip) {
       onComplete()
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -67,8 +72,9 @@ export function LandingSequence({ onComplete, children, skip, userEmail }: Landi
     return () => mq.removeEventListener('change', handler)
   }, [])
 
-  // Fetch user name from DB
+  // Fetch user name from DB — only when animation should play
   useEffect(() => {
+    if (!shouldAnimate) return
     const emailFallback = userEmail ? userEmail.split('@')[0] : 'User'
     fetch('/api/user-info')
       .then((res) => res.json())
@@ -81,7 +87,7 @@ export function LandingSequence({ onComplete, children, skip, userEmail }: Landi
         setUserName(emailFallback)
         setPhase('greeting')
       })
-  }, [userEmail])
+  }, [userEmail, shouldAnimate])
 
   const writeDuration = prefersReducedMotion ? 0.4 : WRITE_DURATION
 
