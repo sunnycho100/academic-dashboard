@@ -23,6 +23,7 @@ const IDLE_EVENTS: (keyof WindowEventMap)[] = [
  */
 export function useIdleDetector(timeoutMs = 5 * 60 * 1000) {
   const [isIdle, setIsIdle] = useState(false)
+  const [enabled, setEnabled] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hiddenAtRef = useRef<number | null>(null)
 
@@ -42,8 +43,28 @@ export function useIdleDetector(timeoutMs = 5 * 60 * 1000) {
     resetTimer()
   }, [resetTimer])
 
-  // Attach event listeners
+  // Listen for setting changes
   useEffect(() => {
+    const handleStorage = () => {
+      setEnabled(localStorage.getItem('power-save-enabled') === 'true')
+    }
+    handleStorage() // init
+    window.addEventListener('storage', handleStorage)
+    window.addEventListener('power-save-toggled', handleStorage)
+    return () => {
+      window.removeEventListener('storage', handleStorage)
+      window.removeEventListener('power-save-toggled', handleStorage)
+    }
+  }, [])
+
+  // Attach event listeners only if enabled
+  useEffect(() => {
+    if (!enabled) {
+      if (timerRef.current) clearTimeout(timerRef.current)
+      setIsIdle(false)
+      return
+    }
+
     // Start the idle timer immediately
     resetTimer()
 
@@ -86,7 +107,7 @@ export function useIdleDetector(timeoutMs = 5 * 60 * 1000) {
       }
       document.removeEventListener('visibilitychange', handleVisibility)
     }
-  }, [handleActivity, resetTimer, timeoutMs])
+  }, [enabled, handleActivity, resetTimer, timeoutMs])
 
   return { isIdle, resetIdle }
 }

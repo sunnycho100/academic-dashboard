@@ -22,9 +22,30 @@ interface LandingSequenceProps {
 }
 
 export function LandingSequence({ onComplete, children, skip, userEmail }: LandingSequenceProps) {
-  const [phase, setPhase] = useState<'loading' | 'greeting' | 'reveal' | 'done'>(
-    skip ? 'done' : 'loading'
-  )
+  const [phase, setPhase] = useState<'loading' | 'greeting' | 'reveal' | 'done'>(() => {
+    if (skip) return 'done'
+    if (typeof window !== 'undefined') {
+      try {
+        const freq = localStorage.getItem('welcome-animation-frequency') || 'always'
+        if (freq === 'never') return 'done'
+        if (freq === 'daily') {
+          const lastPlayed = localStorage.getItem('welcome-animation-last-played')
+          const d = new Date()
+          const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+          if (lastPlayed === today) return 'done'
+          localStorage.setItem('welcome-animation-last-played', today)
+        }
+      } catch {}
+    }
+    return 'loading'
+  })
+
+  // Ensure onComplete is called if we bypassed during init
+  useEffect(() => {
+    if (phase === 'done' && !skip) {
+      onComplete()
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // If skip changes to true while still animating, jump to done
   useEffect(() => {

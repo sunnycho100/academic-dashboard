@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [2.2.0] - 2026-03-19
+General Settings panel, Welcome Animation frequency, and Time Saver Mode toggle
+
+### Added
+- **General Settings menu** — Added a new general settings dialog accessible from the top-right user menu.
+- **User Preferences: Welcome Animation** — Configurable frequency for the cursive greeting overlay (`always`, `daily`, or `never`).
+- **User Preferences: Time Saver Mode** — Idle/power-save overlay is now toggleable and turned off by default to prevent unexpected interruptions.
+
 ## [2.1.5] - 2026-03-19
 Task list completion and deletion animation polish
 

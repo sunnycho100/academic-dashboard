@@ -11,6 +11,7 @@ import { ClearDataDialog } from '@/components/clear-data-dialog'
 import { ImportDataDialog } from '@/components/import-data-dialog'
 import { TimeRecordsDialog } from '@/components/time-records-dialog'
 import { ColorSchemeDialog } from '@/components/color-scheme-dialog'
+import { SettingsDialog } from '@/components/settings-dialog'
 import { type WeeklyPlanEntry, DAY_LABELS } from '@/components/weekly-plan'
 import { CatchupContent } from '@/components/catchup-content'
 import { TimetableContent } from '@/components/timetable-content'
@@ -120,6 +121,7 @@ export default function Home() {
   const [importDataOpen, setImportDataOpen] = useState(false)
   const [timeRecordsOpen, setTimeRecordsOpen] = useState(false)
   const [colorSchemeOpen, setColorSchemeOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [weeklyPlanOpen, setWeeklyPlanOpen] = useState(false)
   const [weeklyEntries, setWeeklyEntries] = useState<WeeklyPlanEntry[]>([])
   const [weeklyRefreshKey, setWeeklyRefreshKey] = useState(0)
@@ -642,6 +644,10 @@ export default function Home() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
+                    <Settings className="h-4 w-4 mr-2" />
+                    General Settings
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setColorSchemeOpen(true)}>
                     <Palette className="h-4 w-4 mr-2" />
                     Color Scheme
@@ -806,6 +812,10 @@ export default function Home() {
         open={clearDataOpen}
         onOpenChange={setClearDataOpen}
         onConfirm={handleClearData}
+      />
+      <SettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
       />
       <ImportDataDialog
         open={importDataOpen}
