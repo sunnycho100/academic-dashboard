@@ -76,7 +76,7 @@ export function TaskRow({
       {...listeners}
       layout
       initial={{ opacity: 0, y: 8, scale: 0.97, filter: 'blur(2px)' }}
-      animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)', height: 'auto', margin: 'auto' }}
+      animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
       exit={{ opacity: 0, scale: 0.95, filter: 'blur(4px)', height: 0, marginTop: 0, marginBottom: 0, padding: 0, overflow: 'hidden', transition: { duration: 0.25, type: "spring", stiffness: 300, damping: 25 } }}
       transition={childSpring}
       whileHover={{ y: -3, transition: { type: 'spring', stiffness: 300, damping: 25 } }}

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [2.2.1] - 2026-03-19
+Timetable header rendering fix
+
+### Fixed
+- **Timetable header teleportation** — Removed the Framer Motion CSS transform from the `<thead>` row. Animating `y` translation on table headers temporarily detaches them from the browser's dynamic `table-layout` algorithm, causing the column widths to suddenly snap or "teleport" once the animation settles.
+
 ## [2.2.0] - 2026-03-19
 General Settings panel, Welcome Animation frequency, and Time Saver Mode toggle
 

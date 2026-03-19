@@ -161,10 +161,7 @@ export function Timetable() {
       <div className="flex-1 min-h-0 overflow-auto rounded-xl glass-thin">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <motion.tr
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2, delay: 0.05 }}
+            <tr
               className="text-[11px] uppercase tracking-wider text-muted-foreground/60 select-none"
             >
               <th className="w-7 border-b border-white/[0.06]" />
@@ -177,7 +174,7 @@ export function Timetable() {
               <th className="text-left font-medium px-3 py-2.5 border-b border-white/[0.06] w-[68px]">Act. Dur</th>
               <th className="text-left font-medium px-3 py-2.5 border-b border-white/[0.06] max-w-[120px]">Notes</th>
               <th className="w-8 border-b border-white/[0.06]" />
-            </motion.tr>
+            </tr>
           </thead>
           <SortableContext items={entries.map((e) => e.id)} strategy={verticalListSortingStrategy}>
           <tbody>
