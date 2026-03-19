@@ -50,7 +50,7 @@ export function TimetableRow({
   const inputBase =
     'bg-transparent border-none outline-none text-sm w-full placeholder:text-muted-foreground/30 focus-visible:ring-0 focus-visible:shadow-none focus:bg-foreground/[0.03] dark:focus:bg-white/[0.06] px-2 py-1 -mx-2 -my-1 rounded-md transition-all tabular-nums'
 
-  const timeInputClass = `${inputBase} w-[135px]`
+  const timeInputClass = `${inputBase} min-w-[135px] w-[135px]`
 
   const varianceText = entry.notes || ''
   const isOver = varianceText.includes('over')
@@ -124,14 +124,14 @@ export function TimetableRow({
         {fmtDuration(entry.expectedMinutes)}
       </td>
 
-      {/* Activity */}
-      <td className={tdBase}>
+      {/* Activity — shrinks last */}
+      <td className={`${tdBase} min-w-[80px]`}>
         <input
           type="text"
           value={entry.activityName}
           onChange={(e) => onUpdate(entry.id, { activityName: e.target.value })}
           placeholder="Activity name…"
-          className={`${inputBase}`}
+          className={`${inputBase} truncate`}
         />
       </td>
 
@@ -160,8 +160,8 @@ export function TimetableRow({
         {fmtDuration(entry.actualMinutes)}
       </td>
 
-      {/* Notes / Variance */}
-      <td className={`${tdBase} text-xs font-medium`}>
+      {/* Notes / Variance — shrinks first */}
+      <td className={`${tdBase} text-xs font-medium max-w-[120px] truncate`}>
         <span
           className={
             isOver

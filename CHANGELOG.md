@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [2.1.4] - 2026-03-19
+Timetable column sizing and contraction priority improvements
+
+### Fixed
+- **AM/PM clipping on time inputs** — Added `min-w-[135px]` to all four time columns (Start, End, Act. Start, Act. End) in both headers and inputs so the AM/PM suffix is never truncated when the view is squeezed
+- **Column contraction priority** — Notes column now shrinks first (`max-w-[120px]` with truncation), Activity column shrinks last (`min-w-[80px]`), and time columns are locked and won't shrink at all
+
 ## [2.1.3] - 2026-03-19
 Edit task form now pre-populates with previously stored values
 
