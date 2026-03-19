@@ -448,8 +448,9 @@ export function TodayPanel({
                   )}
                 </AnimatePresence>
 
-                {tasks.map((task, index) => {
-                  const cat = getCat(task.categoryId)
+                <AnimatePresence initial={false}>
+                  {tasks.map((task, index) => {
+                    const cat = getCat(task.categoryId)
                   const due = getDueInfo(task.dueAt)
                   const timerState = timerStates[task.id]
                   const isRunning = timerState?.isRunning && !timerState?.isPaused
@@ -464,8 +465,8 @@ export function TodayPanel({
                           layout
                           layoutId={`today-task-${task.id}`}
                           initial={{ opacity: 0, x: 40, scale: 0.95 }}
-                          animate={{ opacity: 1, x: 0, scale: 1 }}
-                          exit={{ opacity: 0, x: -40, scale: 0.95, filter: 'blur(4px)' }}
+                          animate={{ opacity: 1, x: 0, scale: 1, height: 'auto', margin: 'auto' }}
+                          exit={{ opacity: 0, scale: 0.95, filter: 'blur(4px)', height: 0, marginTop: 0, marginBottom: 0, padding: 0, overflow: 'hidden' }}
                           transition={{
                             type: 'spring',
                             stiffness: 400,
@@ -638,6 +639,7 @@ export function TodayPanel({
                     </SortableTodayItem>
                   )
                 })}
+                </AnimatePresence>
               </div>
             </SortableContext>
         )}

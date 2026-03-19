@@ -181,7 +181,7 @@ export function Timetable() {
           </thead>
           <SortableContext items={entries.map((e) => e.id)} strategy={verticalListSortingStrategy}>
           <tbody>
-            <AnimatePresence mode="popLayout">
+            <AnimatePresence>
               {entries.map((entry, index) => (
                 <TimetableRow
                   key={entry.id}

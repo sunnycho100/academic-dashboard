@@ -288,7 +288,7 @@ export function WeeklyPlan({ tasks, categories, open, onOpenChange, onEntriesCha
 
                       {/* Task list for this day */}
                       <div className="flex-1 px-1.5 py-1.5 space-y-1 overflow-y-auto max-h-[112px]">
-                        <AnimatePresence mode="popLayout">
+                        <AnimatePresence>
                           {dayEntries.map((entry) => {
                             const cat = entry.task?.category
                             return (
@@ -296,7 +296,7 @@ export function WeeklyPlan({ tasks, categories, open, onOpenChange, onEntriesCha
                                 key={entry.id}
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.9, height: 0 }}
+                                exit={{ opacity: 0, scale: 0.9, height: 0, marginTop: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0, overflow: 'hidden' }}
                                 transition={{ duration: 0.15 }}
                                 className="group relative flex items-start gap-1 rounded-lg px-1.5 py-1 hover:bg-muted/40 transition-colors"
                               >

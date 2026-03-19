@@ -103,7 +103,7 @@ export function TaskList({
                     items={categoryTasks.map((t) => t.id)}
                     strategy={verticalListSortingStrategy}
                   >
-                    <AnimatePresence mode="popLayout">
+                    <AnimatePresence>
                       <div className="space-y-2">
                         {categoryTasks.map((task, index) => (
                           <TaskRow
@@ -139,7 +139,7 @@ export function TaskList({
           strategy={verticalListSortingStrategy}
           disabled={!isDraggable}
         >
-          <AnimatePresence mode="popLayout">
+          <AnimatePresence>
             <div className="space-y-2">
               {tasks.map((task, index) => (
                 <TaskRow

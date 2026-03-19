@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [2.1.5] - 2026-03-19
+Task list completion and deletion animation polish
+
+### Fixed
+- **Jumping task list animation** — Removed buggy `<AnimatePresence mode="popLayout">` from all task/activity lists which was causing sibling tasks to be momentarily pushed down due to broken flow positioning. Tasks now organically shrink their height to `0` on exit, allowing activities underneath to be smoothly "sucked up" to fill the newly available space.
+
 ## [2.1.4] - 2026-03-19
 Timetable column sizing and contraction priority improvements
 
