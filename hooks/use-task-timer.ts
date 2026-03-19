@@ -187,15 +187,23 @@ export function useTaskTimers(taskIds: string[], userId?: string) {
       // Transition: stopped → running — start the interval
       hasRunningRef.current = true
       intervalRef.current = setInterval(() => {
-        const tickTime = new Date().toISOString()
+        const now = Date.now()
+        const tickIso = new Date(now).toISOString()
         setTimerStates((prev) => {
           const newState = { ...prev }
           Object.keys(newState).forEach((taskId) => {
             if (newState[taskId].isRunning && !newState[taskId].isPaused) {
+              // Compute actual elapsed seconds since last tick to handle
+              // browser throttling in background tabs (setInterval may fire
+              // far less frequently than every 1s when the tab is hidden).
+              const lastTick = newState[taskId].lastTickAt
+                ? new Date(newState[taskId].lastTickAt!).getTime()
+                : now - 1000
+              const actualElapsed = Math.max(1, Math.round((now - lastTick) / 1000))
               newState[taskId] = {
                 ...newState[taskId],
-                elapsedSeconds: newState[taskId].elapsedSeconds + 1,
-                lastTickAt: tickTime,
+                elapsedSeconds: newState[taskId].elapsedSeconds + actualElapsed,
+                lastTickAt: tickIso,
               }
             }
           })
@@ -213,6 +221,37 @@ export function useTaskTimers(taskIds: string[], userId?: string) {
     // No cleanup here — the interval must persist across re-renders.
     // Cleanup on unmount is handled by the separate effect below.
   }, [timerStates])
+
+  // Reconcile elapsed time immediately when the tab becomes visible again,
+  // so the user sees the correct time without waiting for the next tick.
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden) return
+      const now = Date.now()
+      const tickIso = new Date(now).toISOString()
+      setTimerStates((prev) => {
+        let changed = false
+        const newState = { ...prev }
+        Object.keys(newState).forEach((taskId) => {
+          if (newState[taskId].isRunning && !newState[taskId].isPaused && newState[taskId].lastTickAt) {
+            const lastTick = new Date(newState[taskId].lastTickAt!).getTime()
+            const missedSeconds = Math.max(0, Math.round((now - lastTick) / 1000))
+            if (missedSeconds > 1) {
+              changed = true
+              newState[taskId] = {
+                ...newState[taskId],
+                elapsedSeconds: newState[taskId].elapsedSeconds + missedSeconds,
+                lastTickAt: tickIso,
+              }
+            }
+          }
+        })
+        return changed ? newState : prev
+      })
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [])
 
   // Cleanup interval on unmount only
   useEffect(() => {

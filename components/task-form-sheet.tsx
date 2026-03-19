@@ -82,20 +82,41 @@ export function TaskFormSheet(props: TaskFormSheetProps) {
   const isEdit = mode === 'edit'
   const editTask = isEdit ? props.task : null
 
-  // Form state
-  const [title, setTitle] = useState('')
-  const [categoryId, setCategoryId] = useState('')
-  const [type, setType] = useState<TaskType>('Lecture')
-  const [dueDate, setDueDate] = useState('')
-  const [notes, setNotes] = useState('')
-  const [isOverdue, setIsOverdue] = useState(false)
-  const [durationHours, setDurationHours] = useState('')
-  const [durationMinutes, setDurationMinutes] = useState('')
+  // Helper to compute initial overdue state
+  const computeOverdue = (task: Task | null) => {
+    if (task?.dueAt) {
+      const dueDay = new Date(task.dueAt)
+      dueDay.setHours(0, 0, 0, 0)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      return dueDay.getTime() < today.getTime()
+    }
+    return false
+  }
+
+  // Form state — initialise from task when in edit mode so the first render
+  // already shows the previously-stored values (the component is keyed by
+  // task id, so it remounts whenever a different task is selected).
+  const [title, setTitle] = useState(editTask?.title ?? '')
+  const [categoryId, setCategoryId] = useState(editTask?.categoryId ?? '')
+  const [type, setType] = useState<TaskType>(editTask?.type ?? 'Lecture')
+  const [dueDate, setDueDate] = useState(
+    editTask?.dueAt ? new Date(editTask.dueAt).toISOString().split('T')[0] : ''
+  )
+  const [notes, setNotes] = useState(editTask?.notes ?? '')
+  const [isOverdue, setIsOverdue] = useState(computeOverdue(editTask))
+  const [durationHours, setDurationHours] = useState(
+    editTask?.estimatedDuration ? String(Math.floor(editTask.estimatedDuration / 60)) : ''
+  )
+  const [durationMinutes, setDurationMinutes] = useState(
+    editTask?.estimatedDuration ? String(editTask.estimatedDuration % 60) : ''
+  )
   const [showContent, setShowContent] = useState(false)
   const [activeField, setActiveField] = useState<string | null>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
 
-  // Sync form state from task in edit mode
+  // Re-sync form state when the sheet re-opens for the same task (key
+  // doesn't change so useState initialisers won't re-run).
   useEffect(() => {
     if (open && isEdit && editTask) {
       setTitle(editTask.title)
@@ -106,15 +127,7 @@ export function TaskFormSheet(props: TaskFormSheetProps) {
       setDurationHours(editTask.estimatedDuration ? String(Math.floor(editTask.estimatedDuration / 60)) : '')
       setDurationMinutes(editTask.estimatedDuration ? String(editTask.estimatedDuration % 60) : '')
       setActiveField(null)
-      if (editTask.dueAt) {
-        const dueDay = new Date(editTask.dueAt)
-        dueDay.setHours(0, 0, 0, 0)
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
-        setIsOverdue(dueDay.getTime() < today.getTime())
-      } else {
-        setIsOverdue(false)
-      }
+      setIsOverdue(computeOverdue(editTask))
     }
   }, [open, isEdit, editTask])
 

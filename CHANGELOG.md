@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [2.1.3] - 2026-03-19
+Edit task form now pre-populates with previously stored values
+
+### Fixed
+- **Edit task form not showing previous data** — Initialised `useState` hooks in `TaskFormSheet` directly from the task prop so the first render already displays the stored category, title, type, due date, duration, and notes instead of empty/default values
+
+## [2.1.2] - 2026-03-15
+Timer accuracy fix for background tabs via wall-clock reconciliation
+
+### Fixed
+- **Timer under-counting in background tabs** — Replaced fixed `+1` second increment with wall-clock delta calculation (`Date.now() - lastTickAt`), so browser-throttled `setInterval` ticks correctly account for all elapsed time
+- **Tab visibility reconciliation** — Added `visibilitychange` listener to immediately catch up missed seconds when the tab becomes visible again
+
 ## [2.1.1] - 2026-03-15
 Timetable autofill polish and Time Records scroll fix
 
