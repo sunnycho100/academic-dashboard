@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [2.2.7] - 2026-03-19
+Fix completion percentage calculation
+
+### Fixed
+- **Completion rate now reflects all tasks** — Previously the percentage was based only on Today’s Plan (completed / (completed + today panel)), causing 100% when the panel was empty. Now uses completed today / (completed today + all remaining tasks) for an accurate overall ratio.
+
 ## [2.2.6] - 2026-03-19
 Actual start edits cascade planned times
 

@@ -69,8 +69,8 @@ function AnimatedCounter({ value }: { value: number }) {
 
 export function Stats({ tasks, completedTodayCount, todayRemainingCount }: StatsProps) {
   const totalTasks = tasks.length
-  const todayTotal = completedTodayCount + todayRemainingCount
-  const completionPercent = todayTotal > 0 ? Math.round((completedTodayCount / todayTotal) * 100) : 0
+  const overallTotal = completedTodayCount + totalTasks
+  const completionPercent = overallTotal > 0 ? Math.round((completedTodayCount / overallTotal) * 100) : 0
   const dueSoonTasks = tasks.filter((t) => {
     if (!t.dueAt) return false
     const dueDate = new Date(t.dueAt)
