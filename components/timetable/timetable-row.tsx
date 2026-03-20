@@ -52,6 +52,25 @@ export function TimetableRow({
 
   const timeInputClass = `${inputBase} min-w-[118px] w-[118px]`
 
+  /** Move focus to the same column in an adjacent row on Arrow/Enter keys. */
+  const handleGridNav = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'Enter') return
+    // Don't hijack time picker interactions
+    if (e.key === 'Enter' && e.currentTarget.type === 'time') return
+
+    const col = e.currentTarget.dataset.col
+    if (!col) return
+
+    const nextRow = e.key === 'ArrowUp' ? rowIndex - 1 : rowIndex + 1
+    const target = document.querySelector<HTMLInputElement>(
+      `input[data-row="${nextRow}"][data-col="${col}"]`
+    )
+    if (target) {
+      e.preventDefault()
+      target.focus()
+    }
+  }
+
   const varianceText = entry.notes || ''
   const isOver = varianceText.includes('over')
   const isUnder = varianceText.includes('under')
@@ -99,6 +118,9 @@ export function TimetableRow({
               onUpdate(entry.id, { plannedStart: getAutofillTime(entries, rowIndex) })
             }
           }}
+          data-row={rowIndex}
+          data-col="0"
+          onKeyDown={handleGridNav}
           className={timeInputClass}
         />
       </td>
@@ -115,6 +137,9 @@ export function TimetableRow({
               if (ampmDefault) onUpdate(entry.id, { plannedEnd: ampmDefault })
             }
           }}
+          data-row={rowIndex}
+          data-col="1"
+          onKeyDown={handleGridNav}
           className={timeInputClass}
         />
       </td>
@@ -131,6 +156,9 @@ export function TimetableRow({
           value={entry.activityName}
           onChange={(e) => onUpdate(entry.id, { activityName: e.target.value })}
           placeholder="Activity name…"
+          data-row={rowIndex}
+          data-col="2"
+          onKeyDown={handleGridNav}
           className={`${inputBase} truncate`}
         />
       </td>
@@ -141,6 +169,9 @@ export function TimetableRow({
           type="time"
           value={entry.actualStart ?? ''}
           onChange={(e) => onUpdate(entry.id, { actualStart: e.target.value || null })}
+          data-row={rowIndex}
+          data-col="3"
+          onKeyDown={handleGridNav}
           className={timeInputClass}
         />
       </td>
@@ -151,6 +182,9 @@ export function TimetableRow({
           type="time"
           value={entry.actualEnd ?? ''}
           onChange={(e) => onActualEndChange(entry.id, e.target.value || null)}
+          data-row={rowIndex}
+          data-col="4"
+          onKeyDown={handleGridNav}
           className={timeInputClass}
         />
       </td>
