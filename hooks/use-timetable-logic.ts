@@ -428,6 +428,48 @@ export function useTimetableLogic() {
     setDate(toDateStr(new Date()))
   }, [persist])
 
+  // ── Manual push: cascade from the last completed row ────────────────
+  const manualPush = useCallback(() => {
+    setEntries((prev) => {
+      // Find the last row that has an actualEnd
+      let lastCompletedIdx = -1
+      for (let i = prev.length - 1; i >= 0; i--) {
+        if (prev[i].actualEnd) { lastCompletedIdx = i; break }
+      }
+      if (lastCompletedIdx === -1) return prev
+
+      const next = [...prev]
+      let cursor = next[lastCompletedIdx].actualEnd!
+      for (let i = lastCompletedIdx + 1; i < next.length; i++) {
+        const row = next[i]
+        if (!row.plannedStart && !row.plannedEnd && !row.activityName) break
+        if (row.actualEnd) { cursor = row.actualEnd; continue }
+
+        const updated = { ...row }
+        const dur =
+          updated.expectedMinutes > 0
+            ? updated.expectedMinutes
+            : updated.plannedStart && updated.plannedEnd
+              ? diffMinutes(updated.plannedStart, updated.plannedEnd)
+              : 0
+
+        updated.plannedStart = cursor
+        if (dur > 0) {
+          const startMin = parseTime(cursor)
+          if (startMin !== null) {
+            updated.plannedEnd = minutesToHHmm(startMin + dur)
+            updated.expectedMinutes = dur
+          }
+        }
+        updated.updatedAt = new Date().toISOString()
+        next[i] = updated
+        cursor = updated.plannedEnd || cursor
+      }
+      return next
+    })
+    debouncedSave()
+  }, [debouncedSave])
+
   // ── Totals ──────────────────────────────────────────────────────────────
   const totalExpected = entries.reduce((s, e) => s + (e.expectedMinutes || 0), 0)
   const totalActual = entries.reduce((s, e) => s + (e.actualMinutes || 0), 0)
@@ -447,6 +489,7 @@ export function useTimetableLogic() {
     // Mutations
     updateEntry,
     handleActualEndChange,
+    manualPush,
     addRow,
     removeRow,
     // Navigation

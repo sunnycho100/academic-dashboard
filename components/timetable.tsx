@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { Plus, ChevronLeft, ChevronRight, Calendar, GripVertical, HelpCircle } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, Calendar, GripVertical, HelpCircle, RefreshCw } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   DndContext,
@@ -38,6 +38,7 @@ export function Timetable() {
     setHelpOpen,
     updateEntry,
     handleActualEndChange,
+    manualPush,
     addRow,
     removeRow,
     shiftDate,
@@ -134,6 +135,17 @@ export function Timetable() {
           <span className="text-[11px] text-muted-foreground/60 select-none">
             Autopush
           </span>
+          <motion.div whileTap={{ scale: 0.85 }}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 rounded-md text-muted-foreground/50 hover:text-foreground/70"
+              onClick={manualPush}
+              title="Manually push planned times from last completed row"
+            >
+              <RefreshCw className="h-3 w-3" />
+            </Button>
+          </motion.div>
         </div>
 
         {/* Summary pills */}

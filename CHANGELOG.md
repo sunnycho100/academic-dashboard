@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [2.2.5] - 2026-03-19
+Manual push button for timetable cascade
+
+### Added
+- **Manual push button** — Refresh icon button next to the Autopush toggle triggers cascade logic on demand, pushing planned start/end times from the last completed row through subsequent incomplete rows.
+
 ## [2.2.4] - 2026-03-19
 Timetable entries now create time records on completion
 
