@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [2.2.8] - 2026-03-19
+Planned end time edits cascade to subsequent rows
+
+### Added
+- **Cascade on plannedEnd change** — When editing a row's planned end time, all subsequent incomplete rows automatically shift their planned start/end times to stay aligned with the new end time.
+
 ## [2.2.7] - 2026-03-19
 Fix completion percentage calculation
 

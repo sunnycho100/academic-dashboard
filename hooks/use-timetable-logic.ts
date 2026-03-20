@@ -292,6 +292,40 @@ export function useTimetableLogic() {
           }
         }
 
+        // Autopush: when plannedEnd changes, cascade planned times for subsequent
+        // incomplete rows so the schedule stays aligned
+        if (autopushRef.current && patch.plannedEnd !== undefined) {
+          const newEnd = patch.plannedEnd
+          if (newEnd) {
+            let cursor = newEnd
+            for (let i = idx + 1; i < next.length; i++) {
+              const r = next[i]
+              if (!r.plannedStart && !r.plannedEnd && !r.activityName) break
+              if (r.actualEnd) { cursor = r.actualEnd; continue }
+
+              const updated = { ...r }
+              const dur =
+                updated.expectedMinutes > 0
+                  ? updated.expectedMinutes
+                  : updated.plannedStart && updated.plannedEnd
+                    ? diffMinutes(updated.plannedStart, updated.plannedEnd)
+                    : 0
+
+              updated.plannedStart = cursor
+              if (dur > 0) {
+                const startMin = parseTime(cursor)
+                if (startMin !== null) {
+                  updated.plannedEnd = minutesToHHmm(startMin + dur)
+                  updated.expectedMinutes = dur
+                }
+              }
+              updated.updatedAt = new Date().toISOString()
+              next[i] = updated
+              cursor = updated.plannedEnd || cursor
+            }
+          }
+        }
+
         return next
       })
       debouncedSave()
