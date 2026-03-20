@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [2.2.4] - 2026-03-19
+Timetable entries now create time records on completion
+
+### Added
+- **Timetable → Time Records integration** — When a timetable entry's actual end time is first set (with an actual start and activity name present), a time record is automatically created via `POST /api/time-records`. Records use the entry's activity name as the title, "Timetable" as category/type, and correctly handle overnight durations.
+
 ## [2.2.3] - 2026-03-19
 Per-feature auto-logic toggles and documentation
 

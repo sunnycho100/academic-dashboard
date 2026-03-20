@@ -263,6 +263,9 @@ export function useTimetableLogic() {
   // ── Autopush: cascade planned times when actual end changes ─────────
   const handleActualEndChange = useCallback(
     (id: string, newActualEnd: string | null) => {
+      // Capture previous entry before state update (for duplicate prevention)
+      const prevEntry = entriesRef.current.find((e) => e.id === id)
+
       setEntries((prev) => {
         const idx = prev.findIndex((e) => e.id === id)
         if (idx === -1) return prev
@@ -317,6 +320,39 @@ export function useTimetableLogic() {
         return next
       })
       debouncedSave()
+
+      // Create a time record when actualEnd is first set
+      if (
+        prevEntry &&
+        newActualEnd &&
+        prevEntry.actualStart &&
+        prevEntry.activityName &&
+        !prevEntry.actualEnd // only on first completion, not edits
+      ) {
+        const durationMin = diffMinutes(prevEntry.actualStart, newActualEnd)
+        const d = dateRef.current
+        const startTime = new Date(`${d}T${prevEntry.actualStart}:00`)
+        const endTime = new Date(`${d}T${newActualEnd}:00`)
+        // Handle overnight: if end < start, advance end by one day
+        if (endTime <= startTime) {
+          endTime.setDate(endTime.getDate() + 1)
+        }
+
+        fetch('/api/time-records', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            taskId: null,
+            taskTitle: prevEntry.activityName,
+            categoryName: 'Timetable',
+            categoryColor: '#6366f1',
+            taskType: 'Timetable',
+            startTime: startTime.toISOString(),
+            endTime: endTime.toISOString(),
+            duration: durationMin * 60,
+          }),
+        }).catch((err) => console.error('Failed to create time record from timetable:', err))
+      }
     },
     [debouncedSave],
   )
