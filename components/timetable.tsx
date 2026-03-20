@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { Plus, ChevronLeft, ChevronRight, Calendar, GripVertical, HelpCircle, RefreshCw } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, Calendar, GripVertical, HelpCircle, RefreshCw, FastForward } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   DndContext,
@@ -39,6 +39,7 @@ export function Timetable() {
     updateEntry,
     handleActualEndChange,
     manualPush,
+    forwardYesterday,
     addRow,
     removeRow,
     shiftDate,
@@ -83,6 +84,19 @@ export function Timetable() {
           <Button variant="ghost" size="sm" className="rounded-lg text-xs" onClick={goToday}>
             <Calendar className="h-3.5 w-3.5 mr-1.5" />
             Today
+          </Button>
+        </motion.div>
+
+        <motion.div whileTap={{ scale: 0.95 }}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="rounded-lg text-xs"
+            onClick={forwardYesterday}
+            title="Bring incomplete tasks from previous days to today"
+          >
+            <FastForward className="h-3.5 w-3.5 mr-1.5" />
+            Forward YTD
           </Button>
         </motion.div>
 

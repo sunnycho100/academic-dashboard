@@ -23,12 +23,33 @@ const BulkUpdateSchema = z.object({
 
 /**
  * GET /api/timetable?date=YYYY-MM-DD
+ * GET /api/timetable?incompleteBefore=YYYY-MM-DD
+ *   Returns incomplete entries (no actualEnd) from dates strictly before the given date.
  * Returns all timetable entries for a given date (or today if omitted).
  */
 export async function GET(request: NextRequest) {
   try {
     const userId = await getAuthenticatedUser()
     const { searchParams } = new URL(request.url)
+
+    // Fetch incomplete entries from previous days
+    const incompleteBefore = searchParams.get('incompleteBefore')
+    if (incompleteBefore) {
+      const entries = await prisma.timetableEntry.findMany({
+        where: {
+          userId,
+          date: { lt: incompleteBefore },
+          activityName: { not: '' },
+          OR: [
+            { actualEnd: null },
+            { actualEnd: '' },
+          ],
+        },
+        orderBy: [{ date: 'asc' }, { order: 'asc' }],
+      })
+      return NextResponse.json(entries)
+    }
+
     const date = searchParams.get('date') ?? new Date().toISOString().split('T')[0]
 
     const entries = await prisma.timetableEntry.findMany({

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [2.3.0] - 2026-03-20
+Forward YTD button for timetable
+
+### Added
+- **Forward YTD button** — Brings incomplete tasks (no actual end time) from previous days into today's timetable, automatically scheduling them sequentially from the current time with preserved durations.
+- **Incomplete entries API** — New `?incompleteBefore=` query parameter on `/api/timetable` to fetch unfinished entries from past dates.
+
 ## [2.2.9] - 2026-03-19
 Actual time inputs inherit AM/PM from planned times
 

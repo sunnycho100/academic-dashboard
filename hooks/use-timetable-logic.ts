@@ -543,6 +543,85 @@ export function useTimetableLogic() {
     debouncedSave()
   }, [debouncedSave])
 
+  // ── Forward YTD: bring incomplete tasks from previous days to today ──
+  const forwardYesterday = useCallback(async () => {
+    const today = toDateStr(new Date())
+
+    // Navigate to today first if not already there
+    if (dateRef.current !== today) {
+      await persist()
+      setDate(today)
+      // Wait for today's entries to load before proceeding
+      await new Promise<void>((resolve) => {
+        const check = () => {
+          if (dateRef.current === today) resolve()
+          else setTimeout(check, 50)
+        }
+        check()
+      })
+    }
+
+    try {
+      const res = await fetch(`/api/timetable?incompleteBefore=${today}`)
+      if (!res.ok) throw new Error('fetch failed')
+      const incomplete: TimetableEntry[] = await res.json()
+      if (incomplete.length === 0) return 0
+
+      // Find the first empty slot or append after the last non-empty row
+      setEntries((prev) => {
+        // Find where to insert: first completely empty row
+        let insertIdx = prev.findIndex(
+          (e) => !e.plannedStart && !e.plannedEnd && !e.activityName && !e.actualStart && !e.actualEnd,
+        )
+        if (insertIdx === -1) insertIdx = prev.length
+
+        const now = new Date()
+        const currentMinutes = now.getHours() * 60 + now.getMinutes()
+        let cursor = roundUp5(currentMinutes)
+
+        const newEntries: TimetableEntry[] = incomplete.map((entry, i) => {
+          const dur = entry.expectedMinutes > 0
+            ? entry.expectedMinutes
+            : entry.plannedStart && entry.plannedEnd
+              ? diffMinutes(entry.plannedStart, entry.plannedEnd)
+              : 60 // default 1h if no duration info
+
+          const startTime = minutesToHHmm(cursor)
+          const endTime = minutesToHHmm(cursor + dur)
+
+          cursor = cursor + dur
+
+          return {
+            ...entry,
+            id: crypto.randomUUID(),
+            date: today,
+            order: insertIdx + i,
+            plannedStart: startTime,
+            plannedEnd: endTime,
+            expectedMinutes: dur,
+            actualStart: null,
+            actualEnd: null,
+            actualMinutes: null,
+            notes: `Fwd from ${entry.date}`,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }
+        })
+
+        const next = [...prev]
+        // Insert forwarded entries at the insert point
+        next.splice(insertIdx, 0, ...newEntries)
+        // Re-number orders
+        return next.map((e, i) => ({ ...e, order: i }))
+      })
+      debouncedSave()
+      return incomplete.length
+    } catch (err) {
+      console.error('Failed to forward incomplete tasks:', err)
+      return 0
+    }
+  }, [persist, debouncedSave])
+
   // ── Totals ──────────────────────────────────────────────────────────────
   const totalExpected = entries.reduce((s, e) => s + (e.expectedMinutes || 0), 0)
   const totalActual = entries.reduce((s, e) => s + (e.actualMinutes || 0), 0)
@@ -563,6 +642,7 @@ export function useTimetableLogic() {
     updateEntry,
     handleActualEndChange,
     manualPush,
+    forwardYesterday,
     addRow,
     removeRow,
     // Navigation
