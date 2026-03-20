@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [2.2.3] - 2026-03-19
+Per-feature auto-logic toggles and documentation
+
+### Added
+- **Auto-Logic help dialog** — Timetable help dialog renamed to "Auto-Logic" with per-feature toggle switches for Autofill and Autopush, plus an "Always On" section listing auto-computed durations, variance notes, and auto-save.
+- **Time Records auto-shift / cascade toggles** — Added individual toggle switches (Auto-shift, Cascade) in the Time Records edit mode settings bar, allowing users to enable/disable end-time preservation and subsequent-record shifting independently.
+- **auto-logic.md** — Documentation file cataloging all 9 auto-logic features across timetable and time records views.
+
+## [2.2.2] - 2026-03-19
+Time record edit: auto-shift end time and cascade subsequent records
+
+### Added
+- **Auto-shift end time on start time edit** — When editing a time record's start time, the end time automatically adjusts to preserve the original duration.
+- **Cascade shift for subsequent records** — On save, all records after the edited one are shifted by the same time delta, keeping the timeline consistent.
+
 ## [2.2.1] - 2026-03-19
 Timetable header rendering fix
 

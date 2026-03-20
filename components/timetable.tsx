@@ -241,11 +241,28 @@ export function Timetable() {
       <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
         <DialogContent className="sm:max-w-md glass-overlay">
           <DialogHeader>
-            <DialogTitle className="text-base font-semibold">Autofill &amp; Autopush</DialogTitle>
+            <DialogTitle className="text-base font-semibold">Auto-Logic</DialogTitle>
           </DialogHeader>
           <div className="text-sm text-muted-foreground space-y-3 leading-relaxed">
+            {/* Autofill */}
             <div className="rounded-lg bg-foreground/[0.03] p-3 space-y-2 text-xs">
-              <p className="font-medium text-foreground/80">Autofill</p>
+              <div className="flex items-center justify-between">
+                <p className="font-medium text-foreground/80">Autofill</p>
+                <button
+                  onClick={() => setAutofill((v) => !v)}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
+                    autofill
+                      ? 'bg-emerald-400/70 dark:bg-emerald-500/50'
+                      : 'bg-foreground/10'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                      autofill ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                    }`}
+                  />
+                </button>
+              </div>
               <p>
                 Clicking an empty <em>Start</em> field auto-fills it from the previous row&apos;s
                 end time (or the current time rounded to 5 min if no previous row exists).
@@ -253,16 +270,41 @@ export function Timetable() {
                 so you only need to adjust the digits.
               </p>
             </div>
+
+            {/* Autopush */}
             <div className="rounded-lg bg-foreground/[0.03] p-3 space-y-2 text-xs">
-              <p className="font-medium text-foreground/80">Autopush</p>
+              <div className="flex items-center justify-between">
+                <p className="font-medium text-foreground/80">Autopush</p>
+                <button
+                  onClick={() => setAutopush((v) => !v)}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
+                    autopush
+                      ? 'bg-sky-400/70 dark:bg-sky-500/50'
+                      : 'bg-foreground/10'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                      autopush ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                    }`}
+                  />
+                </button>
+              </div>
               <p>
                 Entering an <strong>Actual End</strong> time cascades all subsequent
                 unfinished rows forward, preserving each activity&apos;s planned duration.
               </p>
             </div>
-            <p className="text-xs text-muted-foreground/50">
-              Toggle either off for full manual control.
-            </p>
+
+            {/* Always-on features */}
+            <div className="rounded-lg bg-foreground/[0.03] p-3 space-y-2 text-xs">
+              <p className="font-medium text-foreground/80">Always On</p>
+              <ul className="list-disc list-inside space-y-1 text-muted-foreground/70">
+                <li>Expected &amp; actual durations auto-calculated from start/end times</li>
+                <li>Variance notes auto-generated (over / under / on time)</li>
+                <li>Changes auto-saved after 600ms</li>
+              </ul>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

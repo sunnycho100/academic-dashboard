@@ -56,6 +56,9 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
   const [editMode, setEditMode] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({ taskTitle: '', startTime: '', endTime: '' })
+  const [editOriginalDuration, setEditOriginalDuration] = useState(0) // seconds
+  const [autoShiftEnd, setAutoShiftEnd] = useState(true)
+  const [cascadeShift, setCascadeShift] = useState(true)
   const [addingNew, setAddingNew] = useState(false)
   const [newForm, setNewForm] = useState<NewRecordForm>({ taskTitle: '', categoryName: '', categoryColor: '#6366f1', taskType: '', startTime: '', endTime: '' })
   const [categories, setCategories] = useState<{ name: string; color: string }[]>([])
@@ -278,11 +281,27 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
     setEditingId(record.id)
     const start = new Date(record.startTime)
     const end = new Date(record.endTime)
+    setEditOriginalDuration(record.duration)
     setEditForm({
       taskTitle: record.taskTitle,
       startTime: format(start, 'HH:mm'),
       endTime: format(end, 'HH:mm'),
     })
+  }
+
+  // When start time changes, auto-shift end time to preserve original duration
+  const handleEditStartTimeChange = (newStartTime: string) => {
+    if (autoShiftEnd) {
+      const startDt = buildDateFromLogicalDay(selectedDate, newStartTime, timelineStartHour, timelineEndHour)
+      const endDt = new Date(startDt.getTime() + editOriginalDuration * 1000)
+      setEditForm({
+        ...editForm,
+        startTime: newStartTime,
+        endTime: format(endDt, 'HH:mm'),
+      })
+    } else {
+      setEditForm({ ...editForm, startTime: newStartTime })
+    }
   }
 
   const handleSaveEdit = async (id: string) => {
@@ -292,11 +311,36 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
     if (endDt <= startDt) endDt.setDate(endDt.getDate() + 1)
     const startTime = startDt.toISOString()
     const endTime = endDt.toISOString()
+
+    // Calculate time delta for cascading
+    const editedRecord = records.find((r) => r.id === id)
+    const originalStartMs = editedRecord ? new Date(editedRecord.startTime).getTime() : startDt.getTime()
+    const deltaMs = startDt.getTime() - originalStartMs
+
+    // Save the edited record
     await fetch(`/api/time-records/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ taskTitle: editForm.taskTitle, startTime, endTime }),
     })
+
+    // Cascade-shift all subsequent records by the same delta
+    if (cascadeShift && deltaMs !== 0 && editedRecord) {
+      const editedIndex = records.findIndex((r) => r.id === id)
+      const subsequentRecords = records.slice(editedIndex + 1)
+      await Promise.all(
+        subsequentRecords.map((r) => {
+          const newStart = new Date(new Date(r.startTime).getTime() + deltaMs).toISOString()
+          const newEnd = new Date(new Date(r.endTime).getTime() + deltaMs).toISOString()
+          return fetch(`/api/time-records/${r.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ startTime: newStart, endTime: newEnd }),
+          })
+        })
+      )
+    }
+
     setEditingId(null)
     refetch()
   }
@@ -556,6 +600,48 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                             })}
                           </select>
                         </div>
+
+                        <div className="flex-1" />
+
+                        {/* Auto-shift toggle */}
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => setAutoShiftEnd((v) => !v)}
+                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
+                              autoShiftEnd
+                                ? 'bg-emerald-400/70 dark:bg-emerald-500/50'
+                                : 'bg-foreground/10'
+                            }`}
+                            title="Auto-shift end time when start time changes"
+                          >
+                            <span
+                              className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                                autoShiftEnd ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                              }`}
+                            />
+                          </button>
+                          <span className="text-[10px] text-muted-foreground/60 select-none whitespace-nowrap">Auto-shift</span>
+                        </div>
+
+                        {/* Cascade toggle */}
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => setCascadeShift((v) => !v)}
+                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
+                              cascadeShift
+                                ? 'bg-sky-400/70 dark:bg-sky-500/50'
+                                : 'bg-foreground/10'
+                            }`}
+                            title="Cascade shift subsequent records on save"
+                          >
+                            <span
+                              className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                                cascadeShift ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                              }`}
+                            />
+                          </button>
+                          <span className="text-[10px] text-muted-foreground/60 select-none whitespace-nowrap">Cascade</span>
+                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -653,7 +739,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                                   <Input
                                     type="time"
                                     value={editForm.startTime}
-                                    onChange={(e) => setEditForm({ ...editForm, startTime: e.target.value })}
+                                    onChange={(e) => handleEditStartTimeChange(e.target.value)}
                                     className="h-7 text-xs w-[90px]"
                                   />
                                   <span className="text-xs text-muted-foreground">–</span>
