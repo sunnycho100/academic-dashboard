@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [2.2.6] - 2026-03-19
+Actual start edits cascade planned times
+
+### Added
+- **Cascade on actualStart change** — When editing a completed row's actual start time (e.g. after a break), the planned start/end times of subsequent incomplete rows automatically cascade from the row's actual end time, keeping the estimated schedule accurate.
+
 ## [2.2.5] - 2026-03-19
 Manual push button for timetable cascade
 

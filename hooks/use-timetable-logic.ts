@@ -226,6 +226,9 @@ export function useTimetableLogic() {
   const updateEntry = useCallback(
     (id: string, patch: Partial<TimetableEntry>) => {
       setEntries((prev) => {
+        const idx = prev.findIndex((e) => e.id === id)
+        if (idx === -1) return prev
+
         const next = prev.map((e) => {
           if (e.id !== id) return e
           const updated = { ...e, ...patch, updatedAt: new Date().toISOString() }
@@ -253,6 +256,42 @@ export function useTimetableLogic() {
 
           return updated
         })
+
+        // Autopush: when actualStart changes on a row that already has actualEnd,
+        // cascade planned times for subsequent incomplete rows
+        if (autopushRef.current && patch.actualStart !== undefined) {
+          const row = next[idx]
+          const endTime = row.actualEnd
+          if (endTime) {
+            let cursor = endTime
+            for (let i = idx + 1; i < next.length; i++) {
+              const r = next[i]
+              if (!r.plannedStart && !r.plannedEnd && !r.activityName) break
+              if (r.actualEnd) { cursor = r.actualEnd; continue }
+
+              const updated = { ...r }
+              const dur =
+                updated.expectedMinutes > 0
+                  ? updated.expectedMinutes
+                  : updated.plannedStart && updated.plannedEnd
+                    ? diffMinutes(updated.plannedStart, updated.plannedEnd)
+                    : 0
+
+              updated.plannedStart = cursor
+              if (dur > 0) {
+                const startMin = parseTime(cursor)
+                if (startMin !== null) {
+                  updated.plannedEnd = minutesToHHmm(startMin + dur)
+                  updated.expectedMinutes = dur
+                }
+              }
+              updated.updatedAt = new Date().toISOString()
+              next[i] = updated
+              cursor = updated.plannedEnd || cursor
+            }
+          }
+        }
+
         return next
       })
       debouncedSave()
