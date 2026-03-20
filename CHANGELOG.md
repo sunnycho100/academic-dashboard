@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [2.3.1] - 2026-03-20
+Clear all & Forward YTD race condition fix
+
+### Added
+- **Clear all button** — Trash icon at the top-right of the timetable toolbar clears all entries for the current day (with confirmation prompt).
+
+### Fixed
+- **Forward YTD race condition** — Fixed a bug where navigating dates during forward could overwrite entries with blank rows. Added loading-state await and a persist guard against saving all-blank entries.
+
 ## [2.3.0] - 2026-03-20
 Forward YTD button for timetable
 

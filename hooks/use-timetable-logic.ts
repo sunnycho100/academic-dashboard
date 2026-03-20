@@ -172,6 +172,8 @@ export function useTimetableLogic() {
   autopushRef.current = autopush
   const dateRef = useRef(date)
   dateRef.current = date
+  const loadingRef = useRef(loading)
+  loadingRef.current = loading
 
   // ── Fetch entries for the current date ──────────────────────────────────
   const fetchEntries = useCallback(async (d: string) => {
@@ -197,6 +199,12 @@ export function useTimetableLogic() {
     const current = entriesRef.current
     const d = dateRef.current
     if (current.length === 0) return
+
+    // Guard: don't save if all entries are blank (prevents accidental wipes)
+    const hasContent = current.some(
+      (e) => e.activityName || e.plannedStart || e.plannedEnd || e.actualStart || e.actualEnd,
+    )
+    if (!hasContent) return
 
     try {
       await fetch('/api/timetable', {
@@ -551,15 +559,16 @@ export function useTimetableLogic() {
     if (dateRef.current !== today) {
       await persist()
       setDate(today)
-      // Wait for today's entries to load before proceeding
-      await new Promise<void>((resolve) => {
-        const check = () => {
-          if (dateRef.current === today) resolve()
-          else setTimeout(check, 50)
-        }
-        check()
-      })
     }
+
+    // Wait for today's entries to fully load (date updated AND loading complete)
+    await new Promise<void>((resolve) => {
+      const check = () => {
+        if (dateRef.current === today && !loadingRef.current) resolve()
+        else setTimeout(check, 50)
+      }
+      check()
+    })
 
     try {
       const res = await fetch(`/api/timetable?incompleteBefore=${today}`)
@@ -622,6 +631,23 @@ export function useTimetableLogic() {
     }
   }, [persist, debouncedSave])
 
+  // ── Clear all entries for the current day ──────────────────────────────
+  const clearDay = useCallback(async () => {
+    const d = dateRef.current
+    const blanks = padEntries([], d)
+    setEntries(blanks)
+    // Save directly (bypass persist guard which skips all-blank entries)
+    try {
+      await fetch('/api/timetable', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: d, entries: blanks }),
+      })
+    } catch (err) {
+      console.error('Failed to clear timetable:', err)
+    }
+  }, [])
+
   // ── Totals ──────────────────────────────────────────────────────────────
   const totalExpected = entries.reduce((s, e) => s + (e.expectedMinutes || 0), 0)
   const totalActual = entries.reduce((s, e) => s + (e.actualMinutes || 0), 0)
@@ -643,6 +669,7 @@ export function useTimetableLogic() {
     handleActualEndChange,
     manualPush,
     forwardYesterday,
+    clearDay,
     addRow,
     removeRow,
     // Navigation

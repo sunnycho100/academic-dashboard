@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { Plus, ChevronLeft, ChevronRight, Calendar, GripVertical, HelpCircle, RefreshCw, FastForward } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, Calendar, GripVertical, HelpCircle, RefreshCw, FastForward, Trash2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   DndContext,
@@ -40,6 +40,7 @@ export function Timetable() {
     handleActualEndChange,
     manualPush,
     forwardYesterday,
+    clearDay,
     addRow,
     removeRow,
     shiftDate,
@@ -173,6 +174,19 @@ export function Timetable() {
             </span>
           )}
         </div>
+
+        {/* Clear all */}
+        <motion.div whileTap={{ scale: 0.9 }}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 rounded-lg text-muted-foreground/40 hover:text-destructive/70"
+            onClick={() => { if (window.confirm('Clear all entries for this day?')) clearDay() }}
+            title="Clear all entries for this day"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </motion.div>
       </div>
 
       {/* Table */}
