@@ -169,6 +169,12 @@ export function TimetableRow({
           type="time"
           value={entry.actualStart ?? ''}
           onChange={(e) => onUpdate(entry.id, { actualStart: e.target.value || null })}
+          onFocus={() => {
+            if (!entry.actualStart && entry.plannedStart) {
+              const ampmDefault = getEndTimeAmPmDefault(entry.plannedStart)
+              if (ampmDefault) onUpdate(entry.id, { actualStart: ampmDefault })
+            }
+          }}
           data-row={rowIndex}
           data-col="3"
           onKeyDown={handleGridNav}
@@ -182,6 +188,13 @@ export function TimetableRow({
           type="time"
           value={entry.actualEnd ?? ''}
           onChange={(e) => onActualEndChange(entry.id, e.target.value || null)}
+          onFocus={() => {
+            if (!entry.actualEnd && (entry.actualStart || entry.plannedEnd)) {
+              const ref = entry.actualStart || entry.plannedEnd
+              const ampmDefault = getEndTimeAmPmDefault(ref)
+              if (ampmDefault) onActualEndChange(entry.id, ampmDefault)
+            }
+          }}
           data-row={rowIndex}
           data-col="4"
           onKeyDown={handleGridNav}

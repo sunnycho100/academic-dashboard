@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [2.2.9] - 2026-03-19
+Actual time inputs inherit AM/PM from planned times
+
+### Added
+- **AM/PM autofill for actual start** — Focusing an empty actual start field pre-fills it to match the planned start’s AM/PM half (12:00 for PM, 00:00 for AM), so you only need to adjust hours and minutes.
+- **AM/PM autofill for actual end** — Same logic for actual end, inheriting from actual start or planned end.
+
 ## [2.2.8] - 2026-03-19
 Planned end time edits cascade to subsequent rows
 
