@@ -292,9 +292,9 @@ export function useTimetableLogic() {
           }
         }
 
-        // Autopush: when plannedEnd changes, cascade planned times for subsequent
-        // incomplete rows so the schedule stays aligned
-        if (autopushRef.current && patch.plannedEnd !== undefined) {
+        // Autopush: when plannedEnd changes on an incomplete row (no actualEnd),
+        // cascade planned times for subsequent rows so the schedule stays aligned
+        if (autopushRef.current && patch.plannedEnd !== undefined && !next[idx].actualEnd) {
           const newEnd = patch.plannedEnd
           if (newEnd) {
             let cursor = newEnd
