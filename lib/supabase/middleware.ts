@@ -27,6 +27,21 @@ export async function updateSession(request: NextRequest) {
     }
   )
   const { data: { user } } = await supabase.auth.getUser()
+
+  // Intercept Supabase auth error redirects (e.g. expired email link → /?error=access_denied)
+  // Forward to /login with a user-friendly message
+  const authError = request.nextUrl.searchParams.get('error')
+  if (authError && !user) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    const errorDesc = request.nextUrl.searchParams.get('error_description')
+    // Clean up and preserve only what the login page needs
+    url.search = ''
+    if (errorDesc) url.searchParams.set('error', errorDesc)
+    else url.searchParams.set('error', 'Authentication failed. Please try again.')
+    return NextResponse.redirect(url)
+  }
+
   // Allow unauthenticated users to use the app in guest mode (no redirect to /login)
   // Only redirect authenticated users away from /login
   if (user && request.nextUrl.pathname.startsWith('/login')) {

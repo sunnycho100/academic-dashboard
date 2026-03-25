@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: Version descriptions should be professional and concise, briefly mentioning key technical implementations (e.g., "Timer accuracy improvements via PostgreSQL pipeline optimization", "Authentication system with JWT middleware", "Real-time updates through WebSocket integration").
 
+## [2.3.2] - 2026-03-25
+Auth email link redirect fix — confirmation emails no longer point to localhost
+
+### Fixed
+- **Email confirmation redirecting to localhost** — `signUp` call now passes `emailRedirectTo` with the current browser origin so Supabase email links point to the deployed URL instead of falling back to the dashboard's Site URL (`localhost:3000`)
+- **Auth error handling** — Middleware now intercepts Supabase auth error redirects (e.g. expired email link → `/?error=access_denied`) and forwards them to the login page with a user-friendly error message instead of a blank broken page
+
 ## [2.3.1] - 2026-03-20
 Clear all & Forward YTD race condition fix
 
