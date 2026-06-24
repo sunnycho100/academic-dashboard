@@ -1,5 +1,12 @@
+import { fileURLToPath } from 'node:url'
+import path from 'node:path'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Pin the workspace root so Turbopack ignores stray lockfiles elsewhere on disk.
+  turbopack: { root: __dirname },
   serverExternalPackages: ['pg'],
   async headers() {
     return [

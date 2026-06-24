@@ -2,7 +2,7 @@
 
 ## What This Project Is
 A multi-user academic task management dashboard with Supabase Auth.
-Deployed to Vercel + Supabase PostgreSQL. Version 1.7.2.
+Deployed to Vercel + Supabase PostgreSQL. Version 2.3.1.
 
 ## Stack
 - **Framework**: Next.js 16 (App Router, Turbopack)
@@ -10,14 +10,14 @@ Deployed to Vercel + Supabase PostgreSQL. Version 1.7.2.
 - **Styling**: Tailwind CSS 3.4 + shadcn/ui (Radix primitives)
 - **Drag & Drop**: @dnd-kit
 - **Animations**: Framer Motion 12
-- **Forms**: React Hook Form + Zod
+- **Forms**: hand-rolled controlled inputs (useState) + Zod (server-side validation in API routes)
 - **Auth**: Supabase Auth (email + password)
 - **Database**: PostgreSQL via Supabase + Prisma ORM
 - **Package Manager**: pnpm (always use pnpm, never npm/yarn)
 
 ## Authentication
 - **Provider**: Supabase Auth (email + password sign-up/sign-in)
-- **Middleware** (`middleware.ts`): Uses `@supabase/ssr` to refresh session tokens on every request. Redirects unauthenticated users to `/login`.
+- **Proxy** (`proxy.ts`, Next 16's middleware convention → `lib/supabase/middleware.ts`): Uses `@supabase/ssr` to refresh session tokens on every request. Unauthenticated users are **allowed in guest mode** (no redirect); only authenticated users hitting `/login` are redirected to `/`.
 - **API route auth**: Every API route calls `getAuthenticatedUser()` from `lib/auth.ts`, which returns the Supabase `user.id` or throws a 401 response.
 - **Data scoping**: All database queries include `where: { userId }` so users only see their own data. All models have a `userId` column.
 - **Login page**: `app/login/page.tsx` — email + password form, sign-up and sign-in modes.
@@ -94,3 +94,9 @@ Required in `.env`:
 - `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon/public key
 - `DATABASE_URL` — PostgreSQL connection string (Supabase session pooler)
+
+## Testing (Playwright E2E)
+- Specs live in `e2e/`. Run with `pnpm test:e2e` (auto-starts the dev server).
+- The config forces the dev server onto a **local test Postgres** (Docker, `docker-compose.yml`) via `webServer.env.DATABASE_URL` — tests never touch production.
+- `guest` project: unauthenticated smoke specs (no DB writes). `authed` project: authenticated flow specs gated on `E2E_TEST_EMAIL`/`E2E_TEST_PASSWORD` in `.env.test` (gitignored); `global-setup` resets the test DB and saves a signed-in `storageState`.
+- The E2E suite is the regression gate for the modernization work — keep it green.
