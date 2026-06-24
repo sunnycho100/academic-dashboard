@@ -40,5 +40,30 @@ an isolated target.
 Auth is established once via a global-setup project that signs in and saves
 `storageState` to `e2e/.auth/user.json` (gitignored); authenticated specs reuse it.
 
-> Status: the test-DB strategy is pending a decision (Docker PG vs. dedicated Supabase
-> project). Authenticated specs land once that target exists.
+The test DB is **local Docker Postgres** (`docker-compose.yml`). Bring it up before
+running authenticated specs:
+
+```bash
+docker compose up -d
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/academic_dashboard pnpm prisma migrate deploy
+```
+
+`global-setup` truncates all data tables each run, so every authenticated spec starts
+from a clean slate.
+
+## Current coverage (Phase 0 safety net)
+
+Guest (`smoke.spec.ts`): shell loads with default categories, tab switching, login reachable.
+
+Authed (`authed/*.spec.ts`):
+- **tasks** — seeded task renders; add task via form; complete task removes it from the list
+- **views** — Overdue / Due Soon tabs filter by due date
+- **today-panel** — add to today reveals the timer control
+- **data-management** — export downloads dashboard JSON
+- **timetable** — autofill populates an empty planned-start on focus
+
+### Deferred (add as the refactor touches them)
+Timer → time-record creation, time-record cascade-shift edit, timetable autopush cascade,
+weekly-plan drag-and-drop, and JSON import. The timetable/time-record auto-logic helpers
+(`hooks/use-timetable-logic.ts`) are pure functions and are better covered by fast unit
+tests — a good fast-follow once the suite needs deeper auto-logic protection.
