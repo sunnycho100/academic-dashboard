@@ -2,19 +2,19 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Task, Category, SortOption, ViewMode } from '@/lib/types'
-import { CategorySidebar } from '@/components/category-sidebar'
-import { AddCategoryDialog } from '@/components/add-category-dialog'
-import { AddTaskDialog } from '@/components/add-task-sheet'
-import { EditTaskSheet } from '@/components/edit-task-sheet'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { ClearDataDialog } from '@/components/clear-data-dialog'
-import { ImportDataDialog } from '@/components/import-data-dialog'
-import { TimeRecordsDialog } from '@/components/time-records-dialog'
-import { ColorSchemeDialog } from '@/components/color-scheme-dialog'
-import { SettingsDialog } from '@/components/settings-dialog'
-import { type WeeklyPlanEntry, DAY_LABELS } from '@/components/weekly-plan'
-import { CatchupContent } from '@/components/catchup-content'
-import { TimetableContent } from '@/components/timetable-content'
+import { CategorySidebar } from '@/components/categories/category-sidebar'
+import { AddCategoryDialog } from '@/components/categories/add-category-dialog'
+import { AddTaskDialog } from '@/components/tasks/add-task-sheet'
+import { EditTaskSheet } from '@/components/tasks/edit-task-sheet'
+import { ThemeToggle } from '@/components/theme/theme-toggle'
+import { ClearDataDialog } from '@/components/settings/clear-data-dialog'
+import { ImportDataDialog } from '@/components/settings/import-data-dialog'
+import { TimeRecordsDialog } from '@/components/time-records/time-records-dialog'
+import { ColorSchemeDialog } from '@/components/settings/color-scheme-dialog'
+import { SettingsDialog } from '@/components/settings/settings-dialog'
+import { type WeeklyPlanEntry, DAY_LABELS } from '@/components/weekly-plan/weekly-plan'
+import { CatchupContent } from '@/components/layout/catchup-content'
+import { TimetableContent } from '@/components/timetable/timetable-content'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -25,7 +25,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 import { Settings, Download, Upload, Trash2, Palette, Clock, AlertTriangle, LogOut, UserPen, LogIn } from 'lucide-react'
-import { EditPersonalInfoDialog } from '@/components/edit-personal-info-dialog'
+import { EditPersonalInfoDialog } from '@/components/settings/edit-personal-info-dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,8 +37,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { motion } from 'framer-motion'
-import { LandingSequence } from '@/components/landing-sequence'
-import { IdleOverlay } from '@/components/idle-overlay'
+import { LandingSequence } from '@/components/layout/landing-sequence'
+import { IdleOverlay } from '@/components/layout/idle-overlay'
 import { useIdleDetector } from '@/hooks/use-idle-detector'
 import {
   DndContext,

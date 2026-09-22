@@ -6,7 +6,7 @@ const eslintConfig = [
     ignores: [
       '.next/**',
       'node_modules/**',
-      'lib/generated/**',
+      'src/lib/generated/**',
       '.agents/**', // vendored third-party skill CLI (gitignored)
       'playwright-report/**',
       'test-results/**',

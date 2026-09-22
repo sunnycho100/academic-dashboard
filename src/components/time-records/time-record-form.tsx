@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { motion } from 'framer-motion'
-import { loadPersonalDevColors } from '@/components/color-scheme-dialog'
+import { loadPersonalDevColors } from '@/components/settings/color-scheme-dialog'
 import type { NewRecordForm } from './helpers'
 
 export interface TimeRecordFormProps {

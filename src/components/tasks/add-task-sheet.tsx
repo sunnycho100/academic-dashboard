@@ -1,7 +1,7 @@
 'use client'
 
 import { Category, TaskType } from '@/lib/types'
-import { TaskFormSheet } from '@/components/task-form-sheet'
+import { TaskFormSheet } from '@/components/tasks/task-form-sheet'
 
 interface AddTaskDialogProps {
   open: boolean

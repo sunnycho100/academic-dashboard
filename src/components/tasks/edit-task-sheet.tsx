@@ -1,7 +1,7 @@
 'use client'
 
 import { Category, Task } from '@/lib/types'
-import { TaskFormSheet } from '@/components/task-form-sheet'
+import { TaskFormSheet } from '@/components/tasks/task-form-sheet'
 
 interface EditTaskSheetProps {
   open: boolean

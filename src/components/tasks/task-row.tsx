@@ -21,8 +21,8 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { motion } from 'framer-motion'
 import { childSpring } from '@/lib/liquidTransitions'
-import { InlineEdit } from '@/components/task/inline-edit'
-import { TaskMetadata } from '@/components/task/task-metadata'
+import { InlineEdit } from '@/components/tasks/inline-edit'
+import { TaskMetadata } from '@/components/tasks/task-metadata'
 
 interface TaskRowProps {
   task: Task

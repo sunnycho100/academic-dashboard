@@ -20,7 +20,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { PersonalDevTracker } from '@/components/personal-dev-tracker'
+import { PersonalDevTracker } from '@/components/today/personal-dev-tracker'
 import { RollingCounter } from '@/components/today/rolling-counter'
 import { SortableTodayItem } from '@/components/today/sortable-today-item'
 import { FocusModeOverlay } from '@/components/today/focus-mode-overlay'

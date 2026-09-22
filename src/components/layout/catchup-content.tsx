@@ -1,11 +1,11 @@
 'use client'
 
 import { Task, Category, SortOption, ViewMode } from '@/lib/types'
-import { TaskList } from '@/components/task-list'
-import { TodayPanel } from '@/components/today-panel'
-import { Stats } from '@/components/stats'
-import { EmptyState } from '@/components/empty-state'
-import { WeeklyPlan, type WeeklyPlanEntry } from '@/components/weekly-plan'
+import { TaskList } from '@/components/tasks/task-list'
+import { TodayPanel } from '@/components/today/today-panel'
+import { Stats } from '@/components/layout/stats'
+import { EmptyState } from '@/components/layout/empty-state'
+import { WeeklyPlan, type WeeklyPlanEntry } from '@/components/weekly-plan/weekly-plan'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {

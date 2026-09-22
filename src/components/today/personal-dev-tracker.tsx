@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Play, Pause, BookOpen, FolderGit2, Briefcase } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
-import { loadPersonalDevColors, DEFAULT_PERSONAL_DEV_COLORS } from '@/components/color-scheme-dialog'
+import { loadPersonalDevColors, DEFAULT_PERSONAL_DEV_COLORS } from '@/components/settings/color-scheme-dialog'
 
 // ── Activity definitions ──────────────────────────────────────────
 

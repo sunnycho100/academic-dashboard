@@ -15,30 +15,48 @@ Deployed to Vercel + Supabase PostgreSQL. Version 2.3.1.
 - **Database**: PostgreSQL via Supabase + Prisma ORM
 - **Package Manager**: pnpm (always use pnpm, never npm/yarn)
 
+## Project Structure
+```
+src/
+  app/            routes, layout, API routes (app/api/*)
+  components/
+    ui/           shadcn primitives
+    layout/       page shell pieces (catchup-content, stats, landing, idle overlay)
+    tasks/ categories/ today/ timetable/ time-records/ weekly-plan/ settings/ theme/
+  hooks/          custom hooks
+  lib/            db, auth, supabase clients, types, utils (generated/prisma is gitignored)
+  proxy.ts
+prisma/           schema + migrations
+e2e/              Playwright specs
+scripts/          start.sh, db_start.sh, one-off scripts
+docs/             notes, design system, specs
+```
+New components go in the feature folder they belong to; only shared primitives go in `ui/`.
+
 ## Authentication
 - **Provider**: Supabase Auth (email + password sign-up/sign-in)
-- **Proxy** (`proxy.ts`, Next 16's middleware convention → `lib/supabase/middleware.ts`): Uses `@supabase/ssr` to refresh session tokens on every request. Unauthenticated users are **allowed in guest mode** (no redirect); only authenticated users hitting `/login` are redirected to `/`.
-- **API route auth**: Every API route calls `getAuthenticatedUser()` from `lib/auth.ts`, which returns the Supabase `user.id` or throws a 401 response.
+- **Proxy** (`src/proxy.ts`, Next 16's middleware convention → `src/lib/supabase/middleware.ts`): Uses `@supabase/ssr` to refresh session tokens on every request. Unauthenticated users are **allowed in guest mode** (no redirect); only authenticated users hitting `/login` are redirected to `/`.
+- **API route auth**: Every API route calls `getAuthenticatedUser()` from `src/lib/auth.ts`, which returns the Supabase `user.id` or throws a 401 response.
 - **Data scoping**: All database queries include `where: { userId }` so users only see their own data. All models have a `userId` column.
-- **Login page**: `app/login/page.tsx` — email + password form, sign-up and sign-in modes.
-- **Supabase clients**: `lib/supabase/client.ts` (browser), `lib/supabase/server.ts` (server/API routes), `lib/supabase/middleware.ts` (middleware).
+- **Login page**: `src/app/login/page.tsx` — email + password form, sign-up and sign-in modes.
+- **Supabase clients**: `src/lib/supabase/client.ts` (browser), `src/lib/supabase/server.ts` (server/API routes), `src/lib/supabase/middleware.ts` (middleware).
 - **localStorage namespacing**: Timer and today-panel keys are namespaced by userId (e.g., `class-catchup-timers-{userId}`).
 
 ## Storage Architecture
 PostgreSQL via Supabase, accessed through Prisma ORM.
 
-lib/db.ts → exports { prisma } from lib/prisma.ts → PostgreSQL (Supabase)
+src/lib/db.ts → exports { prisma } from src/lib/prisma.ts → PostgreSQL (Supabase)
 
-**Never bypass lib/db.ts.** All reads/writes go through it. Do not call PrismaClient directly from API routes.
+**Never bypass src/lib/db.ts.** All reads/writes go through it. Do not call PrismaClient directly from API routes.
 
 ## Key Architectural Rules
-- All state lives in app/page.tsx (root client component). No external state library, no React Context for data.
+- All state lives in src/app/page.tsx (root client component). No external state library, no React Context for data.
 - No server components used for data fetching — everything loads client-side via useEffect + fetch()
 - Timer state lives in localStorage (namespaced by userId). Completed segments flush to /api/time-records via sendBeacon on unload.
 - CompletedTask and TimeRecord are intentionally denormalized — they store names directly so history survives deletion. Do not normalize these.
 
 ## Component Tree (High Level)
-app/page.tsx (root state)
+src/app/page.tsx (root state)
   ├── LandingSequence
   ├── IdleOverlay (5-min power save)
   ├── DndContext
@@ -54,8 +72,8 @@ app/page.tsx (root state)
 - useIdleDetector — 5-min inactivity, respects Page Visibility API
 
 ## API Routes
-All under app/api/. Covers: Tasks, Categories, CompletedTasks, TimeRecords, WeeklyPlan, UserInfo, Timetable, Seed, Bulk.
-All routes use lib/db.ts and call getAuthenticatedUser() for auth scoping.
+All under src/app/api/. Covers: Tasks, Categories, CompletedTasks, TimeRecords, WeeklyPlan, UserInfo, Timetable, Seed, Bulk.
+All routes use src/lib/db.ts and call getAuthenticatedUser() for auth scoping.
 
 ## Data Models (7 total)
 - Category → has many Tasks, scoped by userId
@@ -68,12 +86,12 @@ All routes use lib/db.ts and call getAuthenticatedUser() for auth scoping.
 
 ## Coding Preferences
 - TypeScript strict mode — no `any` unless necessary, always explain why
-- All data access goes through lib/db.ts (exports Prisma client)
+- All data access goes through src/lib/db.ts (exports Prisma client)
 - Tailwind only — no inline styles, no CSS modules outside globals.css
 - shadcn/ui components preferred over building from scratch
 - New API routes follow existing pattern: route.ts for collection, [id]/route.ts for item
 - Every API route must call getAuthenticatedUser() and scope queries by userId
-- When modifying data models, update lib/types.ts and Prisma schema together
+- When modifying data models, update src/lib/types.ts and Prisma schema together
 
 ## What NOT to Do
 - Do not add React Context for data — state stays in page.tsx props drilling
@@ -84,8 +102,8 @@ All routes use lib/db.ts and call getAuthenticatedUser() for auth scoping.
 ## Running the Project
 ```bash
 pnpm dev              # Development server (requires .env with Supabase + DATABASE_URL)
-./db_start.sh         # Start Docker PostgreSQL + dev server (local development)
-./start.sh            # Production build + start
+./scripts/db_start.sh         # Start Docker PostgreSQL + dev server (local development)
+./scripts/start.sh            # Production build + start
 pnpm build            # Build only (runs prisma generate first)
 ```
 

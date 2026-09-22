@@ -8,7 +8,7 @@
 
 Modernize the Academic Dashboard (v1.7.2, production on Vercel + Supabase) for code
 efficiency and current Next.js 16 idioms, and reskin the UI to the Cohere-inspired
-design system in `DESIGN.md` — **while preserving existing behavior exactly.**
+design system in `docs/design/design-system.md` — **while preserving existing behavior exactly.**
 
 This is a **pure refactor + polish**: same features, same flows, better code, faster
 loads, new visual language. No new features, no removed features.
@@ -22,7 +22,7 @@ loads, new visual language. No new features, no removed features.
 | Appetite | **Full modernization** — Server Components, Server Actions, real state boundaries |
 | Migration strategy | **Horizontal** — layer by layer, app-wide, not feature-by-feature |
 | Safety net | **Playwright E2E on critical flows first**, before any refactor |
-| Functional scope | **Pure refactor + polish** — behavior preserved, `DESIGN.md` drives visuals |
+| Functional scope | **Pure refactor + polish** — behavior preserved, `docs/design/design-system.md` drives visuals |
 | Client state | **Zustand** (recommended; swap for split React Contexts if preferred) |
 
 ## Target Architecture (end state)
@@ -105,17 +105,17 @@ Cover critical flows:
 
 **Verify:** suite green; no client fetch-on-mount; measurably faster first paint.
 
-### Phase 4 — UI Reskin (Cohere / `DESIGN.md`)
-- Adopt the Cohere design system from `DESIGN.md`: white canvas default, deep-green/navy
+### Phase 4 — UI Reskin (Cohere / `docs/design/design-system.md`)
+- Adopt the Cohere design system from `docs/design/design-system.md`: white canvas default, deep-green/navy
   feature bands, pill CTAs, tight display type + measured body type, flat surfaces with
   thin hairline borders, coral/blue used only as accents.
 - **Reconcile with the existing glassmorphism theme** — decide at phase start whether to
   fully replace glass with the Cohere flat system or blend. Default recommendation:
-  replace glass with the flat editorial system for coherence with `DESIGN.md`.
-- Map `DESIGN.md` tokens (colors, typography, radius, spacing) into `tailwind.config.ts`
+  replace glass with the flat editorial system for coherence with `docs/design/design-system.md`.
+- Map `docs/design/design-system.md` tokens (colors, typography, radius, spacing) into `tailwind.config.ts`
   and `globals.css` as the design-token source of truth.
 
-**Verify:** suite green; visual review against `DESIGN.md`; dark/light modes intact;
+**Verify:** suite green; visual review against `docs/design/design-system.md`; dark/light modes intact;
 `prefers-reduced-motion` respected.
 
 ## Error Handling & Rollback
@@ -137,6 +137,6 @@ Cover critical flows:
 
 ## Out of Scope
 
-- New features; flow changes beyond what `DESIGN.md` visually implies.
+- New features; flow changes beyond what `docs/design/design-system.md` visually implies.
 - MCP server build-out.
 - Database schema changes.

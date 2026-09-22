@@ -63,7 +63,7 @@ yarn-error.log*
 skills-lock.json
 .claude/skills/**/*.zip
 
-/lib/generated/prisma
+/src/lib/generated/prisma
 
 # JSON data files (user data, not tracked)
 data/*.json

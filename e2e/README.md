@@ -65,5 +65,5 @@ Authed (`authed/*.spec.ts`):
 ### Deferred (add as the refactor touches them)
 Timer → time-record creation, time-record cascade-shift edit, timetable autopush cascade,
 weekly-plan drag-and-drop, and JSON import. The timetable/time-record auto-logic helpers
-(`hooks/use-timetable-logic.ts`) are pure functions and are better covered by fast unit
+(`src/hooks/use-timetable-logic.ts`) are pure functions and are better covered by fast unit
 tests — a good fast-follow once the suite needs deeper auto-logic protection.

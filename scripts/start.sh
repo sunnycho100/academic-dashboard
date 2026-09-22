@@ -5,6 +5,9 @@
 
 set -e
 
+# Run from the repo root regardless of where the script is invoked
+cd "$(dirname "$0")/.."
+
 # Colors for output
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'

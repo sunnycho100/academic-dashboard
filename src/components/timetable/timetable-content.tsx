@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Timetable } from '@/components/timetable'
+import { Timetable } from '@/components/timetable/timetable'
 
 export function TimetableContent() {
   return (

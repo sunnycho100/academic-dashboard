@@ -46,7 +46,7 @@ Two local persistence modes: **JSON files** (default, zero infrastructure) or **
 ### JSON Mode (Recommended)
 
 ```bash
-./start.sh
+./scripts/start.sh
 ```
 
 Installs deps, creates `data/`, runs a **production build**, and serves it at [localhost:3000](http://localhost:3000) — identical output to the Vercel deployment. No Docker needed.
@@ -60,7 +60,7 @@ Requires Docker Desktop.
 echo 'STORAGE_MODE=postgres
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/academic_dashboard"' > .env
 
-./db_start.sh
+./scripts/db_start.sh
 ```
 
 ### Manual
@@ -73,7 +73,7 @@ STORAGE_MODE=json pnpm dev       # or STORAGE_MODE=postgres (after docker compos
 ### Migrating PostgreSQL → JSON
 
 ```bash
-npx tsx scripts/migrate-db-to-json.ts && ./start.sh
+npx tsx scripts/migrate-db-to-json.ts && ./scripts/start.sh
 ```
 
 ---
@@ -82,19 +82,19 @@ npx tsx scripts/migrate-db-to-json.ts && ./start.sh
 
 ```
 Browser (React client)
-  ├── React useState in app/page.tsx (root state, no external state lib)
+  ├── React useState in src/app/page.tsx (root state, no external state lib)
   ├── localStorage (timers, today panel, day boundaries)
   └── fetch() / sendBeacon → API routes
                                 ↓
-                          lib/db.ts (storage factory)
-                           ├── lib/json-db.ts → data/*.json
-                           └── lib/prisma.ts  → PostgreSQL
+                          src/lib/db.ts (storage factory)
+                           ├── src/lib/json-db.ts → data/*.json
+                           └── src/lib/prisma.ts  → PostgreSQL
 ```
 
 ### Component Tree
 
 ```
-Home (app/page.tsx)
+Home (src/app/page.tsx)
   ├── LandingSequence
   ├── IdleOverlay
   ├── Tab: Class Catch-up (CatchupContent)
@@ -125,8 +125,8 @@ Home (app/page.tsx)
 |---|---|
 | `useTaskTimers` | Per-task timers, localStorage-backed, `sendBeacon` on unload, idle-gap reconciliation |
 | `useIdleDetector` | 5-min inactivity → power-save mode (Page Visibility API aware) |
-| `useTasks` | Task CRUD mutations (create, update, delete, reorder, bulk delete) — extracted from `app/page.tsx` |
-| `useCategories` | Category CRUD mutations (create, update, delete, reorder) — extracted from `app/page.tsx` |
+| `useTasks` | Task CRUD mutations (create, update, delete, reorder, bulk delete) — extracted from `src/app/page.tsx` |
+| `useCategories` | Category CRUD mutations (create, update, delete, reorder) — extracted from `src/app/page.tsx` |
 | `useTimetableLogic` | Timetable autofill, autopush cascade, and row state management |
 
 ---
@@ -136,17 +136,17 @@ Home (app/page.tsx)
 All API routes are hardened against the OWASP Top 10 relevant to this surface:
 
 - **Input validation** — every route has a Zod schema; all string fields have `min`/`max` bounds; dates validated before DB write; enums enforced where applicable
-- **Path traversal** — `lib/json-db.ts` `validateFilename()` rejects any filename not matching `^[a-z0-9\-]+\.json$`
+- **Path traversal** — `src/lib/json-db.ts` `validateFilename()` rejects any filename not matching `^[a-z0-9\-]+\.json$`
 - **Error leakage** — all catch blocks return opaque `500` responses; no `throw err` to client
 - **Production guards** — `POST /api/seed`, `POST /api/bulk`, `DELETE /api/tasks`, `DELETE /api/completed-tasks/cleanup` return `403` when `NODE_ENV=production`
 - **HTTP security headers** — `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: origin-when-cross-origin`, `Permissions-Policy`, `Content-Security-Policy`, `X-DNS-Prefetch-Control`
-- **No secrets in client bundle** — `process.env` usage is confined to `app/api/` and `lib/`; no `NEXT_PUBLIC_` secrets; `data/*.json` files are gitignored
+- **No secrets in client bundle** — `process.env` usage is confined to `src/app/api/` and `lib/`; no `NEXT_PUBLIC_` secrets; `data/*.json` files are gitignored
 
 ---
 
 ## API Routes
 
-All routes use `lib/db.ts` — never direct DB calls. All have Zod validation.
+All routes use `src/lib/db.ts` — never direct DB calls. All have Zod validation.
 
 | Method | Endpoint | Description |
 |---|---|---|
@@ -191,8 +191,8 @@ JSON Mode files: `data/{categories,tasks,completed-tasks,time-records,weekly-pla
 
 | Command | Description |
 |---|---|
-| `./start.sh` | JSON Mode — production build + serve (matches Vercel output) |
-| `./db_start.sh` | Database Mode startup (Docker + migrations) |
+| `./scripts/start.sh` | JSON Mode — production build + serve (matches Vercel output) |
+| `./scripts/db_start.sh` | Database Mode startup (Docker + migrations) |
 | `pnpm dev` | Dev server (needs `STORAGE_MODE` set) |
 | `pnpm build` | Production build (TypeScript errors fail the build) |
 | `pnpm start` | Serve production build (needs `STORAGE_MODE` set) |
@@ -247,7 +247,7 @@ Two local persistence modes: **JSON files** (default, zero infrastructure) or **
 ### JSON Mode (Recommended)
 
 ```bash
-./start.sh
+./scripts/start.sh
 ```
 
 No Docker needed. Installs deps, creates `data/`, starts dev server at [localhost:3000](http://localhost:3000).
@@ -261,7 +261,7 @@ Requires Docker Desktop.
 echo 'STORAGE_MODE=postgres
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/academic_dashboard"' > .env
 
-./db_start.sh
+./scripts/db_start.sh
 ```
 
 ### Manual
@@ -274,7 +274,7 @@ STORAGE_MODE=json pnpm dev       # or STORAGE_MODE=postgres (after docker compos
 ### Migrating PostgreSQL → JSON
 
 ```bash
-npx tsx scripts/migrate-db-to-json.ts && ./start.sh
+npx tsx scripts/migrate-db-to-json.ts && ./scripts/start.sh
 ```
 
 ---
@@ -283,19 +283,19 @@ npx tsx scripts/migrate-db-to-json.ts && ./start.sh
 
 ```
 Browser (React client)
-  ├── React useState in app/page.tsx (root state, no external state lib)
+  ├── React useState in src/app/page.tsx (root state, no external state lib)
   ├── localStorage (timers, today panel, day boundaries)
   └── fetch() / sendBeacon → API routes
                                 ↓
-                          lib/db.ts (storage factory)
-                           ├── lib/json-db.ts → data/*.json
-                           └── lib/prisma.ts  → PostgreSQL
+                          src/lib/db.ts (storage factory)
+                           ├── src/lib/json-db.ts → data/*.json
+                           └── src/lib/prisma.ts  → PostgreSQL
 ```
 
 ### Component Tree
 
 ```
-Home (app/page.tsx)
+Home (src/app/page.tsx)
   ├── LandingSequence
   ├── IdleOverlay
   ├── Tab: Class Catch-up
@@ -321,7 +321,7 @@ Home (app/page.tsx)
 
 ## API Routes
 
-All routes use `lib/db.ts` — never direct DB calls.
+All routes use `src/lib/db.ts` — never direct DB calls.
 
 | Method | Endpoint | Description |
 |---|---|---|
@@ -366,8 +366,8 @@ JSON Mode files: `data/{categories,tasks,completed-tasks,time-records,weekly-pla
 
 | Command | Description |
 |---|---|
-| `./start.sh` | JSON Mode startup (no Docker) |
-| `./db_start.sh` | Database Mode startup (Docker + migrations) |
+| `./scripts/start.sh` | JSON Mode startup (no Docker) |
+| `./scripts/db_start.sh` | Database Mode startup (Docker + migrations) |
 | `pnpm dev:json` | Dev server in JSON mode |
 | `pnpm dev:postgres` | Dev server in Database mode |
 | `pnpm build` | Production build (TypeScript errors fail the build) |
