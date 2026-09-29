@@ -71,4 +71,6 @@ pnpm test:e2e     # build, then Playwright against the Electron app
 ## Testing
 - `e2e/support/app.ts` launches the built app per test with a fresh temp database and exposes
   `page`, `electronApp`, and an `api` fixture (seed via the app's own /api).
+- Tests launch the app with `ACADEMIC_DASHBOARD_HIDDEN=1`: no window, no Dock icon, nothing on screen.
+- CI (`.github/workflows/ci.yml`) runs typecheck, unit tests and e2e (under xvfb) on every PR and push to main.
 - The e2e suite is the regression gate. Keep it green.

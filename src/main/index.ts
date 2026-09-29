@@ -11,6 +11,9 @@ protocol.registerSchemesAsPrivileged([
 // Tests point this at a temp folder so every run starts with an empty database.
 if (process.env.ACADEMIC_DASHBOARD_USER_DATA) app.setPath('userData', process.env.ACADEMIC_DASHBOARD_USER_DATA)
 
+// Tests run the app without a visible window or Dock icon so they don't take over the screen.
+const hidden = process.env.ACADEMIC_DASHBOARD_HIDDEN === '1'
+
 const devServerUrl = process.env.ELECTRON_RENDERER_URL
 const rendererDir = path.join(__dirname, '../renderer')
 
@@ -48,9 +51,10 @@ function createWindow() {
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 18, y: 18 },
     show: false,
-    webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false },
+    // A hidden window must keep rendering at full speed for tests to drive it.
+    webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: !hidden },
   })
-  win.once('ready-to-show', () => win.show())
+  if (!hidden) win.once('ready-to-show', () => win.show())
   // External links open in the default browser, never inside the app window.
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('https://')) shell.openExternal(url)
@@ -74,6 +78,7 @@ if (!app.requestSingleInstanceLock()) {
   })
 
   app.whenReady().then(async () => {
+    if (hidden) app.dock?.hide()
     await registerAppProtocol()
     createWindow()
     app.on('activate', () => {

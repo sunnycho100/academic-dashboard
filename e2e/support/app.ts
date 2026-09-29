@@ -24,7 +24,7 @@ export const test = base.extend<{ electronApp: ElectronApplication; page: Page; 
     const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'academic-dashboard-e2e-'))
     const app = await electron.launch({
       args: [path.resolve(__dirname, '..', '..')],
-      env: { ...process.env, ACADEMIC_DASHBOARD_USER_DATA: userData },
+      env: { ...process.env, ACADEMIC_DASHBOARD_USER_DATA: userData, ACADEMIC_DASHBOARD_HIDDEN: '1' },
     })
     await use(app)
     await app.close()
