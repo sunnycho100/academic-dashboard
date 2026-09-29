@@ -12,7 +12,7 @@ test.describe('timetable autofill', () => {
 
   test('focusing an empty planned-start autofills a time', async ({ page }) => {
     await page.goto(APP_URL)
-    await page.getByRole('button', { name: /timetable/i }).click()
+    await page.getByRole('tab', { name: 'Timetable' }).click()
 
     // The grid pre-pads blank rows; the first planned-start cell starts empty.
     const plannedStart = page.locator('input[type="time"]').first()

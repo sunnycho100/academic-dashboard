@@ -1,51 +1,9 @@
 import { Task } from '@/lib/types'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { CheckCircle2, AlertCircle, Clock, ListTodo } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { liquidStaggerContainer, liquidStaggerChild, childSpring } from '@/lib/liquidTransitions'
 
 interface StatsProps {
   tasks: Task[]
   completedTodayCount: number
-  todayRemainingCount: number
-}
-
-function ProgressRing({ progress, size = 36, strokeWidth = 3, color }: {
-  progress: number
-  size?: number
-  strokeWidth?: number
-  color: string
-}) {
-  const radius = (size - strokeWidth) / 2
-  const circumference = radius * 2 * Math.PI
-  const offset = circumference - (progress / 100) * circumference
-
-  return (
-    <svg width={size} height={size} className="transform -rotate-90">
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={strokeWidth}
-        className="text-muted/30"
-      />
-      <motion.circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="none"
-        stroke={color}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeDasharray={circumference}
-        initial={{ strokeDashoffset: circumference }}
-        animate={{ strokeDashoffset: offset }}
-        transition={{ duration: 1, ease: 'easeOut', delay: 0.2 }}
-      />
-    </svg>
-  )
 }
 
 function AnimatedCounter({ value }: { value: number }) {
@@ -65,10 +23,8 @@ function AnimatedCounter({ value }: { value: number }) {
   )
 }
 
-export function Stats({ tasks, completedTodayCount, todayRemainingCount }: StatsProps) {
+export function Stats({ tasks, completedTodayCount }: StatsProps) {
   const totalTasks = tasks.length
-  const overallTotal = completedTodayCount + totalTasks
-  const completionPercent = overallTotal > 0 ? Math.round((completedTodayCount / overallTotal) * 100) : 0
   const dueSoonTasks = tasks.filter((t) => {
     if (!t.dueAt) return false
     const dueDate = new Date(t.dueAt)
@@ -87,92 +43,22 @@ export function Stats({ tasks, completedTodayCount, todayRemainingCount }: Stats
   }).length
 
   const stats = [
-    {
-      label: 'Total Tasks',
-      value: totalTasks,
-      icon: ListTodo,
-      color: '#3b82f6',
-      bgGlow: 'hover:shadow-blue-500/20',
-    },
-    {
-      label: 'Completed',
-      value: completedTodayCount,
-      icon: CheckCircle2,
-      color: '#22c55e',
-      bgGlow: 'hover:shadow-green-500/20',
-      showProgress: true,
-    },
-    {
-      label: 'Due Soon',
-      value: dueSoonTasks,
-      icon: Clock,
-      color: '#eab308',
-      bgGlow: 'hover:shadow-yellow-500/20',
-    },
-    {
-      label: 'Overdue',
-      value: overdueTasks,
-      icon: AlertCircle,
-      color: '#f87171',
-      bgGlow: 'hover:shadow-red-400/20',
-      isUrgent: true,
-    },
+    { label: 'tasks', value: totalTasks },
+    { label: 'due soon', value: dueSoonTasks },
+    { label: 'overdue', value: overdueTasks, urgent: overdueTasks > 0 },
+    { label: 'done today', value: completedTodayCount },
   ]
 
   return (
-    <motion.div
-      variants={liquidStaggerContainer}
-      initial="initial"
-      animate="animate"
-      className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8"
-    >
-      {stats.map((stat, index) => (
-        <motion.div
-          key={stat.label}
-          variants={liquidStaggerChild}
-          whileHover={{ y: -5, scale: 1.02, transition: { type: 'spring', stiffness: 300, damping: 25 } }}
-          whileTap={{ scale: 0.97 }}
-        >
-          <Card className={`relative overflow-hidden rounded-2xl transition-all duration-300 hover:shadow-lg h-full glass-interactive glass-hover-glow ${stat.bgGlow}`}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                {stat.label}
-              </CardTitle>
-              <div className="relative flex items-center justify-center w-9 h-9">
-                {stat.showProgress ? (
-                  <div className="relative flex items-center justify-center">
-                    <ProgressRing progress={completionPercent} color={stat.color} />
-                    <span className="absolute text-[9px] font-bold text-muted-foreground">
-                      {completionPercent}%
-                    </span>
-                  </div>
-                ) : (
-                  <motion.div
-                    initial={{ scale: 0, rotate: -45 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.2 + index * 0.05 }}
-                  >
-                    <stat.icon className="h-4 w-4" style={{ color: stat.color }} />
-                  </motion.div>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="pb-4">
-              <div className="text-3xl font-bold tracking-tight">
-                <AnimatedCounter value={stat.value} />
-              </div>
-              {/* Subtle bottom accent line */}
-              <motion.div
-                className="absolute bottom-0 left-0 h-[2px] rounded-full"
-                style={{ backgroundColor: stat.color }}
-                initial={{ width: 0 }}
-                animate={{ width: '100%' }}
-                transition={{ duration: 0.6, delay: 0.3 + index * 0.1, ease: [0.23, 1, 0.32, 1] }}
-              />
-            </CardContent>
-          </Card>
-        </motion.div>
+    <div className="flex items-baseline gap-7 border-b border-border pb-4 mb-5">
+      {stats.map((stat) => (
+        <div key={stat.label} className="flex items-baseline gap-2">
+          <span className={`font-serif text-[2.5rem] leading-none ${stat.urgent ? 'text-destructive' : ''}`}>
+            <AnimatedCounter value={stat.value} />
+          </span>
+          <span className="text-xs uppercase tracking-wider text-muted-foreground">{stat.label}</span>
+        </div>
       ))}
-    </motion.div>
+    </div>
   )
 }

@@ -88,7 +88,7 @@ export function FocusModeOverlay({
         className="relative z-10 w-full max-w-lg max-h-[80vh] rounded-3xl glass-thick shadow-2xl flex flex-col overflow-hidden"
         transition={{ type: 'spring', stiffness: 250, damping: 28 }}
       >
-        <div className="px-6 pt-6 pb-4 border-b border-white/10">
+        <div className="px-6 pt-6 pb-4 border-b border-border">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -150,7 +150,7 @@ export function FocusModeOverlay({
                   className={cn(
                     'group flex items-center gap-3 p-4 rounded-2xl transition-all duration-200',
                     'glass-thin glass-interactive',
-                    'border border-white/10 hover:border-white/20',
+                    'border border-border hover:border-foreground/20',
                     task.status === 'done' && 'opacity-40',
                     isRunning && 'ring-2 ring-primary/20'
                   )}
@@ -285,7 +285,7 @@ export function FocusModeOverlay({
         </ScrollArea>
         
         {/* Study Time Footer in Focus Mode */}
-        <div className="border-t border-white/10 px-6 py-4 glass-thick">
+        <div className="border-t border-border px-6 py-4 glass-thick">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">

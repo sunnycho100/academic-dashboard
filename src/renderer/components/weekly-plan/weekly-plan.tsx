@@ -197,11 +197,11 @@ export function WeeklyPlan({ tasks, categories, open, onOpenChange, onEntriesCha
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <motion.div
-                    className="h-7 w-7 rounded-xl bg-violet-500/10 flex items-center justify-center"
+                    className="h-7 w-7 rounded-xl bg-today/10 flex items-center justify-center"
                     whileHover={{ scale: 1.1, rotate: 5 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <CalendarDays className="h-3.5 w-3.5 text-violet-500" />
+                    <CalendarDays className="h-3.5 w-3.5 text-today" />
                   </motion.div>
                   <h2 className="font-semibold text-sm tracking-tight">Weekly Plan</h2>
                 </div>
@@ -246,7 +246,7 @@ export function WeeklyPlan({ tasks, categories, open, onOpenChange, onEntriesCha
               </div>
             </div>
 
-            <div className="mx-4 border-t border-white/10" />
+            <div className="mx-4 border-t border-border" />
 
             {/* 7-day grid */}
             <div className="px-4 py-3">
@@ -263,24 +263,24 @@ export function WeeklyPlan({ tasks, categories, open, onOpenChange, onEntriesCha
                       {/* Day header */}
                       <div className={cn(
                         'px-2.5 py-1.5 flex items-center justify-between border-b',
-                        isToday ? 'border-violet-500/20' : 'border-white/10',
+                        isToday ? 'border-today/20' : 'border-border',
                       )}>
                         <div className="flex items-center gap-1.5">
                           <span className={cn(
                             'text-[11px] font-semibold uppercase tracking-wider',
-                            isToday ? 'text-violet-500' : 'text-muted-foreground/70',
+                            isToday ? 'text-today' : 'text-muted-foreground/70',
                           )}>
                             {DAY_LABELS[idx]}
                           </span>
                           <span className={cn(
                             'text-[10px] tabular-nums',
-                            isToday ? 'text-violet-500/70' : 'text-muted-foreground/40',
+                            isToday ? 'text-today/70' : 'text-muted-foreground/40',
                           )}>
                             {date.getDate()}
                           </span>
                         </div>
                         {isToday && (
-                          <span className="h-1.5 w-1.5 rounded-full bg-violet-500" />
+                          <span className="h-1.5 w-1.5 rounded-full bg-today" />
                         )}
                       </div>
 
@@ -423,9 +423,9 @@ function DroppableDayColumn({
       className={cn(
         'rounded-xl border transition-colors min-h-[140px] flex flex-col',
         isToday
-          ? 'border-violet-500/40 bg-violet-500/5'
-          : 'border-white/10 bg-white/5 hover:bg-white/8',
-        isOver && 'ring-2 ring-violet-500/40 bg-violet-500/10',
+          ? 'border-today/40 bg-today/5'
+          : 'border-border bg-secondary hover:bg-secondary',
+        isOver && 'ring-2 ring-today/40 bg-today/10',
       )}
     >
       {children}

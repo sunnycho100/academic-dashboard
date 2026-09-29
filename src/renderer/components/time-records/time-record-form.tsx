@@ -112,7 +112,7 @@ export function TimeRecordForm({
               const cat = categories.find((c) => c.name === e.target.value)
               onFormChange({ ...form, categoryName: e.target.value, categoryColor: cat?.color || '#6366f1' })
             }}
-            className="h-7 rounded-md border border-white/10 bg-white/5 backdrop-blur-sm px-2 text-xs text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring min-w-[100px]"
+            className="h-7 rounded-md border border-border bg-secondary backdrop-blur-sm px-2 text-xs text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring min-w-[100px]"
           >
             <option value="">Category</option>
             {categories.map((cat) => (

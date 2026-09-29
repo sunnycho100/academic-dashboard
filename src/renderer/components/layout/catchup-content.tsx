@@ -4,7 +4,6 @@ import { TodayPanel } from '@/components/today/today-panel'
 import { Stats } from '@/components/layout/stats'
 import { EmptyState } from '@/components/layout/empty-state'
 import { WeeklyPlan, type WeeklyPlanEntry } from '@/components/weekly-plan/weekly-plan'
-import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Select,
@@ -15,7 +14,6 @@ import {
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
-import { Plus, CalendarDays } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { viewTransitionVariants } from '@/lib/liquidTransitions'
 
@@ -99,30 +97,10 @@ export function CatchupContent({
       className="flex flex-col h-full min-h-0"
     >
       {/* Stats */}
-      <Stats tasks={tasks} completedTodayCount={completedTodayCount} todayRemainingCount={todayTaskIds.length} />
+      <Stats tasks={tasks} completedTodayCount={completedTodayCount} />
 
       {/* View Tabs + Add Task Button + Controls */}
       <div className="flex items-center gap-3 mb-6 flex-wrap">
-        <motion.div whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.02 }}>
-          <Button
-            id="add-task-button"
-            onClick={onAddTaskOpen}
-            className="rounded-lg shadow-sm glass-shimmer-on-hover"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Task
-          </Button>
-        </motion.div>
-        <motion.div whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.02 }}>
-          <Button
-            variant={weeklyPlanOpen ? 'default' : 'glass'}
-            onClick={() => setWeeklyPlanOpen(!weeklyPlanOpen)}
-            className="rounded-lg shadow-sm"
-          >
-            <CalendarDays className="h-4 w-4 mr-2" />
-            Weekly Plan
-          </Button>
-        </motion.div>
         <Tabs
           value={viewMode}
           onValueChange={(value) => setViewMode(value as ViewMode)}

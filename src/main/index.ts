@@ -43,7 +43,10 @@ function createWindow() {
     minWidth: 1024,
     minHeight: 680,
     title: 'Academic Dashboard',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f7f5ef',
+    // Native traffic lights inset into the sidebar; the header row is the drag area.
+    titleBarStyle: 'hiddenInset',
+    trafficLightPosition: { x: 18, y: 18 },
     show: false,
     webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false },
   })

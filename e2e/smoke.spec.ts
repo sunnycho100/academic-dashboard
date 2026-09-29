@@ -13,11 +13,12 @@ test.describe('app shell', () => {
 
   test('main tabs render and switch', async ({ page }) => {
     await page.goto(APP_URL)
-    const catchup = page.getByRole('button', { name: /class catch-up/i })
-    const timetable = page.getByRole('button', { name: /timetable/i })
-    await expect(catchup).toBeVisible()
-    await timetable.click()
-    await expect(catchup).toBeVisible()
+    const tasks = page.getByRole('tab', { name: 'Tasks' })
+    await expect(tasks).toHaveAttribute('aria-selected', 'true')
+    await page.getByRole('tab', { name: 'Timetable' }).click()
+    await expect(page.getByRole('tab', { name: 'Timetable' })).toHaveAttribute('aria-selected', 'true')
+    await tasks.click()
+    await expect(tasks).toHaveAttribute('aria-selected', 'true')
   })
 
   test('light mode is the default', async ({ page }) => {

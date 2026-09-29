@@ -21,7 +21,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
-import { Settings, Download, Upload, Trash2, Palette, Clock, AlertTriangle, UserPen } from 'lucide-react'
+import { Settings, Download, Upload, Trash2, Palette, AlertTriangle, UserPen, Plus } from 'lucide-react'
 import { EditPersonalInfoDialog } from '@/components/settings/edit-personal-info-dialog'
 import {
   AlertDialog,
@@ -554,47 +554,52 @@ export default function Home() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Header */}
-        <header className="border-b border-white/10 glass-thick px-6 py-4 sticky top-0 z-30">
-          <div className="flex items-center justify-between">
-            {/* Tab navigation */}
-            <div className="flex items-center gap-1.5 rounded-xl bg-foreground/[0.03] p-1.5 border border-foreground/[0.05] shadow-inner dark:bg-background/40">
-              <button
-                onClick={() => setActiveMainTab('catchup')}
-                className={`relative px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${
-                  activeMainTab === 'catchup'
-                    ? 'text-foreground'
-                    : 'text-muted-foreground/70 hover:text-foreground hover:bg-foreground/[0.02]'
-                }`}
-              >
-                {activeMainTab === 'catchup' && (
-                  <motion.div
-                    layoutId="mainTabIndicator"
-                    className="absolute inset-0 rounded-lg bg-background shadow-sm border border-border/50"
-                    transition={{ type: 'spring', stiffness: 450, damping: 35 }}
-                  />
-                )}
-                <span className="relative z-10 tracking-tight">Class Catch-up</span>
-              </button>
-              <button
-                onClick={() => setActiveMainTab('timetable')}
-                className={`relative px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 flex items-center gap-2 ${
-                  activeMainTab === 'timetable'
-                    ? 'text-foreground'
-                    : 'text-muted-foreground/70 hover:text-foreground hover:bg-foreground/[0.02]'
-                }`}
-              >
-                {activeMainTab === 'timetable' && (
-                  <motion.div
-                    layoutId="mainTabIndicator"
-                    className="absolute inset-0 rounded-lg bg-background shadow-sm border border-border/50"
-                    transition={{ type: 'spring', stiffness: 450, damping: 35 }}
-                  />
-                )}
-                <Clock className="h-4 w-4 relative z-10" />
-                <span className="relative z-10 tracking-tight">Timetable</span>
-              </button>
+        <header className="app-drag border-b border-border bg-background px-7 pt-5 pb-4 sticky top-0 z-30">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-5 min-w-0">
+              <h1 className="font-serif text-[2rem] leading-none tracking-tight">Class Catch-up</h1>
+              {/* Segmented control: Weekly plan is the task view with the week grid shown */}
+              <div className="flex items-center rounded-full border border-border bg-card p-1" role="tablist">
+                {([
+                  { key: 'tasks', label: 'Tasks' },
+                  { key: 'weekly', label: 'Weekly plan' },
+                  { key: 'timetable', label: 'Timetable' },
+                ] as const).map(({ key, label }) => {
+                  const current = activeMainTab === 'timetable' ? 'timetable' : weeklyPlanOpen ? 'weekly' : 'tasks'
+                  const selected = current === key
+                  return (
+                    <button
+                      key={key}
+                      role="tab"
+                      aria-selected={selected}
+                      onClick={() => {
+                        setActiveMainTab(key === 'timetable' ? 'timetable' : 'catchup')
+                        if (key !== 'timetable') setWeeklyPlanOpen(key === 'weekly')
+                      }}
+                      className={`relative px-4 py-1.5 text-sm rounded-full transition-colors duration-150 ${
+                        selected ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {selected && (
+                        <motion.div
+                          layoutId="mainTabIndicator"
+                          className="absolute inset-0 rounded-full bg-primary"
+                          transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                        />
+                      )}
+                      <span className="relative z-10">{label}</span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
             <div className="flex items-center gap-2">
+              {activeMainTab === 'catchup' && categories.length > 0 && (
+                <Button id="add-task-button" onClick={() => setAddTaskOpen(true)} className="rounded-full px-4 mr-1">
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Add task
+                </Button>
+              )}
               {activeMainTab === 'catchup' && tasks.length > 0 && (
                 <Button
                   variant="ghost"
@@ -651,7 +656,7 @@ export default function Home() {
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 flex flex-col overflow-hidden p-6">
+        <div className="flex-1 flex flex-col overflow-hidden px-7 py-5">
           {activeMainTab === 'timetable' ? (
             <TimetableContent />
           ) : (

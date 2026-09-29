@@ -93,7 +93,7 @@ export function TaskMetadata({ task, category, onSave, weeklyDayLabels }: TaskMe
               <Badge
                 key={day}
                 variant="outline"
-                className="text-[9px] px-1.5 py-0 h-4 font-medium text-violet-600 dark:text-violet-400 border-violet-400/40 bg-violet-500/10"
+                className="text-[9px] px-1.5 py-0 h-4 font-medium text-today dark:text-today border-today/40 bg-today/10"
               >
                 {day}
               </Badge>

@@ -202,16 +202,16 @@ export function Timetable() {
             <tr
               className="text-[11px] uppercase tracking-wider text-muted-foreground/60 select-none"
             >
-              <th className="w-7 border-b border-white/[0.06]" />
-              <th className="text-left font-medium px-3 py-2.5 border-b border-white/[0.06] min-w-[118px] w-[118px]">Start</th>
-              <th className="text-left font-medium px-3 py-2.5 border-b border-white/[0.06] min-w-[118px] w-[118px]">End</th>
-              <th className="text-left font-medium px-3 py-2.5 border-b border-white/[0.06] w-[68px]">Total</th>
-              <th className="text-left font-medium px-3 py-2.5 border-b border-white/[0.06] min-w-[80px]">Activity</th>
-              <th className="text-left font-medium px-3 py-2.5 border-b border-white/[0.06] min-w-[118px] w-[118px]">Act. Start</th>
-              <th className="text-left font-medium px-3 py-2.5 border-b border-white/[0.06] min-w-[118px] w-[118px]">Act. End</th>
-              <th className="text-left font-medium px-3 py-2.5 border-b border-white/[0.06] w-[68px]">Act. Dur</th>
-              <th className="text-left font-medium px-3 py-2.5 border-b border-white/[0.06] max-w-[120px]">Notes</th>
-              <th className="w-8 border-b border-white/[0.06]" />
+              <th className="w-7 border-b border-border" />
+              <th className="text-left font-medium px-3 py-2.5 border-b border-border min-w-[118px] w-[118px]">Start</th>
+              <th className="text-left font-medium px-3 py-2.5 border-b border-border min-w-[118px] w-[118px]">End</th>
+              <th className="text-left font-medium px-3 py-2.5 border-b border-border w-[68px]">Total</th>
+              <th className="text-left font-medium px-3 py-2.5 border-b border-border min-w-[80px]">Activity</th>
+              <th className="text-left font-medium px-3 py-2.5 border-b border-border min-w-[118px] w-[118px]">Act. Start</th>
+              <th className="text-left font-medium px-3 py-2.5 border-b border-border min-w-[118px] w-[118px]">Act. End</th>
+              <th className="text-left font-medium px-3 py-2.5 border-b border-border w-[68px]">Act. Dur</th>
+              <th className="text-left font-medium px-3 py-2.5 border-b border-border max-w-[120px]">Notes</th>
+              <th className="w-8 border-b border-border" />
             </tr>
           </thead>
           <SortableContext items={entries.map((e) => e.id)} strategy={verticalListSortingStrategy}>

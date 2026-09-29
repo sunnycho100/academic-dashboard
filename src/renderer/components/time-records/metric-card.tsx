@@ -22,7 +22,7 @@ export function MetricCard({
 }: MetricCardProps) {
   return (
     <motion.div
-      className="flex-1 min-w-[110px] rounded-xl border border-white/[0.08] p-3 flex flex-col gap-1.5 relative overflow-hidden group"
+      className="flex-1 min-w-[110px] rounded-xl border border-border p-3 flex flex-col gap-1.5 relative overflow-hidden group"
       style={{ WebkitMaskImage: '-webkit-radial-gradient(white, black)' }}
       initial={{ opacity: 0, y: 12, scale: 0.95, z: 0 }}
       animate={{
@@ -41,7 +41,7 @@ export function MetricCard({
       {/* Gradient background */}
       <div className={cn('absolute inset-0 opacity-[0.07] dark:opacity-[0.12]', gradient)} />
       {/* Glass surface */}
-      <div className="absolute inset-0 backdrop-blur-xl bg-white/[0.03] dark:bg-white/[0.02]" />
+      <div className="absolute inset-0 backdrop-blur-xl bg-secondary dark:bg-white/[0.02]" />
       {/* Inset highlight */}
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
       <div className="relative z-10">

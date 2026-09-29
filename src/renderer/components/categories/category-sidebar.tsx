@@ -74,10 +74,12 @@ export function CategorySidebar({
   )
 
   return (
-    <div className="w-64 border-r border-white/10 glass-thick flex flex-col h-full">
-      <div className="p-4 border-b border-white/10">
-        <h2 className="font-semibold text-xs mb-3 text-muted-foreground/70 uppercase tracking-widest">
-          Categories
+    <div className="w-64 border-r border-border bg-sidebar flex flex-col h-full">
+      {/* Top inset clears the macOS traffic lights and doubles as a drag area */}
+      <div className="app-drag h-11 flex-shrink-0" />
+      <div className="px-4 pb-4 border-b border-border">
+        <h2 className="font-medium text-xs mb-3 text-muted-foreground uppercase tracking-widest">
+          Courses
         </h2>
         <div className="relative mb-3">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground/50" />
@@ -85,7 +87,7 @@ export function CategorySidebar({
             placeholder="Search..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-8 h-9 rounded-lg bg-white/5 border-white/10 text-sm placeholder:text-muted-foreground/40"
+            className="pl-8 h-9 rounded-lg bg-secondary border-border text-sm placeholder:text-muted-foreground/40"
           />
         </div>
         <div className="flex gap-2">
@@ -94,7 +96,7 @@ export function CategorySidebar({
               onClick={onAddCategory}
               variant="outline"
               size="sm"
-              className="w-full rounded-lg border-dashed border-white/15 hover:border-white/30 hover:bg-white/5 transition-all duration-200"
+              className="w-full rounded-lg border-dashed border-border hover:border-foreground/20 hover:bg-secondary transition-all duration-200"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add
@@ -114,7 +116,7 @@ export function CategorySidebar({
                 size="sm"
                 className={cn(
                   'rounded-lg transition-all duration-200',
-                  !editMode && 'border-dashed border-white/15 hover:border-primary/50 hover:bg-primary/5 hover:text-primary'
+                  !editMode && 'border-dashed border-border hover:border-primary/50 hover:bg-primary/5 hover:text-primary'
                 )}
               >
                 <Pencil className="h-4 w-4 mr-1" />
@@ -133,8 +135,8 @@ export function CategorySidebar({
               className={cn(
                 'relative w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer',
                 selectedCategoryId === null
-                  ? 'text-foreground bg-white/5'
-                  : 'hover:bg-white/5 text-muted-foreground'
+                  ? 'text-foreground bg-secondary'
+                  : 'hover:bg-secondary text-muted-foreground'
               )}
             >
               {selectedCategoryId === null && (
@@ -170,10 +172,10 @@ export function CategorySidebar({
                   'relative w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2.5 cursor-pointer',
                   editMode && 'pr-20',
                   !editMode && selectedCategoryId === category.id
-                    ? 'text-foreground bg-white/5'
+                    ? 'text-foreground bg-secondary'
                     : !editMode
-                      ? 'hover:bg-white/5 text-foreground/80'
-                      : 'hover:bg-white/5 text-foreground/80 cursor-text'
+                      ? 'hover:bg-secondary text-foreground/80'
+                      : 'hover:bg-secondary text-foreground/80 cursor-text'
                 )}
               >
                 {!editMode && selectedCategoryId === category.id && (
@@ -204,7 +206,7 @@ export function CategorySidebar({
                         if (e.key === 'Escape') { setEditingId(null); setEditValue('') }
                       }}
                       onClick={(e) => e.stopPropagation()}
-                      className="bg-white/10 border border-white/20 rounded px-1.5 py-0.5 text-sm w-full outline-none focus:ring-1 focus:ring-ring"
+                      className="bg-secondary border border-border rounded px-1.5 py-0.5 text-sm w-full outline-none focus:ring-1 focus:ring-ring"
                     />
                   ) : (
                     category.name
@@ -231,7 +233,7 @@ export function CategorySidebar({
                         'p-0.5 rounded transition-colors',
                         index === 0
                           ? 'text-muted-foreground/20 cursor-not-allowed'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-white/10'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
                       )}
                     >
                       <ChevronUp className="h-3.5 w-3.5" />
@@ -245,7 +247,7 @@ export function CategorySidebar({
                         'p-0.5 rounded transition-colors',
                         index === filteredCategories.length - 1
                           ? 'text-muted-foreground/20 cursor-not-allowed'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-white/10'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
                       )}
                     >
                       <ChevronDown className="h-3.5 w-3.5" />
@@ -273,13 +275,13 @@ export function CategorySidebar({
       </ScrollArea>
 
       {/* Time Records & Activity Summary Buttons */}
-      <div className="p-3 border-t border-white/10 space-y-2">
+      <div className="p-3 border-t border-border space-y-2">
         <motion.div whileTap={{ scale: 0.97 }}>
           <Button
             onClick={onOpenTimeRecords}
             variant="outline"
             size="sm"
-            className="w-full rounded-lg border-white/15 hover:border-white/25 hover:bg-white/5 transition-all duration-200"
+            className="w-full rounded-lg border-border hover:border-foreground/20 hover:bg-secondary transition-all duration-200"
           >
             <Clock className="h-4 w-4 mr-2" />
             Time Records
@@ -290,7 +292,7 @@ export function CategorySidebar({
             onClick={() => setSummaryOpen(true)}
             variant="outline"
             size="sm"
-            className="w-full rounded-lg border-white/15 hover:border-white/25 hover:bg-white/5 transition-all duration-200"
+            className="w-full rounded-lg border-border hover:border-foreground/20 hover:bg-secondary transition-all duration-200"
           >
             <BarChart3 className="h-4 w-4 mr-2" />
             Activity Summary

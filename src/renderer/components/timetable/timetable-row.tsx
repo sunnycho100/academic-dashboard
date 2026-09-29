@@ -43,7 +43,7 @@ export function TimetableRow({
   }
 
   const tdBase =
-    'px-3 py-1.5 border-b border-white/[0.04] whitespace-nowrap align-middle'
+    'px-3 py-1.5 border-b border-border whitespace-nowrap align-middle'
 
   const inputBase =
     'bg-transparent border-none outline-none text-sm w-full placeholder:text-muted-foreground/30 focus-visible:ring-0 focus-visible:shadow-none focus:bg-foreground/[0.03] dark:focus:bg-white/[0.06] px-2 py-1 -mx-2 -my-1 rounded-md transition-all tabular-nums'

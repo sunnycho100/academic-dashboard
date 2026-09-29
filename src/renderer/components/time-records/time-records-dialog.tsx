@@ -441,7 +441,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
               }}
             >
               <motion.div
-                className="relative glass-overlay border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col w-full"
+                className="relative glass-overlay border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col w-full"
                 style={{ maxHeight: '85vh' }}
                 initial={{ boxShadow: '0 0 0 0 rgba(59, 130, 246, 0)' }}
                 animate={{
@@ -462,7 +462,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
 
                 {/* Header */}
                 <motion.div
-                  className="px-6 pt-5 pb-4 border-b border-white/[0.06] flex-shrink-0"
+                  className="px-6 pt-5 pb-4 border-b border-border flex-shrink-0"
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: showContent ? 1 : 0, y: showContent ? 0 : -10 }}
                   transition={{ duration: 0.25, delay: 0.05 }}
@@ -486,7 +486,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                     </div>
                     <motion.button
                       onClick={handleClose}
-                      className="rounded-full p-1.5 hover:bg-white/10 transition-colors"
+                      className="rounded-full p-1.5 hover:bg-secondary transition-colors"
                       whileHover={{ rotate: 90, scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
                       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
@@ -517,7 +517,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                           'text-sm font-semibold px-3.5 py-1.5 rounded-lg transition-all duration-200',
                           isToday
                             ? 'bg-gradient-to-r from-blue-500/15 to-cyan-500/15 text-blue-400 border border-blue-500/10'
-                            : 'text-muted-foreground/70 hover:text-foreground hover:bg-white/5'
+                            : 'text-muted-foreground/70 hover:text-foreground hover:bg-secondary'
                         )}
                       >
                         {isToday ? 'Today' : format(selectedDate, 'EEEE')},{' '}
@@ -560,7 +560,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                   <AnimatePresence>
                     {editMode && (
                       <motion.div
-                        className="flex items-center gap-3 mt-3 pt-3 border-t border-white/[0.06]"
+                        className="flex items-center gap-3 mt-3 pt-3 border-t border-border"
                         initial={{ opacity: 0, height: 0, marginTop: 0, paddingTop: 0 }}
                         animate={{ opacity: 1, height: 'auto', marginTop: 12, paddingTop: 12 }}
                         exit={{ opacity: 0, height: 0, marginTop: 0, paddingTop: 0 }}
@@ -571,7 +571,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                           <select
                             value={timelineStartHour}
                             onChange={(e) => handleStartHourChange(Number(e.target.value))}
-                            className="h-7 rounded-md border border-white/10 bg-white/5 backdrop-blur-sm px-2 text-xs text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring"
+                            className="h-7 rounded-md border border-border bg-secondary backdrop-blur-sm px-2 text-xs text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring"
                           >
                             {Array.from({ length: 13 }, (_, i) => (
                               <option key={i} value={i}>
@@ -585,7 +585,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                           <select
                             value={timelineEndHour}
                             onChange={(e) => handleEndHourChange(Number(e.target.value))}
-                            className="h-7 rounded-md border border-white/10 bg-white/5 backdrop-blur-sm px-2 text-xs text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring"
+                            className="h-7 rounded-md border border-border bg-secondary backdrop-blur-sm px-2 text-xs text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring"
                           >
                             {Array.from({ length: 13 }, (_, i) => {
                               const hour = 18 + i // 6 PM through 6 AM next day
@@ -646,7 +646,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                 </motion.div>
 
                 {/* Analytics Cards */}
-                <div className="px-6 py-4 flex gap-3 flex-wrap flex-shrink-0 border-b border-white/[0.06]">
+                <div className="px-6 py-4 flex gap-3 flex-wrap flex-shrink-0 border-b border-border">
                   <MetricCard
                     icon={Clock}
                     label="Total Focus"
@@ -717,7 +717,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                             <motion.div
                               key={record.id}
                               layout
-                              className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-3 py-2.5"
+                              className="flex items-center gap-3 rounded-xl border border-border bg-secondary backdrop-blur-sm px-3 py-2.5"
                             >
                               {/* Color dot */}
                               <div
@@ -825,7 +825,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
                             transition={{ duration: 0.2 }}
-                            className="px-4 py-3 border-b border-white/10 flex-shrink-0"
+                            className="px-4 py-3 border-b border-border flex-shrink-0"
                           >
                             <TimeRecordForm
                               form={newForm}
@@ -853,12 +853,12 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                               <span className="absolute left-2 -top-[9px] text-[10px] font-semibold text-muted-foreground/40 tabular-nums select-none tracking-wide">
                                 {label}
                               </span>
-                              <div className="absolute left-[72px] right-3 h-px bg-white/[0.04] dark:bg-white/[0.06]" />
+                              <div className="absolute left-[72px] right-3 h-px bg-secondary dark:bg-white/[0.06]" />
                               {i < totalHours &&
                                 [1, 2, 3].map((q) => (
                                   <div
                                     key={q}
-                                    className="absolute left-[72px] right-3 h-px bg-white/[0.02] dark:bg-white/[0.03]"
+                                    className="absolute left-[72px] right-3 h-px bg-secondary dark:bg-white/[0.03]"
                                     style={{ top: `${q * QUARTER_HEIGHT}px` }}
                                   />
                                 ))}
@@ -908,7 +908,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
 
                 {/* Footer */}
                 <motion.div
-                  className="px-6 py-3 border-t border-white/[0.06] flex items-center justify-end gap-2 flex-shrink-0"
+                  className="px-6 py-3 border-t border-border flex items-center justify-end gap-2 flex-shrink-0"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: showContent ? 1 : 0, y: showContent ? 0 : 10 }}
                   transition={{ duration: 0.25, delay: 0.22 }}

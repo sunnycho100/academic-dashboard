@@ -263,7 +263,7 @@ export function TodayPanel({
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                className="text-[10px] font-medium text-muted-foreground/50 bg-white/10 px-2 py-0.5 rounded-full tabular-nums mr-1"
+                className="text-[10px] font-medium text-muted-foreground/50 bg-secondary px-2 py-0.5 rounded-full tabular-nums mr-1"
               >
                 {completedCount}/{tasks.length}
               </motion.span>
@@ -343,7 +343,7 @@ export function TodayPanel({
         </div>
       </div>
 
-      <div className="mx-4 border-t border-white/10" />
+      <div className="mx-4 border-t border-border" />
 
       {/* Task list / Drop zone — scrollable */}
       <ScrollArea className="relative z-10 flex-1 min-h-0">
@@ -474,7 +474,7 @@ export function TodayPanel({
                           className={cn(
                             'group relative flex items-center gap-3 p-3 rounded-xl transition-all duration-200',
                             'glass-thin glass-interactive',
-                            'border border-white/10 hover:border-white/20',
+                            'border border-border hover:border-foreground/20',
                             'hover:shadow-md',
                             task.status === 'done' && 'opacity-40',
                             isRunning && 'ring-2 ring-primary/20'
@@ -652,7 +652,7 @@ export function TodayPanel({
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-            className="relative z-10 border-t border-white/10 overflow-hidden flex-shrink-0"
+            className="relative z-10 border-t border-border overflow-hidden flex-shrink-0"
           >
             <div className="px-4 py-3 glass-thick">
               <div className="flex items-center justify-between">

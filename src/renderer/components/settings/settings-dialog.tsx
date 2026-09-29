@@ -54,19 +54,19 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     <AnimatePresence>
       {open && (
         <Dialog open={open} onOpenChange={onOpenChange}>
-          <DialogContent className="sm:max-w-[425px] glass-overlay border-white/10 shadow-2xl overflow-hidden p-0 gap-0">
+          <DialogContent className="sm:max-w-[425px] glass-overlay border-border shadow-2xl overflow-hidden p-0 gap-0">
             {/* Animated top gradient bar */}
             <motion.div
-              className="h-[2px] w-full bg-gradient-to-r from-violet-500/80 via-fuchsia-400/80 to-pink-500/80"
+              className="h-[2px] w-full bg-border"
               initial={{ scaleX: 0 }}
               animate={{ scaleX: 1 }}
               transition={{ duration: 0.5, ease: 'easeOut' }}
               style={{ transformOrigin: 'left' }}
             />
-            <DialogHeader className="px-6 py-5 border-b border-white/[0.06]">
+            <DialogHeader className="px-6 py-5 border-b border-border">
               <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 backdrop-blur-sm flex items-center justify-center border border-violet-500/10">
-                  <SettingsIcon className="h-4.5 w-4.5 text-violet-400" />
+                <div className="h-9 w-9 rounded-xl bg-secondary backdrop-blur-sm flex items-center justify-center border border-violet-500/10">
+                  <SettingsIcon className="h-4.5 w-4.5 text-foreground" />
                 </div>
                 <div>
                   <DialogTitle className="text-lg font-bold tracking-tight">General Settings</DialogTitle>

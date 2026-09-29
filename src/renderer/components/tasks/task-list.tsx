@@ -188,7 +188,7 @@ export function TaskList({
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-              className="text-[10px] font-medium text-muted-foreground/50 bg-white/10 px-2 py-0.5 rounded-full tabular-nums"
+              className="text-[10px] font-medium text-muted-foreground/50 bg-secondary px-2 py-0.5 rounded-full tabular-nums"
             >
               {doneCount}/{tasks.length}
             </motion.span>
@@ -196,7 +196,7 @@ export function TaskList({
         </div>
       </div>
 
-      <div className="mx-4 border-t border-white/10" />
+      <div className="mx-4 border-t border-border" />
 
       {/* Scrollable content */}
       <ScrollArea className="flex-1 min-h-0">

@@ -201,15 +201,12 @@ export function TaskFormSheet(props: TaskFormSheetProps) {
 
   // Mode-specific config
   const idPrefix = isEdit ? 'edit-task' : 'task'
-  const gradientClass = isEdit
-    ? 'from-amber-500 via-orange-500 to-rose-500'
-    : 'from-blue-500 via-purple-500 to-pink-500'
   const headerTitle = isEdit ? 'Edit Task' : 'Add Task'
   const headerSubtitle = isEdit
     ? 'Make changes to your task details.'
     : 'Create a new task to track your coursework.'
   const HeaderIcon = isEdit ? Pencil : Sparkles
-  const headerIconColor = isEdit ? 'text-amber-500' : 'text-blue-500'
+  const headerIconColor = 'text-foreground'
   const SubmitIcon = isEdit ? Pencil : Plus
   const submitText = isEdit ? 'Save Changes' : 'Add Task'
 
@@ -244,7 +241,7 @@ export function TaskFormSheet(props: TaskFormSheetProps) {
               }}
             >
               <motion.div
-                className="relative glass-overlay border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+                className="relative glass-overlay border border-border rounded-2xl shadow-2xl overflow-hidden"
                 initial={{ boxShadow: '0 0 0 0 rgba(59, 130, 246, 0)' }}
                 animate={{
                   boxShadow: showContent
@@ -255,7 +252,7 @@ export function TaskFormSheet(props: TaskFormSheetProps) {
               >
                 {/* Animated top gradient bar */}
                 <motion.div
-                  className={`h-1 bg-gradient-to-r ${gradientClass}`}
+                  className="h-px bg-border"
                   initial={{ scaleX: 0 }}
                   animate={{ scaleX: 1 }}
                   transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
