@@ -240,17 +240,17 @@ export function PersonalDevTracker() {
       animate={{ opacity: 1, height: 'auto' }}
       exit={{ opacity: 0, height: 0 }}
       transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-      className="relative z-10 border-t border-border overflow-hidden"
+      className="relative z-10 overflow-hidden"
     >
-      <div className="px-4 py-3 glass-thick">
+      <div className="px-6 py-4">
         {/* Section header */}
         <div className="flex items-center justify-between mb-2.5">
-          <p className="text-xs font-medium text-muted-foreground tracking-wide uppercase">
+          <p className="text-xs tracking-wider uppercase text-today-muted">
             Personal Dev
           </p>
           {anyRunning && (
-            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/60">
-              <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+            <span className="inline-flex items-center gap-1.5 text-xs text-today-muted">
+              <span className="h-2 w-2 rounded-full bg-coral animate-pulse" />
               Active
             </span>
           )}
@@ -272,29 +272,28 @@ export function PersonalDevTracker() {
                 onClick={() => toggle(activity)}
                 className={cn(
                   'flex items-center gap-2 rounded-xl px-2.5 py-2.5 transition-all',
-                  'border border-border hover:border-foreground/20',
-                  !running && 'bg-secondary hover:bg-secondary',
+                  'border border-white/10 hover:border-white/25',
+                  running ? 'bg-white/[0.08]' : 'bg-white/[0.03]',
                 )}
-                style={running ? { backgroundColor: color + '18' } : undefined}
               >
                 {/* Icon + Play/Pause overlay */}
                 <div className="relative flex-shrink-0">
                   <div
                     className="h-8 w-8 rounded-lg flex items-center justify-center transition-colors"
-                    style={{ backgroundColor: running ? color + '20' : undefined }}
+                    style={{ backgroundColor: running ? color + '33' : undefined }}
                   >
                     <Icon
-                      className={cn('h-4 w-4', !running && 'text-muted-foreground')}
+                      className={cn('h-4 w-4', !running && 'text-today-muted')}
                       style={running ? { color } : undefined}
                     />
                   </div>
                   {/* Play / Pause badge */}
                   <div
                     className={cn(
-                      'absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full flex items-center justify-center border border-background',
+                      'absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full flex items-center justify-center border border-today',
                       running
-                        ? 'bg-green-500 text-white'
-                        : 'bg-muted text-muted-foreground/60',
+                        ? 'bg-coral text-white'
+                        : 'bg-today-muted/40 text-today-foreground',
                     )}
                   >
                     {running ? (
@@ -310,22 +309,20 @@ export function PersonalDevTracker() {
                   <span
                     className={cn(
                       'text-[11px] font-medium leading-tight',
-                      !running && 'text-muted-foreground',
+                      running ? 'text-white' : 'text-today-muted',
                     )}
-                    style={running ? { color } : undefined}
                   >
                     {activity.label}
                   </span>
                   <span
                     className={cn(
-                      'text-sm font-bold font-mono tabular-nums leading-tight',
+                      'text-sm font-medium font-mono tabular-nums leading-tight',
                       running
-                        ? 'animate-pulse'
+                        ? 'text-white'
                         : elapsed > 0
-                          ? 'text-foreground'
-                          : 'text-muted-foreground/40',
+                          ? 'text-today-foreground'
+                          : 'text-today-muted/70',
                     )}
-                    style={running ? { color } : undefined}
                   >
                     {fmt(elapsed)}
                   </span>

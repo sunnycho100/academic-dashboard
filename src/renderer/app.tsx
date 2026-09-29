@@ -656,6 +656,7 @@ export default function Home() {
               hasYesterdayTasks={user ? loadYesterdayIds(user.id).some(
                 (id) => !todayTaskIds.includes(id) && tasks.some((t) => t.id === id && t.status === 'todo')
               ) : false}
+              onOpenTimetable={() => setActiveMainTab('timetable')}
               onWeeklyEntriesChange={handleWeeklyEntriesChange}
               userId={user.id}
             />

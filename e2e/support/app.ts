@@ -11,6 +11,7 @@ export const APP_URL = 'app://local/'
 export interface ApiClient {
   get(url: string): Promise<ApiResponse>
   post(url: string, opts?: { data?: unknown }): Promise<ApiResponse>
+  put(url: string, opts?: { data?: unknown }): Promise<ApiResponse>
 }
 interface ApiResponse {
   ok(): boolean
@@ -53,6 +54,6 @@ export const test = base.extend<{ electronApp: ElectronApplication; page: Page; 
         json: async () => JSON.parse(res.text),
       }
     }
-    await use({ get: (url) => call('GET', url), post: (url, opts) => call('POST', url, opts?.data) })
+    await use({ get: (url) => call('GET', url), post: (url, opts) => call('POST', url, opts?.data), put: (url, opts) => call('PUT', url, opts?.data) })
   },
 })

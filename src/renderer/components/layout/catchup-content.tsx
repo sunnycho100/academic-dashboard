@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { Task, Category, SortOption } from '@/lib/types'
 import { TaskBoard } from '@/components/tasks/task-board'
 import { TodayPanel } from '@/components/today/today-panel'
+import { DayTimeline } from '@/components/today/day-timeline'
 import { Stats } from '@/components/layout/stats'
 import { EmptyState } from '@/components/layout/empty-state'
 import { WeeklyPlan, type WeeklyPlanEntry } from '@/components/weekly-plan/weekly-plan'
@@ -43,6 +44,7 @@ export interface CatchupContentProps {
   onCarryOverYesterday?: () => void
   hasYesterdayTasks?: boolean
   onWeeklyEntriesChange: (entries: WeeklyPlanEntry[]) => void
+  onOpenTimetable: () => void
   userId?: string
 }
 
@@ -73,6 +75,7 @@ export function CatchupContent({
   onCarryOverYesterday,
   hasYesterdayTasks,
   onWeeklyEntriesChange,
+  onOpenTimetable,
   userId,
 }: CatchupContentProps) {
   const todayTasks = useMemo(
@@ -148,7 +151,9 @@ export function CatchupContent({
       </div>
 
       {/* Today panel */}
-      <TodayPanel tasks={todayTasks} categories={categories} session={session} onToggleTask={onToggleTask} />
+      <TodayPanel tasks={todayTasks} categories={categories} session={session} onToggleTask={onToggleTask}>
+        <DayTimeline tasks={todayTasks} categories={categories} session={session} onOpenTimetable={onOpenTimetable} />
+      </TodayPanel>
     </div>
   )
 }
