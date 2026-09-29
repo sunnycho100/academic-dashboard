@@ -3,11 +3,11 @@
 
 generator client {
   provider = "prisma-client"
-  output   = "../src/lib/generated/prisma"
+  output   = "../src/main/lib/generated/prisma"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
 }
 
 model Category {

@@ -1,381 +1,47 @@
 # Academic Dashboard
 
-A single-user academic task management dashboard built with Next.js 16, TypeScript, and shadcn/ui. Track lectures, assignments, and exam prep with deep work timers, weekly planning, a day-planner timetable, and time analytics — all running locally.
+A local macOS app for catching up on lectures, assignments, and exam prep. Tasks by course, a Today plan with deep-work timers, a weekly plan, a day-planner timetable, and time records. Everything is stored on your Mac, with no account or server.
 
-> **Version**: 1.10.2 &nbsp;|&nbsp; **Single-user, no auth** &nbsp;|&nbsp; **Runs on localhost:3000**
-
-Two local persistence modes: **JSON files** (default, zero infrastructure) or **PostgreSQL** via Docker + Prisma.
-
----
-
-## Features
-
-- **Two main tabs** — Class Catch-up (task management) and Timetable (day planner)
-- **Deep work timers** — per-task stopwatch with play/pause, localStorage persistence, idle-gap reconciliation, and `sendBeacon` flush on page unload
-- **Task management** — CRUD, drag-and-drop reordering, duplicate, bulk delete, Today's Plan focus list
-- **Timetable day planner** — excel-like schedule with planned vs actual time tracking, drag-and-drop row reorder, autofill (previous row's end time or rounded current time), autopush (cascade planned times when actual end is entered), and row completion animation
-- **Weekly planning** — 7-day Mon–Sun grid with drag-to-assign, week navigation, and duplicate prevention
-- **Categories** — color-coded course categories with sidebar filtering, search, inline rename (cascades to history)
-- **Statistics** — task counts, due soon, overdue; Activity Summary with Today/All tabs; Time Records timeline with manual entry
-- **Personal Dev Tracker** — independent timers for Reading, Project, Job App
-- **Idle power-save** — 5 min inactivity unmounts heavy components; lightweight overlay with running timers
-- **Landing sequence** — personalized cursive greeting animation on startup
-- **Theme** — dark/light toggle, color scheme customization dialog
-- **Data portability** — JSON export/import, bulk operations
-- **Security hardening** — Zod input validation and `.max()` bounds on all API routes, path traversal guard in JSON storage layer, CSP + security headers, production guards on destructive endpoints, no stack trace leakage
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| **Framework** | Next.js 16 (App Router, Turbopack) |
-| **Language** | TypeScript 5.7, React 19 |
-| **Styling** | Tailwind CSS 3.4, shadcn/ui (Radix primitives) |
-| **Drag & Drop** | @dnd-kit (core + sortable) |
-| **Animations** | Framer Motion 12 |
-| **Forms** | React Hook Form + Zod |
-| **Storage** | JSON files (`data/`) or PostgreSQL 16 + Prisma 7 |
-| **Package Manager** | pnpm |
-
----
-
-## Getting Started
-
-### JSON Mode (Recommended)
-
-```bash
-./scripts/start.sh
-```
-
-Installs deps, creates `data/`, runs a **production build**, and serves it at [localhost:3000](http://localhost:3000) — identical output to the Vercel deployment. No Docker needed.
-
-### Database Mode
-
-Requires Docker Desktop.
-
-```bash
-# Create .env
-echo 'STORAGE_MODE=postgres
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/academic_dashboard"' > .env
-
-./scripts/db_start.sh
-```
-
-### Manual
+## Run it
 
 ```bash
 pnpm install
-STORAGE_MODE=json pnpm dev       # or STORAGE_MODE=postgres (after docker compose up -d && pnpm prisma migrate deploy)
+pnpm app        # builds and installs /Applications/Academic Dashboard.app
 ```
 
-### Migrating PostgreSQL → JSON
+For development, `pnpm dev` opens the app with hot reload.
 
-```bash
-npx tsx scripts/migrate-db-to-json.ts && ./scripts/start.sh
-```
+Your data lives in `~/Library/Application Support/Academic Dashboard/academic-dashboard.db` (SQLite). Dev runs use `academic-dashboard-dev.db` in the same folder, so iterating never touches real data. Settings > Export data saves a JSON backup, and Import restores one.
 
----
-
-## Architecture
+## How it works
 
 ```
-Browser (React client)
-  ├── React useState in src/app/page.tsx (root state, no external state lib)
-  ├── localStorage (timers, today panel, day boundaries)
-  └── fetch() / sendBeacon → API routes
-                                ↓
-                          src/lib/db.ts (storage factory)
-                           ├── src/lib/json-db.ts → data/*.json
-                           └── src/lib/prisma.ts  → PostgreSQL
+src/
+  main/        Electron main process
+    index.ts   window + app:// protocol
+    routes.ts  maps /api/* requests to the handlers in api/
+    api/       one route.ts per endpoint (tasks, categories, time-records, ...)
+    lib/       SQLite via Prisma, local user
+  renderer/    React UI (components, hooks, styles)
+prisma/        schema + migrations
+e2e/           Playwright tests against the built app
+docs/          design system, notes, changelog
 ```
 
-### Component Tree
-
-```
-Home (src/app/page.tsx)
-  ├── LandingSequence
-  ├── IdleOverlay
-  ├── Tab: Class Catch-up (CatchupContent)
-  │    ├── DndContext
-  │    │    ├── CategorySidebar
-  │    │    ├── WeeklyPlan
-  │    │    ├── TaskList
-  │    │    │    └── TaskRow
-  │    │    │         ├── task/InlineEdit
-  │    │    │         ├── task/InlineDurationEdit
-  │    │    │         └── task/TaskMetadata
-  │    │    └── TodayPanel
-  │    │         ├── today/SortableTodayItem
-  │    │         ├── today/RollingCounter
-  │    │         ├── today/FocusModeOverlay
-  │    │         └── PersonalDevTracker
-  │    └── Stats
-  ├── Tab: Timetable (TimetableContent)
-  │    └── Timetable
-  │         └── timetable/TimetableRow
-  └── Dialogs (TaskFormSheet, ActivitySummary, TimeRecordsDialog, ColorScheme, ClearData, Import)
-       └── time-records/TimeBlock, MetricCard, CurrentTimeLine, TimeRecordForm
-```
-
-### Hooks
-
-| Hook | Purpose |
-|---|---|
-| `useTaskTimers` | Per-task timers, localStorage-backed, `sendBeacon` on unload, idle-gap reconciliation |
-| `useIdleDetector` | 5-min inactivity → power-save mode (Page Visibility API aware) |
-| `useTasks` | Task CRUD mutations (create, update, delete, reorder, bulk delete) — extracted from `src/app/page.tsx` |
-| `useCategories` | Category CRUD mutations (create, update, delete, reorder) — extracted from `src/app/page.tsx` |
-| `useTimetableLogic` | Timetable autofill, autopush cascade, and row state management |
-
----
-
-## Security
-
-All API routes are hardened against the OWASP Top 10 relevant to this surface:
-
-- **Input validation** — every route has a Zod schema; all string fields have `min`/`max` bounds; dates validated before DB write; enums enforced where applicable
-- **Path traversal** — `src/lib/json-db.ts` `validateFilename()` rejects any filename not matching `^[a-z0-9\-]+\.json$`
-- **Error leakage** — all catch blocks return opaque `500` responses; no `throw err` to client
-- **Production guards** — `POST /api/seed`, `POST /api/bulk`, `DELETE /api/tasks`, `DELETE /api/completed-tasks/cleanup` return `403` when `NODE_ENV=production`
-- **HTTP security headers** — `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: origin-when-cross-origin`, `Permissions-Policy`, `Content-Security-Policy`, `X-DNS-Prefetch-Control`
-- **No secrets in client bundle** — `process.env` usage is confined to `src/app/api/` and `lib/`; no `NEXT_PUBLIC_` secrets; `data/*.json` files are gitignored
-
----
-
-## API Routes
-
-All routes use `src/lib/db.ts` — never direct DB calls. All have Zod validation.
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET/POST` | `/api/tasks` | List / create tasks |
-| `DELETE` | `/api/tasks` | Bulk delete all tasks (production-guarded) |
-| `PATCH/DELETE` | `/api/tasks/[id]` | Update / delete a task |
-| `POST` | `/api/tasks/reorder` | Bulk reorder by priority |
-| `GET/POST` | `/api/categories` | List / create |
-| `PATCH/DELETE` | `/api/categories/[id]` | Update (rename cascades to history) / delete (cascades tasks) |
-| `GET/POST` | `/api/completed-tasks` | List (excludes soft-deleted) / create snapshot |
-| `PATCH` | `/api/completed-tasks/[id]` | Soft-delete / restore / field update |
-| `DELETE` | `/api/completed-tasks/cleanup` | Purge soft-deleted >3 days (production-guarded) |
-| `GET/POST` | `/api/time-records` | List by date window / create |
-| `PATCH/DELETE` | `/api/time-records/[id]` | Update / delete |
-| `GET/POST/PUT` | `/api/timetable` | Get by date / create entry / bulk replace |
-| `GET/POST/DELETE` | `/api/weekly-plan` | Get week / assign task / remove entry |
-| `GET/PUT` | `/api/user-info` | Get / upsert display name |
-| `POST` | `/api/seed` | One-time DB seed (production-guarded) |
-| `POST` | `/api/bulk` | Clear / import (production-guarded) |
-
----
-
-## Data Models
-
-7 models, identical across both storage modes:
-
-| Model | Purpose |
-|---|---|
-| **Category** | Course categories (name, color, order). Has many Tasks. |
-| **Task** | Active tasks (title, type, dueAt, priorityOrder, estimatedDuration). Belongs to Category. |
-| **CompletedTask** | Denormalized snapshot. Soft-delete via `deletedAt`. Stores names directly so history survives deletion. |
-| **TimeRecord** | Study session records (start, end, duration). Denormalized — survives task/category deletion. |
-| **WeeklyPlanEntry** | Task ↔ date with unique constraint. Cascades on task delete. |
-| **TimetableEntry** | Day-planner rows (planned/actual start/end, durations, activity, notes). |
-| **UserInfo** | Singleton (id="default") storing display name. |
-
-JSON Mode files: `data/{categories,tasks,completed-tasks,time-records,weekly-plan,timetable,user-info}.json`
-
----
+The window loads `app://local/`. The UI calls `fetch('/api/...')` and the main process answers from the handlers in `src/main/api`, so there is no HTTP server or open port.
 
 ## Scripts
 
-| Command | Description |
+| Command | What it does |
 |---|---|
-| `./scripts/start.sh` | JSON Mode — production build + serve (matches Vercel output) |
-| `./scripts/db_start.sh` | Database Mode startup (Docker + migrations) |
-| `pnpm dev` | Dev server (needs `STORAGE_MODE` set) |
-| `pnpm build` | Production build (TypeScript errors fail the build) |
-| `pnpm start` | Serve production build (needs `STORAGE_MODE` set) |
-| `pnpm migrate:json` | Export PostgreSQL → JSON files |
+| `pnpm dev` | Run with hot reload |
+| `pnpm app` | Build, package, and install to /Applications |
+| `pnpm dist` | Build and package to `release/` only |
+| `pnpm db:migrate` | Create a migration after editing `prisma/schema.prisma` |
+| `pnpm typecheck` | TypeScript check |
+| `pnpm test` | Unit tests |
+| `pnpm test:e2e` | Build, then run the Playwright suite against the app |
 
----
+## Stack
 
-## License
-
-MIT
-
-
-Two local persistence modes: **JSON files** (default, zero infrastructure) or **PostgreSQL** via Docker + Prisma.
-
----
-
-## Features
-
-- **Two main tabs** — Class Catch-up (task management) and Timetable (day planner)
-- **Deep work timers** — per-task stopwatch with play/pause, localStorage persistence, idle-gap reconciliation, and `sendBeacon` flush on page unload
-- **Task management** — CRUD, drag-and-drop reordering, duplicate, bulk delete, Today's Plan focus list
-- **Timetable day planner** — excel-like schedule with planned vs actual time tracking, drag-and-drop row reorder, autofill (previous row's end time or rounded current time), autopush (cascade planned times when actual end is entered), and row completion animation
-- **Weekly planning** — 7-day Mon–Sun grid with drag-to-assign, week navigation, and duplicate prevention
-- **Categories** — color-coded course categories with sidebar filtering, search, inline rename (cascades to history)
-- **Statistics** — task counts, due soon, overdue; Activity Summary with Today/All tabs; Time Records timeline with manual entry
-- **Personal Dev Tracker** — independent timers for Reading, Project, Job App
-- **Idle power-save** — 5 min inactivity unmounts heavy components; lightweight overlay with running timers
-- **Landing sequence** — personalized cursive greeting animation on startup
-- **Theme** — dark/light toggle, color scheme customization dialog
-- **Data portability** — JSON export/import, bulk operations
-- **API hardening** — Zod input validation on task/category/user-info endpoints, production guards on seed/bulk/delete-all routes, TypeScript strict mode (no `ignoreBuildErrors`)
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| **Framework** | Next.js 16 (App Router, Turbopack) |
-| **Language** | TypeScript 5.7, React 19 |
-| **Styling** | Tailwind CSS 3.4, shadcn/ui (Radix primitives) |
-| **Drag & Drop** | @dnd-kit (core + sortable) |
-| **Animations** | Framer Motion 12 |
-| **Forms** | React Hook Form + Zod |
-| **Storage** | JSON files (`data/`) or PostgreSQL 16 + Prisma 7 |
-| **Package Manager** | pnpm |
-
----
-
-## Getting Started
-
-### JSON Mode (Recommended)
-
-```bash
-./scripts/start.sh
-```
-
-No Docker needed. Installs deps, creates `data/`, starts dev server at [localhost:3000](http://localhost:3000).
-
-### Database Mode
-
-Requires Docker Desktop.
-
-```bash
-# Create .env
-echo 'STORAGE_MODE=postgres
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/academic_dashboard"' > .env
-
-./scripts/db_start.sh
-```
-
-### Manual
-
-```bash
-pnpm install
-STORAGE_MODE=json pnpm dev       # or STORAGE_MODE=postgres (after docker compose up -d && pnpm prisma migrate deploy)
-```
-
-### Migrating PostgreSQL → JSON
-
-```bash
-npx tsx scripts/migrate-db-to-json.ts && ./scripts/start.sh
-```
-
----
-
-## Architecture
-
-```
-Browser (React client)
-  ├── React useState in src/app/page.tsx (root state, no external state lib)
-  ├── localStorage (timers, today panel, day boundaries)
-  └── fetch() / sendBeacon → API routes
-                                ↓
-                          src/lib/db.ts (storage factory)
-                           ├── src/lib/json-db.ts → data/*.json
-                           └── src/lib/prisma.ts  → PostgreSQL
-```
-
-### Component Tree
-
-```
-Home (src/app/page.tsx)
-  ├── LandingSequence
-  ├── IdleOverlay
-  ├── Tab: Class Catch-up
-  │    ├── DndContext
-  │    │    ├── CategorySidebar
-  │    │    ├── WeeklyPlan
-  │    │    ├── TaskList → TaskRow
-  │    │    └── TodayPanel (useTaskTimers, PersonalDevTracker)
-  │    └── Stats
-  ├── Tab: Timetable
-  │    └── Timetable (drag-and-drop, autofill, autopush)
-  └── Dialogs (AddTask, EditTask, ActivitySummary, TimeRecords, ColorScheme, ClearData, Import)
-```
-
-### Hooks
-
-| Hook | Purpose |
-|---|---|
-| `useTaskTimers` | Per-task timers, localStorage-backed, `sendBeacon` on unload, idle-gap reconciliation |
-| `useIdleDetector` | 5-min inactivity → power-save mode (Page Visibility API aware) |
-
----
-
-## API Routes
-
-All routes use `src/lib/db.ts` — never direct DB calls.
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET/POST` | `/api/tasks` | List / create tasks (POST has Zod validation) |
-| `DELETE` | `/api/tasks` | Bulk delete all tasks (production-guarded) |
-| `PATCH/DELETE` | `/api/tasks/[id]` | Update / delete a task |
-| `POST` | `/api/tasks/reorder` | Bulk reorder |
-| `GET/POST` | `/api/categories` | List / create (POST has Zod validation) |
-| `PATCH/DELETE` | `/api/categories/[id]` | Update (rename cascades) / delete (cascades tasks) |
-| `GET/POST` | `/api/completed-tasks` | List (excludes soft-deleted) / create snapshot |
-| `PATCH` | `/api/completed-tasks/[id]` | Soft-delete / restore |
-| `DELETE` | `/api/completed-tasks/cleanup` | Purge records soft-deleted >3 days |
-| `GET/POST` | `/api/time-records` | List by date window / create |
-| `PATCH/DELETE` | `/api/time-records/[id]` | Update / delete |
-| `GET/POST/PUT` | `/api/timetable` | Get by date / create entry / bulk replace |
-| `GET/POST/DELETE` | `/api/weekly-plan` | Get week / assign task / remove entry |
-| `GET/PUT` | `/api/user-info` | Get / upsert display name (PUT has Zod validation) |
-| `POST` | `/api/seed` | One-time DB seed (production-guarded) |
-| `POST` | `/api/bulk` | Clear / import (production-guarded) |
-
----
-
-## Data Models
-
-7 models, identical across both storage modes:
-
-| Model | Purpose |
-|---|---|
-| **Category** | Course categories (name, color, order). Has many Tasks. |
-| **Task** | Active tasks (title, type, dueAt, priorityOrder, estimatedDuration). Belongs to Category. |
-| **CompletedTask** | Denormalized snapshot. Soft-delete via `deletedAt`. Stores names directly so history survives deletion. |
-| **TimeRecord** | Study session records (start, end, duration). Denormalized — survives task/category deletion. |
-| **WeeklyPlanEntry** | Task ↔ date with unique constraint. Cascades on task delete. |
-| **TimetableEntry** | Day-planner rows (planned/actual start/end, durations, activity, notes). |
-| **UserInfo** | Singleton (id="default") storing display name. |
-
-JSON Mode files: `data/{categories,tasks,completed-tasks,time-records,weekly-plan,timetable,user-info}.json`
-
----
-
-## Scripts
-
-| Command | Description |
-|---|---|
-| `./scripts/start.sh` | JSON Mode startup (no Docker) |
-| `./scripts/db_start.sh` | Database Mode startup (Docker + migrations) |
-| `pnpm dev:json` | Dev server in JSON mode |
-| `pnpm dev:postgres` | Dev server in Database mode |
-| `pnpm build` | Production build (TypeScript errors fail the build) |
-| `pnpm migrate:json` | Export PostgreSQL → JSON files |
-
----
-
-## License
-
-MIT
-
+Electron, React 19, TypeScript, Vite (electron-vite), Tailwind CSS with shadcn/ui, Prisma with SQLite (better-sqlite3), dnd-kit, Framer Motion. Package manager: pnpm.

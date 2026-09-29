@@ -1,0 +1,393 @@
+import { useState, useEffect, useCallback, useRef } from 'react'
+
+export interface TimerState {
+  isRunning: boolean
+  isPaused: boolean
+  elapsedSeconds: number
+  /** ISO string — when the current active segment started */
+  segmentStartedAt: string | null
+  /** ISO string — last time the 1-second tick updated this timer.
+   *  Used to reconcile elapsed time after idle / unmount gaps. */
+  lastTickAt?: string | null
+  /** Persisted task title for display during idle / power-save mode */
+  taskTitle?: string
+}
+
+interface TaskTimerData {
+  [taskId: string]: TimerState
+}
+
+export interface TaskMeta {
+  taskId: string
+  taskTitle: string
+  categoryName: string
+  categoryColor: string
+  taskType: string
+}
+
+const STORAGE_KEY_PREFIX = 'class-catchup-timers'
+
+function getStorageKey(userId?: string): string {
+  return userId ? `${STORAGE_KEY_PREFIX}-${userId}` : STORAGE_KEY_PREFIX
+}
+
+function loadTimerData(userId?: string): TaskTimerData {
+  if (typeof window === 'undefined') return {}
+  if (!userId) return {}
+  try {
+    const stored = localStorage.getItem(getStorageKey(userId))
+    return stored ? JSON.parse(stored) : {}
+  } catch {
+    return {}
+  }
+}
+
+function saveTimerData(data: TaskTimerData, userId?: string) {
+  if (typeof window === 'undefined') return
+  if (!userId) return
+  try {
+    localStorage.setItem(getStorageKey(userId), JSON.stringify(data))
+  } catch {}
+}
+
+/** Persist a time record segment to the backend */
+async function saveTimeRecord(
+  meta: TaskMeta,
+  startTime: string,
+  endTime: string,
+  durationSeconds: number
+) {
+  try {
+    await fetch('/api/time-records', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+          taskId: meta.taskId,
+          taskTitle: meta.taskTitle,
+          categoryName: meta.categoryName,
+          categoryColor: meta.categoryColor,
+          taskType: meta.taskType,
+          startTime,
+          endTime,
+          duration: durationSeconds,
+        }),
+      })
+    } catch (err) {
+      console.error('Failed to save time record:', err)
+    }
+  }
+  
+  export function useTaskTimers(taskIds: string[], userId?: string) {
+    const [timerStates, setTimerStates] = useState<TaskTimerData>({})
+    const intervalRef = useRef<NodeJS.Timeout | null>(null)
+    // Keep a ref mirror so side-effects can read latest state outside the setter
+    const timerStatesRef = useRef<TaskTimerData>({})
+    useEffect(() => { timerStatesRef.current = timerStates }, [timerStates])
+    // Map of taskId → TaskMeta for persisting records
+    const taskMetaRef = useRef<Record<string, TaskMeta>>({})
+    // Guard: don't save to localStorage until we've loaded first
+    const loadedRef = useRef(false)
+    // Track userId in a ref for beforeunload handler
+    const userIdRef = useRef(userId)
+    useEffect(() => { userIdRef.current = userId }, [userId])
+  
+    // Load timer states on mount — reconcile elapsed for any running timers
+    // that accumulated time while the component was unmounted (idle mode, tab close, etc.)
+    useEffect(() => {
+      if (!userId) return
+      const loaded = loadTimerData(userId)
+      const now = Date.now()
+      const reconciled: TaskTimerData = {}
+      for (const [taskId, state] of Object.entries(loaded)) {
+        if (state.isRunning && !state.isPaused && state.lastTickAt) {
+          const lastTick = new Date(state.lastTickAt).getTime()
+          const missedSeconds = Math.max(0, Math.floor((now - lastTick) / 1000))
+          if (missedSeconds > 2) {
+            // Timer was running during a gap — add the missed time
+            reconciled[taskId] = {
+              ...state,
+              elapsedSeconds: state.elapsedSeconds + missedSeconds,
+              lastTickAt: new Date(now).toISOString(),
+            }
+            continue
+          }
+        }
+        reconciled[taskId] = state
+      }
+      loadedRef.current = true
+      setTimerStates(reconciled)
+    }, [userId])
+  
+    // Save timer states whenever they change — but only after initial load
+    // to prevent overwriting localStorage with {} on mount
+    useEffect(() => {
+      if (!loadedRef.current) return
+      saveTimerData(timerStates, userId)
+    }, [timerStates, userId])
+  
+    // Flush running timer segments to DB on page unload / tab close
+    // so time is never silently lost
+    useEffect(() => {
+      const handleBeforeUnload = () => {
+        const states = timerStatesRef.current
+        const metas = taskMetaRef.current
+        for (const [taskId, state] of Object.entries(states)) {
+          if (state.isRunning && !state.isPaused && state.segmentStartedAt) {
+            const endTime = new Date().toISOString()
+            const dur = Math.round(
+              (new Date(endTime).getTime() - new Date(state.segmentStartedAt).getTime()) / 1000
+            )
+            const meta = metas[taskId]
+            if (meta && dur > 0) {
+              // keepalive fetch survives unload (sendBeacon is unreliable on the app:// scheme)
+              fetch('/api/time-records', {
+                method: 'POST',
+                keepalive: true,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                taskId: meta.taskId,
+                taskTitle: meta.taskTitle,
+                categoryName: meta.categoryName,
+                categoryColor: meta.categoryColor,
+                taskType: meta.taskType,
+                startTime: state.segmentStartedAt,
+                endTime,
+                duration: dur,
+              }),
+            }).catch(() => {})
+            // Update localStorage so the timer starts a fresh segment on reload
+            // instead of double-counting this segment
+            const updated = { ...states }
+            updated[taskId] = {
+              ...state,
+              segmentStartedAt: endTime,
+              lastTickAt: endTime,
+            }
+            saveTimerData(updated, userIdRef.current)
+          }
+        }
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [])
+
+  // Track whether a tick interval is currently active
+  const hasRunningRef = useRef(false)
+
+  // Create/destroy the tick interval only on start↔stop transitions,
+  // NOT on every tick. Previously the effect depended on [timerStates]
+  // which cleared and recreated the interval every second, causing each
+  // "second" to actually take 1000ms + render time ≈ 1.5–2s.
+  useEffect(() => {
+    const hasRunning = Object.values(timerStates).some(
+      (state) => state.isRunning && !state.isPaused
+    )
+
+    if (hasRunning && !hasRunningRef.current) {
+      // Transition: stopped → running — start the interval
+      hasRunningRef.current = true
+      intervalRef.current = setInterval(() => {
+        const now = Date.now()
+        const tickIso = new Date(now).toISOString()
+        setTimerStates((prev) => {
+          const newState = { ...prev }
+          Object.keys(newState).forEach((taskId) => {
+            if (newState[taskId].isRunning && !newState[taskId].isPaused) {
+              // Compute actual elapsed seconds since last tick to handle
+              // browser throttling in background tabs (setInterval may fire
+              // far less frequently than every 1s when the tab is hidden).
+              const lastTick = newState[taskId].lastTickAt
+                ? new Date(newState[taskId].lastTickAt!).getTime()
+                : now - 1000
+              const actualElapsed = Math.max(1, Math.round((now - lastTick) / 1000))
+              newState[taskId] = {
+                ...newState[taskId],
+                elapsedSeconds: newState[taskId].elapsedSeconds + actualElapsed,
+                lastTickAt: tickIso,
+              }
+            }
+          })
+          return newState
+        })
+      }, 1000)
+    } else if (!hasRunning && hasRunningRef.current) {
+      // Transition: running → stopped — clear the interval
+      hasRunningRef.current = false
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
+    // No cleanup here — the interval must persist across re-renders.
+    // Cleanup on unmount is handled by the separate effect below.
+  }, [timerStates])
+
+  // Reconcile elapsed time immediately when the tab becomes visible again,
+  // so the user sees the correct time without waiting for the next tick.
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden) return
+      const now = Date.now()
+      const tickIso = new Date(now).toISOString()
+      setTimerStates((prev) => {
+        let changed = false
+        const newState = { ...prev }
+        Object.keys(newState).forEach((taskId) => {
+          if (newState[taskId].isRunning && !newState[taskId].isPaused && newState[taskId].lastTickAt) {
+            const lastTick = new Date(newState[taskId].lastTickAt!).getTime()
+            const missedSeconds = Math.max(0, Math.round((now - lastTick) / 1000))
+            if (missedSeconds > 1) {
+              changed = true
+              newState[taskId] = {
+                ...newState[taskId],
+                elapsedSeconds: newState[taskId].elapsedSeconds + missedSeconds,
+                lastTickAt: tickIso,
+              }
+            }
+          }
+        })
+        return changed ? newState : prev
+      })
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [])
+
+  // Cleanup interval on unmount only
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
+  }, [])
+
+  /** Register metadata for a task so time records can include it */
+  const registerTaskMeta = useCallback((meta: TaskMeta) => {
+    taskMetaRef.current[meta.taskId] = meta
+  }, [])
+
+  const getElapsedSeconds = useCallback(
+    (taskId: string): number => {
+      const state = timerStates[taskId]
+      return state?.elapsedSeconds || 0
+    },
+    [timerStates]
+  )
+
+  const formatTime = useCallback((totalSeconds: number): string => {
+    const hours = Math.floor(totalSeconds / 3600)
+    const minutes = Math.floor((totalSeconds % 3600) / 60)
+    
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+  }, [])
+
+  const startTimer = useCallback((taskId: string) => {
+    const meta = taskMetaRef.current[taskId]
+    setTimerStates((prev) => ({
+      ...prev,
+      [taskId]: {
+        isRunning: true,
+        isPaused: false,
+        elapsedSeconds: 0,
+        segmentStartedAt: new Date().toISOString(),
+        lastTickAt: new Date().toISOString(),
+        taskTitle: meta?.taskTitle || 'Task',
+      },
+    }))
+  }, [])
+
+  const pauseTimer = useCallback((taskId: string) => {
+    // Read state from ref (outside setter) so the side-effect runs exactly once
+    const state = timerStatesRef.current[taskId]
+    if (!state || !state.isRunning || state.isPaused) return
+
+    // Save segment record OUTSIDE the state updater to avoid React StrictMode double-fire
+    const endTime = new Date().toISOString()
+    if (state.segmentStartedAt) {
+      const segmentDuration = Math.round(
+        (new Date(endTime).getTime() - new Date(state.segmentStartedAt).getTime()) / 1000
+      )
+      const meta = taskMetaRef.current[taskId]
+      if (meta && segmentDuration > 0) {
+        saveTimeRecord(meta, state.segmentStartedAt, endTime, segmentDuration)
+      }
+    }
+
+    setTimerStates((prev) => ({
+      ...prev,
+      [taskId]: {
+        ...prev[taskId],
+        isPaused: true,
+        segmentStartedAt: null,
+      },
+    }))
+  }, [])
+
+  const resumeTimer = useCallback((taskId: string) => {
+    setTimerStates((prev) => {
+      const state = prev[taskId]
+      if (!state || !state.isPaused) return prev
+
+      return {
+        ...prev,
+        [taskId]: {
+          ...state,
+          isPaused: false,
+          segmentStartedAt: new Date().toISOString(),
+        },
+      }
+    })
+  }, [])
+
+  const stopTimer = useCallback((taskId: string) => {
+    // Read state from ref (outside setter) so the side-effect runs exactly once
+    const state = timerStatesRef.current[taskId]
+    if (state?.isRunning && !state.isPaused && state.segmentStartedAt) {
+      const endTime = new Date().toISOString()
+      const segmentDuration = Math.round(
+        (new Date(endTime).getTime() - new Date(state.segmentStartedAt).getTime()) / 1000
+      )
+      const meta = taskMetaRef.current[taskId]
+      if (meta && segmentDuration > 0) {
+        saveTimeRecord(meta, state.segmentStartedAt, endTime, segmentDuration)
+      }
+    }
+
+    setTimerStates((prev) => {
+      const newState = { ...prev }
+      delete newState[taskId]
+      return newState
+    })
+  }, [])
+
+  const resetTimer = useCallback((taskId: string) => {
+    setTimerStates((prev) => {
+      const newState = { ...prev }
+      delete newState[taskId]
+      return newState
+    })
+  }, [])
+
+  const getTotalStudyTime = useCallback((): number => {
+    return taskIds.reduce((total, taskId) => {
+      return total + getElapsedSeconds(taskId)
+    }, 0)
+  }, [taskIds, getElapsedSeconds])
+
+  return {
+    timerStates,
+    getElapsedSeconds,
+    formatTime,
+    startTimer,
+    pauseTimer,
+    resumeTimer,
+    stopTimer,
+    resetTimer,
+    getTotalStudyTime,
+    registerTaskMeta,
+  }
+}

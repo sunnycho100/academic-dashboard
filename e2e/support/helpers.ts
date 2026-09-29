@@ -14,5 +14,3 @@ export async function disableLandingAnimation(page: Page) {
   })
 }
 
-/** Default guest-mode categories seeded client-side in app/page.tsx. */
-export const DEFAULT_CATEGORY_NAMES = ['CS 400', 'ECE 222', 'CS 354', 'ECE 340']
