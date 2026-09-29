@@ -607,7 +607,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                             onClick={() => setAutoShiftEnd((v) => !v)}
                             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
                               autoShiftEnd
-                                ? 'bg-emerald-400/70 dark:bg-emerald-500/50'
+                                ? 'bg-today dark:bg-today-muted'
                                 : 'bg-foreground/10'
                             }`}
                             title="Auto-shift end time when start time changes"
@@ -627,7 +627,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
                             onClick={() => setCascadeShift((v) => !v)}
                             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
                               cascadeShift
-                                ? 'bg-sky-400/70 dark:bg-sky-500/50'
+                                ? 'bg-today dark:bg-today-muted'
                                 : 'bg-foreground/10'
                             }`}
                             title="Cascade shift subsequent records on save"

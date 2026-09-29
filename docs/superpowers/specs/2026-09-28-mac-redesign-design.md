@@ -1,7 +1,7 @@
 # Mac App Redesign
 
 **Date:** 2026-09-28
-**Status:** Draft, awaiting review
+**Status:** Implemented (feat/electron-app)
 **Mockups:** `combined-v1`, `course-color`, `ring-animation` (brainstorm companion)
 
 ## Goal

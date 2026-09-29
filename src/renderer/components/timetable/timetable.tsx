@@ -114,7 +114,7 @@ export function Timetable() {
             onClick={() => setAutofill((v) => !v)}
             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
               autofill
-                ? 'bg-emerald-400/70 dark:bg-emerald-500/50'
+                ? 'bg-today dark:bg-today-muted'
                 : 'bg-foreground/10'
             }`}
           >
@@ -135,7 +135,7 @@ export function Timetable() {
             onClick={() => setAutopush((v) => !v)}
             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
               autopush
-                ? 'bg-sky-400/70 dark:bg-sky-500/50'
+                ? 'bg-today dark:bg-today-muted'
                 : 'bg-foreground/10'
             }`}
           >
@@ -290,7 +290,7 @@ export function Timetable() {
                   onClick={() => setAutofill((v) => !v)}
                   className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
                     autofill
-                      ? 'bg-emerald-400/70 dark:bg-emerald-500/50'
+                      ? 'bg-today dark:bg-today-muted'
                       : 'bg-foreground/10'
                   }`}
                 >
@@ -317,7 +317,7 @@ export function Timetable() {
                   onClick={() => setAutopush((v) => !v)}
                   className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
                     autopush
-                      ? 'bg-sky-400/70 dark:bg-sky-500/50'
+                      ? 'bg-today dark:bg-today-muted'
                       : 'bg-foreground/10'
                   }`}
                 >
