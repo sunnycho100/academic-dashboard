@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { Task, Category, SortOption, ViewMode } from '@/lib/types'
+import { Task, Category, SortOption } from '@/lib/types'
 import { CategorySidebar } from '@/components/categories/category-sidebar'
 import { AddCategoryDialog } from '@/components/categories/add-category-dialog'
 import { AddTaskDialog } from '@/components/tasks/add-task-sheet'
@@ -100,9 +100,8 @@ export default function Home() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     null
   )
-  const [viewMode, setViewMode] = useState<ViewMode>('all')
   const [sortOption, setSortOption] = useState<SortOption>('due-date')
-  const [groupByCategory, setGroupByCategory] = useState(true)
+  const [groupByCategory, setGroupByCategory] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [addCategoryOpen, setAddCategoryOpen] = useState(false)
   const [addTaskOpen, setAddTaskOpen] = useState(false)
@@ -459,35 +458,8 @@ export default function Home() {
     }
   }
 
-  // Filter tasks by view mode
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  const filteredTasks = tasks.filter((task) => {
-    // Filter by category
-    if (selectedCategoryId && task.categoryId !== selectedCategoryId) {
-      return false
-    }
-
-    // Filter by view mode
-    if (viewMode === 'all') {
-      return true
-    }
-
-    // Tasks with no due date: show in 'all' only
-    if (!task.dueAt) {
-      return false
-    }
-
-    const dueDate = new Date(task.dueAt)
-    dueDate.setHours(0, 0, 0, 0)
-
-    if (viewMode === 'due-soon') {
-      return dueDate.getTime() >= today.getTime()
-    } else {
-      return dueDate.getTime() < today.getTime()
-    }
-  })
+  // Filter by the selected course; grouping into Today / Overdue / Upcoming happens in TaskBoard
+  const filteredTasks = selectedCategoryId ? tasks.filter((task) => task.categoryId === selectedCategoryId) : tasks
 
   // Sort tasks
   const sortedTasks = [...filteredTasks].sort((a, b) => {
@@ -499,7 +471,7 @@ export default function Home() {
       const dateA = new Date(a.dueAt).getTime()
       const dateB = new Date(b.dueAt).getTime()
       if (dateA !== dateB) {
-        return viewMode === 'overdue' ? dateA - dateB : dateA - dateB
+        return dateA - dateB
       }
       return a.priorityOrder - b.priorityOrder
     } else {
@@ -508,12 +480,7 @@ export default function Home() {
     }
   })
 
-  const emptyMessage =
-    viewMode === 'all'
-      ? 'No tasks yet. Add a new task to get started!'
-      : viewMode === 'due-soon'
-        ? 'No upcoming tasks. Add a new task to get started!'
-        : 'No overdue tasks. Great job staying on top of your work!'
+  const emptyMessage = 'No tasks yet. Add a task to get started.'
 
   if (!mounted) {
     return null
@@ -549,6 +516,7 @@ export default function Home() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onOpenTimeRecords={() => setTimeRecordsOpen(true)}
+        tasks={tasks}
       />
 
       {/* Main Content */}
@@ -667,8 +635,6 @@ export default function Home() {
               todayTaskIds={todayTaskIds}
               activeDragId={activeDragId}
               completedTodayCount={completedTodayCount}
-              viewMode={viewMode}
-              setViewMode={setViewMode}
               sortOption={sortOption}
               setSortOption={setSortOption}
               groupByCategory={groupByCategory}
@@ -678,7 +644,6 @@ export default function Home() {
               weeklyRefreshKey={weeklyRefreshKey}
               weeklyDayLabels={weeklyDayLabels}
               emptyMessage={emptyMessage}
-              onAddTaskOpen={() => setAddTaskOpen(true)}
               onAddCategoryOpen={() => setAddCategoryOpen(true)}
               onToggleTask={handleToggleTask}
               onEditTask={handleEditTask}
@@ -687,7 +652,6 @@ export default function Home() {
               onDeleteTask={handleDeleteTask}
               onAddToToday={handleAddToToday}
               onRemoveFromToday={handleRemoveFromToday}
-              onReorderToday={handleReorderToday}
               onCarryOverYesterday={handleCarryOverYesterday}
               hasYesterdayTasks={user ? loadYesterdayIds(user.id).some(
                 (id) => !todayTaskIds.includes(id) && tasks.some((t) => t.id === id && t.status === 'todo')

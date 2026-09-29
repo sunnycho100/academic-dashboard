@@ -2,16 +2,12 @@ import { test, expect, APP_URL } from './support/app'
 import { disableLandingAnimation } from './support/helpers'
 import { seedCategory, seedTask } from './support/api'
 
-/**
- * View-mode filtering — locks in the All / Overdue / Due Soon tab behavior
- * driven by task due dates.
- */
-test.describe('view filters', () => {
+test.describe('task groups', () => {
   test.beforeEach(async ({ page }) => {
     await disableLandingAnimation(page)
   })
 
-  test('overdue and due-soon tabs filter by due date', async ({ page, api }) => {
+  test('tasks sort into Overdue and Upcoming by due date', async ({ page, api }) => {
     const cat = await seedCategory(api)
     const yesterday = new Date(Date.now() - 24 * 3600 * 1000).toISOString()
     const tomorrow = new Date(Date.now() + 24 * 3600 * 1000).toISOString()
@@ -19,18 +15,41 @@ test.describe('view filters', () => {
     await seedTask(api, cat.id, { title: 'Upcoming quiz', dueAt: tomorrow })
 
     await page.goto(APP_URL)
-    // All: both visible
-    await expect(page.getByText('Overdue essay')).toBeVisible()
-    await expect(page.getByText('Upcoming quiz')).toBeVisible()
+    const overdue = page.getByRole('region', { name: 'Overdue' })
+    const upcoming = page.getByRole('region', { name: 'Upcoming' })
+    await expect(overdue.getByText('Overdue essay')).toBeVisible()
+    await expect(upcoming.getByText('Upcoming quiz')).toBeVisible()
+    await expect(overdue.getByText('Upcoming quiz')).toHaveCount(0)
+  })
 
-    // Overdue tab: only the overdue task
-    await page.getByRole('tab', { name: /^overdue$/i }).click()
-    await expect(page.getByText('Overdue essay')).toBeVisible()
-    await expect(page.getByText('Upcoming quiz')).toBeHidden()
+  test('group by course switches to course sections', async ({ page, api }) => {
+    const cat = await seedCategory(api, { name: 'TEST PHYS201' })
+    await seedTask(api, cat.id, { title: 'Problem set 2' })
 
-    // Due Soon tab: only the upcoming task
-    await page.getByRole('tab', { name: /due soon/i }).click()
-    await expect(page.getByText('Upcoming quiz')).toBeVisible()
-    await expect(page.getByText('Overdue essay')).toBeHidden()
+    await page.goto(APP_URL)
+    await page.getByLabel('Group by course').click()
+    await expect(page.getByRole('region', { name: 'TEST PHYS201' }).getByText('Problem set 2')).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Upcoming' })).toHaveCount(0)
+  })
+
+  test('only a newly added task plays the ring draw-in', async ({ page, api }) => {
+    const cat = await seedCategory(api)
+    await seedTask(api, cat.id, { title: 'Existing task' })
+    await page.goto(APP_URL)
+    const ringOf = (title: string) => page.getByRole('checkbox', { name: `Complete ${title}` }).locator('circle.ring-draw')
+    await expect(ringOf('Existing task')).toHaveCount(1) // first appearance draws in
+
+    // Switching tabs must not replay it
+    await page.getByRole('tab', { name: 'Timetable' }).click()
+    await page.getByRole('tab', { name: 'Tasks' }).click()
+    await expect(ringOf('Existing task')).toHaveCount(0)
+
+    await page.getByRole('button', { name: /add task/i }).first().click()
+    await page.getByPlaceholder('e.g., Watch Lecture 12').fill('Brand new task')
+    await page.getByText('Select a category').click()
+    await page.getByRole('option').first().click()
+    await page.getByRole('button', { name: /^add task$/i }).last().click()
+    await expect(ringOf('Brand new task')).toHaveCount(1)
+    await expect(ringOf('Existing task')).toHaveCount(0)
   })
 })

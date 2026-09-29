@@ -875,3 +875,20 @@ body {
   .idle-pulse { animation: none; opacity: 1; }
   .idle-hint { animation: none; opacity: 0.6; }
 }
+
+/* ── Course ring draw-in ───────────────────────────────────────────
+   r=8 circle, circumference 50.3. Anticlockwise comes from the SVG's scaleX(-1). */
+.ring-draw {
+  stroke-dasharray: 50.3;
+  stroke-dashoffset: 50.3;
+  animation: ring-draw 0.7s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+@keyframes ring-draw {
+  to { stroke-dashoffset: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ring-draw {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}

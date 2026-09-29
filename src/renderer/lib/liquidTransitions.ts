@@ -39,37 +39,6 @@ export const liquidPageVariants: Variants = {
 
 // ── Stagger entrance animation ────────────────────────────────────
 
-export const liquidStaggerContainer: Variants = {
-  initial: {},
-  animate: {
-    transition: {
-      staggerChildren: 0.035,
-      delayChildren: 0.015,
-    },
-  },
-  exit: {
-    transition: {
-      staggerChildren: 0.03,
-      staggerDirection: -1,
-    },
-  },
-};
-
-export const liquidStaggerChild: Variants = {
-  initial: { opacity: 0, y: 8, scale: 0.97 },
-  animate: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: childSpring,
-  },
-  exit: {
-    opacity: 0,
-    y: -8,
-    scale: 0.99,
-    transition: { type: "tween", duration: 0.14, ease: [0.4, 0, 1, 1] },
-  },
-};
 
 // ── Chromatic shimmer (text) ──────────────────────────────────────
 
@@ -95,12 +64,6 @@ export const cardHoverLift = {
 
 // ── Sidebar active pill spring ─────────────────────────────────────
 
-export const sidebarPillSpring: Transition = {
-  type: "spring",
-  mass: 0.6,
-  damping: 28,
-  stiffness: 180,
-};
 
 // ── Snappy button press spring ────────────────────────────────────
 
@@ -113,32 +76,6 @@ export const buttonPressSpring: Transition = {
 
 // ── Tab content view transition ───────────────────────────────────
 
-export const viewTransitionVariants: Variants = {
-  initial: { opacity: 0, y: 6, scale: 0.995, filter: "blur(2px)" },
-  animate: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    filter: "blur(0px)",
-    transition: {
-      type: "spring",
-      stiffness: 260,
-      damping: 30,
-      mass: 0.8,
-    },
-  },
-  exit: {
-    opacity: 0,
-    y: -4,
-    scale: 0.995,
-    filter: "blur(1px)",
-    transition: {
-      type: "tween",
-      duration: 0.15,
-      ease: [0.4, 0, 1, 1],
-    },
-  },
-};
 
 // ── Glass card hover with depth increase ──────────────────────────
 

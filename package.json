@@ -14,7 +14,7 @@
     "app": "pnpm dist && ditto \"release/mac-arm64/Academic Dashboard.app\" \"/Applications/Academic Dashboard.app\"",
     "db:migrate": "prisma migrate dev",
     "typecheck": "tsc --noEmit",
-    "test": "node --test src/main/*.test.ts",
+    "test": "node --test 'src/**/*.test.ts'",
     "test:e2e": "electron-vite build && playwright test -c e2e"
   },
   "dependencies": {

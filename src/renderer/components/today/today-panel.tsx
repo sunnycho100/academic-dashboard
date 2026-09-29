@@ -1,178 +1,38 @@
-import { useState, useEffect, useRef } from 'react'
-import { Task, Category } from '@/lib/types'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Button } from '@/components/ui/button'
-import { Clock, Target, Sparkles, Maximize2, ChevronLeft, Play, Pause, Check, GripVertical, History } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { useState } from 'react'
+import type { Task, Category } from '@/lib/types'
+import type { TodaySession } from '@/hooks/use-today-session'
+import { Maximize2, Pause, Play } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useDroppable } from '@dnd-kit/core'
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable'
-import { useTaskTimers } from '@/hooks/use-task-timer'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+import { formatClock } from '@/lib/task-format'
 import { PersonalDevTracker } from '@/components/today/personal-dev-tracker'
-import { RollingCounter } from '@/components/today/rolling-counter'
-import { SortableTodayItem } from '@/components/today/sortable-today-item'
 import { FocusModeOverlay } from '@/components/today/focus-mode-overlay'
 
 interface TodayPanelProps {
   tasks: Task[]
-  allTasks: Task[]
   categories: Category[]
-  onRemoveFromToday: (taskId: string) => void
+  session: TodaySession
   onToggleTask: (id: string, timeSpentSeconds?: number) => void
-  onReorderToday: (reorderedIds: string[]) => void
-  onCarryOverYesterday?: () => void
-  hasYesterdayTasks?: boolean
-  isDragging?: boolean
-  userId?: string
+  children?: React.ReactNode
 }
 
-function formatDuration(minutes: number) {
-  if (minutes >= 60) {
-    const h = Math.floor(minutes / 60)
-    const m = minutes % 60
-    return m > 0 ? `${h}h ${m}m` : `${h}h`
-  }
-  return `${minutes}m`
-}
+const DATE = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
 
-function getDueInfo(dueAt: string | null) {
-  if (!dueAt) return null
-  const dueDate = new Date(dueAt)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const dueDateOnly = new Date(dueDate)
-  dueDateOnly.setHours(0, 0, 0, 0)
-  const daysDiff = Math.floor((dueDateOnly.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-  if (daysDiff < 0) return { label: `${Math.abs(daysDiff)}d overdue`, variant: 'destructive' as const }
-  if (daysDiff === 0) return { label: 'Due today', variant: 'default' as const, className: 'bg-red-500/20 text-red-500 dark:text-red-400 border-red-500/40 font-medium' }
-  if (daysDiff === 1) return { label: 'Tomorrow', variant: 'default' as const }
-  return { label: `${daysDiff}d`, variant: 'secondary' as const }
-}
-
-export function TodayPanel({
-  tasks,
-  allTasks,
-  categories,
-  onRemoveFromToday,
-  onToggleTask,
-  onReorderToday,
-  onCarryOverYesterday,
-  hasYesterdayTasks = false,
-  isDragging = false,
-  userId,
-}: TodayPanelProps) {
-  const { isOver, setNodeRef } = useDroppable({ id: 'today-drop-zone' })
+/** The dark green Today panel: focus timer on top, then the day timeline (children), then personal dev timers. */
+export function TodayPanel({ tasks, categories, session, onToggleTask, children }: TodayPanelProps) {
   const [focusMode, setFocusMode] = useState(false)
-  const [dbStudySeconds, setDbStudySeconds] = useState(0)
-  const studyPollRef = useRef<NodeJS.Timeout | null>(null)
-  
-  const {
-    timerStates,
-    getElapsedSeconds,
-    formatTime,
-    startTimer,
-    pauseTimer,
-    resumeTimer,
-    stopTimer,
-    getTotalStudyTime,
-    registerTaskMeta,
-  } = useTaskTimers(tasks.map(t => t.id), userId)
+  const { timerStates, getElapsedSeconds, formatTime, startTimer, pauseTimer, resumeTimer, stopTimer, totalStudySeconds } = session
 
-  // Register task metadata so time records include category info
-  useEffect(() => {
-    tasks.forEach((task) => {
-      const cat = categories.find((c) => c.id === task.categoryId)
-      registerTaskMeta({
-        taskId: task.id,
-        taskTitle: task.title,
-        categoryName: cat?.name ?? 'Unknown',
-        categoryColor: cat?.color ?? '#888',
-        taskType: task.type,
-      })
-    })
-  }, [tasks, categories, registerTaskMeta])
+  const running = tasks.find((t) => timerStates[t.id]?.isRunning && !timerStates[t.id]?.isPaused)
+  const paused = tasks.find((t) => timerStates[t.id]?.isRunning && timerStates[t.id]?.isPaused)
+  const next = tasks.find((t) => t.status !== 'done')
+  const active = running ?? paused ?? next
+  const activeCategory = active && categories.find((c) => c.id === active.categoryId)
+  const elapsed = active ? getElapsedSeconds(active.id) : 0
 
-  // Fetch today's total study time from ALL time records (using day boundaries)
-  useEffect(() => {
-    const fetchStudyTime = () => {
-      const now = new Date()
-      const tzOffset = now.getTimezoneOffset()
-      // Read day boundaries from localStorage (same key as Time Records dialog)
-      let startHour = 6
-      let endHour = 24
-      try {
-        const saved = localStorage.getItem('timeRecords-dayBoundaries')
-        if (saved) {
-          const { start, end } = JSON.parse(saved)
-          if (typeof start === 'number') startHour = start
-          if (typeof end === 'number') endHour = end
-        }
-      } catch {}
+  const totalMinutes = tasks.reduce((sum, t) => sum + (t.estimatedDuration || 0), 0)
+  const doneMinutes = tasks.filter((t) => t.status === 'done').reduce((sum, t) => sum + (t.estimatedDuration || 0), 0)
+  const progress = totalMinutes > 0 ? Math.round((doneMinutes / totalMinutes) * 100) : 0
 
-      // If day extends past midnight (e.g. 10 AM–3 AM) and current time
-      // is before the end-hour boundary, we're still in "yesterday's" day.
-      let effectiveDate = now
-      if (endHour > 24) {
-        const pastMidnightEnd = endHour - 24 // e.g. 3
-        if (now.getHours() < pastMidnightEnd) {
-          effectiveDate = new Date(now)
-          effectiveDate.setDate(effectiveDate.getDate() - 1)
-        }
-      }
-
-      const dateStr = `${effectiveDate.getFullYear()}-${String(effectiveDate.getMonth() + 1).padStart(2, '0')}-${String(effectiveDate.getDate()).padStart(2, '0')}`
-      const endHourParam = endHour > 24 ? endHour - 24 : 0
-      fetch(`/api/time-records?date=${dateStr}&tz=${tzOffset}&startHour=${startHour}&endHour=${endHourParam}`)
-        .then((res) => res.json())
-        .then((records: Array<{ duration: number }>) => {
-          if (!Array.isArray(records)) return
-          const totalSec = records.reduce((sum, r) => sum + r.duration, 0)
-          setDbStudySeconds(totalSec)
-        })
-        .catch(() => {})
-    }
-
-    fetchStudyTime()
-    // Poll every 30 seconds to keep study time fresh
-    studyPollRef.current = setInterval(fetchStudyTime, 30000)
-    return () => {
-      if (studyPollRef.current) clearInterval(studyPollRef.current)
-    }
-  }, [tasks]) // re-fetch when tasks change (e.g. after completing one)
-
-  // Total study time = DB time records for today + any currently running live timers
-  const totalStudySeconds = dbStudySeconds + getTotalStudyTime()
-
-  const totalMinutes = tasks.reduce(
-    (acc, t) => acc + (t.estimatedDuration || 0),
-    0
-  )
-  const completedMinutes = tasks
-    .filter((t) => t.status === 'done')
-    .reduce((acc, t) => acc + (t.estimatedDuration || 0), 0)
-  const remainingMinutes = totalMinutes - completedMinutes
-  const completedCount = tasks.filter((t) => t.status === 'done').length
-  const progress = totalMinutes > 0 ? Math.round((completedMinutes / totalMinutes) * 100) : 0
-
-  const totalHours = Math.floor(totalMinutes / 60)
-  const totalMins = totalMinutes % 60
-
-  const getCat = (id: string) => categories.find((c) => c.id === id)
-
-  // Magnetic glow when any drag is active
-  const showMagnetic = isOver || isDragging
-
-  // ── Focus Mode (full-screen overlay) ──
   if (focusMode) {
     return (
       <FocusModeOverlay
@@ -180,7 +40,7 @@ export function TodayPanel({
         categories={categories}
         timerStates={timerStates}
         totalMinutes={totalMinutes}
-        remainingMinutes={remainingMinutes}
+        remainingMinutes={totalMinutes - doneMinutes}
         progress={progress}
         totalStudySeconds={totalStudySeconds}
         getElapsedSeconds={getElapsedSeconds}
@@ -195,496 +55,85 @@ export function TodayPanel({
     )
   }
 
-  // ── Normal (inline Bento card) ──
+  const toggleActive = () => {
+    if (!active) return
+    if (running) pauseTimer(active.id)
+    else if (paused) resumeTimer(active.id)
+    else startTimer(active.id)
+  }
+
   return (
-    <motion.div
-      layoutId="today-panel-card"
-      ref={setNodeRef}
-      className={cn(
-        'relative rounded-2xl flex flex-col overflow-hidden',
-        // Glassmorphism
-        'glass-thin glass-rim',
-        // Magnetic glow states
-        isOver
-          ? 'border-primary/40 shadow-[0_0_30px_-5px_hsl(var(--primary)/0.2)] scale-[1.01]'
-          : showMagnetic
-            ? 'border-primary/20 shadow-[0_0_20px_-5px_hsl(var(--primary)/0.1)]'
-            : '',
-      )}
-      animate={isOver ? { scale: 1.01 } : { scale: 1 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-      style={{ minHeight: 0, height: '100%' }}
-    >
-      {/* Radial inner glow on drag-over */}
-      <AnimatePresence>
-        {isOver && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 rounded-2xl pointer-events-none z-0"
-            style={{
-              background: 'radial-gradient(ellipse at center, hsl(var(--primary) / 0.06) 0%, transparent 70%)',
-            }}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Dashed drop zone indicator when dragging */}
-      <AnimatePresence>
-        {showMagnetic && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: isOver ? 0.8 : 0.4 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="absolute inset-1.5 rounded-xl border-2 border-dashed border-primary/30 pointer-events-none z-0"
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Header */}
-      <div className="relative z-10 px-4 pt-4 pb-3">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2.5">
-            <motion.div
-              className="h-7 w-7 rounded-xl bg-primary/10 flex items-center justify-center"
-              whileHover={{ scale: 1.1, rotate: 5 }}
-              whileTap={{ scale: 0.95 }}
+    <aside aria-label="Today panel" className="h-full rounded-2xl bg-today text-today-foreground flex flex-col overflow-hidden">
+      <div className="px-6 pt-5 pb-5 flex-shrink-0">
+        <div className="flex items-baseline">
+          <h2 className="font-serif text-2xl text-white">Today</h2>
+          <span className="ml-auto text-xs uppercase tracking-wider text-today-muted">{DATE.format(new Date())}</span>
+          {tasks.length > 0 && (
+            <button
+              onClick={() => setFocusMode(true)}
+              className="ml-3 self-center text-today-muted hover:text-white transition-colors"
+              title="Focus mode"
             >
-              <Target className="h-3.5 w-3.5 text-primary" />
-            </motion.div>
-            <h2 className="font-semibold text-sm tracking-tight">Today&apos;s Plan</h2>
-          </div>
-          <div className="flex items-center gap-1">
-            {tasks.length > 0 && (
-              <motion.span
-                key={completedCount}
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                className="text-[10px] font-medium text-muted-foreground/50 bg-secondary px-2 py-0.5 rounded-full tabular-nums mr-1"
-              >
-                {completedCount}/{tasks.length}
-              </motion.span>
-            )}
-            {tasks.length > 0 && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-xl h-6 w-6 text-muted-foreground/40 hover:text-foreground"
-                onClick={() => setFocusMode(true)}
-              >
-                <Maximize2 className="h-3 w-3" />
-              </Button>
-            )}
-            {hasYesterdayTasks && onCarryOverYesterday && (
-              <TooltipProvider delayDuration={200}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="rounded-xl h-6 w-6 text-muted-foreground/40 hover:text-primary"
-                      onClick={onCarryOverYesterday}
-                    >
-                      <History className="h-3 w-3" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">
-                    Carry over unfinished tasks from yesterday
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-          </div>
-        </div>
-
-        {/* Time with rolling counter */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-1.5 text-muted-foreground/70">
-              <Clock className="h-3 w-3" />
-              {totalMinutes > 0 ? (
-                <span className="tabular-nums">
-                  {totalHours > 0 && <RollingCounter value={totalHours} label="h" />}
-                  {totalHours > 0 && totalMins > 0 && ' '}
-                  {(totalMins > 0 || totalHours === 0) && <RollingCounter value={totalMins} label="m" />}
-                </span>
-              ) : (
-                <span className="text-muted-foreground/35">0m</span>
-              )}
-            </div>
-            {totalMinutes > 0 && remainingMinutes > 0 && (
-              <span className="text-[10px] text-muted-foreground/40 tabular-nums">
-                {formatDuration(remainingMinutes)} left
-              </span>
-            )}
-            {totalMinutes > 0 && remainingMinutes <= 0 && (
-              <motion.span
-                initial={{ scale: 0.8 }}
-                animate={{ scale: 1 }}
-                className="text-[10px] text-green-500/70 font-medium"
-              >
-                All done!
-              </motion.span>
-            )}
-          </div>
-
-          {totalMinutes > 0 && (
-            <div className="h-1 bg-secondary/40 rounded-full overflow-hidden">
-              <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-primary/70 to-primary"
-                animate={{ width: `${progress}%` }}
-                transition={{ type: 'spring', stiffness: 100, damping: 20 }}
-              />
-            </div>
+              <Maximize2 className="h-3.5 w-3.5" />
+            </button>
           )}
         </div>
+
+        {/* Focus timer */}
+        <p className="mt-5 text-xs uppercase tracking-wider text-today-muted">
+          {running ? 'Now working on' : paused ? 'Paused' : active ? 'Up next' : 'Nothing planned'}
+        </p>
+        <p className="mt-1 text-sm text-white truncate">
+          {active ? (
+            <>
+              {active.title}
+              {activeCategory && <span className="text-today-muted"> · {activeCategory.name}</span>}
+            </>
+          ) : (
+            <span className="text-today-muted">Add tasks to Today to start a timer.</span>
+          )}
+        </p>
+        <div className="mt-3 flex items-center gap-4">
+          <span className="font-extralight text-[4.5rem] leading-none tracking-tight tabular-nums text-white" aria-label="Active timer">
+            {formatClock(elapsed)}
+          </span>
+          {active && (
+            <button
+              onClick={toggleActive}
+              className={cn(
+                'ml-auto h-12 w-12 flex-shrink-0 rounded-full flex items-center justify-center transition-transform active:scale-95',
+                running ? 'bg-coral text-white' : 'bg-today-foreground text-today',
+              )}
+              title={running ? 'Pause timer' : paused ? 'Resume timer' : 'Start timer'}
+            >
+              {running ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current ml-0.5" />}
+            </button>
+          )}
+        </div>
+        {/* One dot per task in today's plan: done, current (pill), still to do */}
+        {tasks.length > 0 && (
+          <div className="mt-4 flex items-center gap-1.5" aria-hidden>
+            {tasks.map((t) => (
+              <span
+                key={t.id}
+                className={cn(
+                  'h-1.5 rounded-full transition-all',
+                  t.id === active?.id ? 'w-7 bg-white' : t.status === 'done' ? 'w-1.5 bg-today-muted' : 'w-1.5 bg-white/20',
+                )}
+              />
+            ))}
+          </div>
+        )}
+        <p className="mt-3 text-xs uppercase tracking-wider text-today-muted tabular-nums">
+          Today total {formatClock(totalStudySeconds)}
+        </p>
       </div>
 
-      <div className="mx-4 border-t border-border" />
+      <div className="flex-1 min-h-0 border-t border-white/10">{children}</div>
 
-      {/* Task list / Drop zone — scrollable */}
-      <ScrollArea className="relative z-10 flex-1 min-h-0">
-        <div className="px-3 py-2">
-        {tasks.length === 0 ? (
-          /* ── Empty State ── */
-          <motion.div
-            className={cn(
-              'flex flex-col items-center justify-center py-10 rounded-2xl transition-all duration-500 mx-0.5',
-              isOver ? 'bg-primary/[0.04]' : 'bg-transparent'
-            )}
-            animate={isOver ? { scale: 1.02 } : { scale: 1 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-          >
-            {/* Floating sparkle icon */}
-            <motion.div
-              className={cn(
-                'relative mb-3 h-12 w-12 rounded-2xl flex items-center justify-center transition-colors duration-500',
-                isOver ? 'bg-primary/10' : 'bg-secondary/30'
-              )}
-              animate={
-                isOver
-                  ? { rotate: [0, -5, 5, 0], scale: 1.08 }
-                  : { rotate: 0, scale: 1 }
-              }
-              transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-            >
-              <motion.div
-                animate={{ y: [0, -4, 0], opacity: [0.5, 1, 0.5] }}
-                transition={{
-                  duration: isOver ? 0.8 : 3.5,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }}
-              >
-                <Sparkles className={cn(
-                  'h-5 w-5 transition-colors duration-500',
-                  isOver ? 'text-primary' : 'text-muted-foreground/20'
-                )} />
-              </motion.div>
-
-              {/* Shimmer sweep */}
-              <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
-                <div className="absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
-              </div>
-            </motion.div>
-
-            <p className={cn(
-              'text-[11px] font-medium transition-colors duration-500',
-              isOver ? 'text-primary/80' : 'text-muted-foreground/30'
-            )}>
-              {isOver ? 'Release to add' : 'Plan your day'}
-            </p>
-            <p className="text-[9px] text-muted-foreground/20 mt-0.5">
-              Drag tasks here
-            </p>
-
-            {/* Carry over yesterday's tasks */}
-            {hasYesterdayTasks && onCarryOverYesterday && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-3 text-xs h-7 gap-1.5 rounded-lg border-dashed"
-                onClick={onCarryOverYesterday}
-              >
-                <History className="h-3 w-3" />
-                Carry over yesterday&apos;s unfinished tasks
-              </Button>
-            )}
-
-            {/* Ghost placeholder when dragging over */}
-            <AnimatePresence>
-              {isOver && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                  animate={{ opacity: 1, height: 36, marginTop: 12 }}
-                  exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                  className="w-full rounded-xl border-2 border-dashed border-primary/20 bg-primary/[0.02]"
-                />
-              )}
-            </AnimatePresence>
-          </motion.div>
-        ) : (
-          /* ── Task list with sortable reordering ── */
-            <SortableContext items={tasks.map((t) => `today-${t.id}`)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-1">
-                {/* Ghost placeholder at top when dragging over populated list */}
-                <AnimatePresence>
-                  {isOver && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 32 }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-                      className="rounded-xl border-2 border-dashed border-primary/20 bg-primary/[0.03] flex items-center justify-center"
-                    >
-                      <span className="text-[9px] text-primary/40 font-medium">Drop here</span>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <AnimatePresence initial={false}>
-                  {tasks.map((task, index) => {
-                    const cat = getCat(task.categoryId)
-                  const due = getDueInfo(task.dueAt)
-                  const timerState = timerStates[task.id]
-                  const isRunning = timerState?.isRunning && !timerState?.isPaused
-                  const isPaused = timerState?.isPaused
-                  const elapsedSeconds = getElapsedSeconds(task.id)
-                  const hasStarted = timerState?.isRunning
-                  
-                  return (
-                    <SortableTodayItem key={task.id} id={`today-${task.id}`}>
-                      {(dragHandleListeners, dragHandleAttributes) => (
-                        <motion.div
-                          layout
-                          layoutId={`today-task-${task.id}`}
-                          initial={{ opacity: 0, x: 40, scale: 0.95 }}
-                          animate={{ opacity: 1, x: 0, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.95, filter: 'blur(4px)', height: 0, marginTop: 0, marginBottom: 0, padding: 0, overflow: 'hidden' }}
-                          transition={{
-                            type: 'spring',
-                            stiffness: 400,
-                            damping: 28,
-                            delay: index * 0.02,
-                          }}
-                          className={cn(
-                            'group relative flex items-center gap-3 p-3 rounded-xl transition-all duration-200',
-                            'glass-thin glass-interactive',
-                            'border border-border hover:border-foreground/20',
-                            'hover:shadow-md',
-                            task.status === 'done' && 'opacity-40',
-                            isRunning && 'ring-2 ring-primary/20'
-                          )}
-                        >
-                          {/* Drag handle */}
-                          <button
-                            {...dragHandleListeners}
-                            {...dragHandleAttributes}
-                            className="flex-shrink-0 h-9 w-5 rounded flex items-center justify-center text-muted-foreground/30 hover:text-muted-foreground/60 cursor-grab active:cursor-grabbing transition-colors touch-none"
-                            title="Drag to reorder"
-                          >
-                            <GripVertical className="h-4 w-4" />
-                          </button>
-
-                          {/* Play/Pause Button */}
-                          <AnimatePresence mode="wait">
-                            {!hasStarted ? (
-                              <motion.button
-                                key="play"
-                                initial={{ scale: 0.8, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0.8, opacity: 0 }}
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                onClick={() => startTimer(task.id)}
-                                className="flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
-                                title="Start timer"
-                              >
-                                <Play className="h-4 w-4 fill-current" />
-                              </motion.button>
-                            ) : isPaused ? (
-                              <motion.button
-                                key="resume"
-                                initial={{ scale: 0.8, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0.8, opacity: 0 }}
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                onClick={() => resumeTimer(task.id)}
-                                className="flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
-                                title="Resume timer"
-                              >
-                                <Play className="h-4 w-4 fill-current" />
-                              </motion.button>
-                            ) : (
-                              <motion.button
-                                key="pause"
-                                initial={{ scale: 0.8, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0.8, opacity: 0 }}
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                onClick={() => pauseTimer(task.id)}
-                                className="flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center bg-primary hover:bg-primary/90 text-primary-foreground transition-colors"
-                                title="Pause timer"
-                              >
-                                <Pause className="h-4 w-4 fill-current" />
-                              </motion.button>
-                            )}
-                          </AnimatePresence>
-
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className={cn(
-                                'font-medium text-sm text-foreground leading-snug',
-                                task.status === 'done' && 'line-through text-muted-foreground'
-                              )}>
-                                {task.title}
-                              </p>
-                              {/* Timer Display */}
-                              <AnimatePresence>
-                                {hasStarted && (
-                                  <motion.span
-                                    initial={{ scale: 0, opacity: 0 }}
-                                    animate={{ scale: 1, opacity: 1 }}
-                                    exit={{ scale: 0, opacity: 0 }}
-                                    className={cn(
-                                      'text-xs font-mono font-semibold tabular-nums px-2 py-0.5 rounded-md',
-                                      isRunning
-                                        ? 'bg-primary/10 text-primary animate-pulse'
-                                        : 'bg-muted/60 text-muted-foreground'
-                                    )}
-                                  >
-                                    {formatTime(elapsedSeconds)}
-                                  </motion.span>
-                                )}
-                              </AnimatePresence>
-                            </div>
-                            <div className="flex items-center gap-2 mt-1 flex-wrap">
-                              {cat && (
-                                <div className="flex items-center gap-1.5 text-xs" style={{ color: cat.color }}>
-                                  <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cat.color }} />
-                                  {cat.name}
-                                </div>
-                              )}
-                              <span className="text-muted-foreground/40 text-xs">&middot;</span>
-                              <span className="text-xs text-muted-foreground/70">{task.type}</span>
-                              {task.estimatedDuration && task.estimatedDuration > 0 && (
-                                <>
-                                  <span className="text-muted-foreground/40 text-xs">&middot;</span>
-                                  <span className="text-xs text-muted-foreground/70 tabular-nums">
-                                    {formatDuration(task.estimatedDuration)}
-                                  </span>
-                                </>
-                              )}
-                              {due && (
-                                <>
-                                  <span className="text-muted-foreground/40 text-xs">&middot;</span>
-                                  <Badge variant={due.variant} className={cn('text-xs font-normal', 'className' in due ? due.className : '')}>
-                                    {due.label}
-                                  </Badge>
-                                </>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Action Buttons (right side) */}
-                          <div className="flex-shrink-0 flex items-center gap-1.5 ml-1 z-10">
-                            {/* Complete Button */}
-                            <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              onClick={() => {
-                                const elapsedSeconds = getElapsedSeconds(task.id)
-                                if (hasStarted) {
-                                  stopTimer(task.id)
-                                }
-                                onToggleTask(task.id, elapsedSeconds)
-                              }}
-                              className={cn(
-                                'h-9 w-9 rounded-lg flex items-center justify-center transition-all',
-                                task.status === 'done'
-                                  ? 'bg-green-500/20 text-green-600 dark:text-green-400'
-                                  : 'opacity-0 group-hover:opacity-100 bg-muted/60 hover:bg-green-500/20 text-muted-foreground hover:text-green-600'
-                              )}
-                              title={task.status === 'done' ? 'Completed' : 'Mark as complete'}
-                            >
-                              <Check className="h-4 w-4" />
-                            </motion.button>
-
-                            {/* Return to backlog */}
-                            <motion.button
-                              whileHover={{ scale: 1.1, x: -2 }}
-                              whileTap={{ scale: 0.9 }}
-                              onClick={() => {
-                                if (hasStarted) {
-                                  stopTimer(task.id)
-                                }
-                                onRemoveFromToday(task.id)
-                              }}
-                              className="opacity-0 group-hover:opacity-100 transition-all duration-200 h-9 w-7 rounded-lg flex items-center justify-center hover:bg-muted/60 text-muted-foreground/50 hover:text-foreground/70"
-                              title="Return to backlog"
-                            >
-                              <ChevronLeft className="h-4 w-4" />
-                            </motion.button>
-                          </div>
-                        </motion.div>
-                      )}
-                    </SortableTodayItem>
-                  )
-                })}
-                </AnimatePresence>
-              </div>
-            </SortableContext>
-        )}
-        </div>
-      </ScrollArea>
-
-      {/* Global Study Time Footer */}
-      <AnimatePresence>
-        {tasks.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-            className="relative z-10 border-t border-border overflow-hidden flex-shrink-0"
-          >
-            <div className="px-4 py-3 glass-thick">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Clock className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground">Study Time</p>
-                    <p className="text-sm font-bold tabular-nums text-foreground">
-                      {formatTime(totalStudySeconds)}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-xs text-muted-foreground/60">
-                  {Object.values(timerStates).filter(s => s.isRunning && !s.isPaused).length > 0 && (
-                    <span className="inline-flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                      Active
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Personal Development Tracker */}
-      <div className="flex-shrink-0">
+      <div className="flex-shrink-0 border-t border-white/10">
         <PersonalDevTracker />
       </div>
-    </motion.div>
+    </aside>
   )
 }

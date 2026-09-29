@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
-import { Category } from '@/lib/types'
+import { Category, Task } from '@/lib/types'
+import { courseSummary } from '@/lib/task-format'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Plus, Search, BarChart3, Clock, Pencil, ChevronUp, ChevronDown, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
-import { sidebarPillSpring } from '@/lib/liquidTransitions'
 import { ActivitySummaryDialog } from './activity-summary-dialog'
 
 interface CategorySidebarProps {
@@ -20,10 +20,12 @@ interface CategorySidebarProps {
   searchQuery: string
   onSearchChange: (query: string) => void
   onOpenTimeRecords?: () => void
+  tasks: Task[]
 }
 
 export function CategorySidebar({
   categories,
+  tasks,
   selectedCategoryId,
   onSelectCategory,
   onAddCategory,
@@ -139,14 +141,10 @@ export function CategorySidebar({
                   : 'hover:bg-secondary text-muted-foreground'
               )}
             >
-              {selectedCategoryId === null && (
-                <motion.div
-                  layoutId="sidebar-active-pill"
-                  className="absolute left-0 top-1 bottom-1 w-[3px] bg-primary rounded-full"
-                  transition={sidebarPillSpring}
-                />
-              )}
-              <span className="relative z-10">All Categories</span>
+              <span className="relative z-10 flex items-center">
+                All tasks
+                <span className="ml-auto text-xs text-muted-foreground tabular-nums">{tasks.length}</span>
+              </span>
             </button>
           )}
           {filteredCategories.map((category, index) => (
@@ -178,21 +176,9 @@ export function CategorySidebar({
                       : 'hover:bg-secondary text-foreground/80 cursor-text'
                 )}
               >
-                {!editMode && selectedCategoryId === category.id && (
-                  <motion.div
-                    layoutId="sidebar-active-pill"
-                    className="absolute left-0 top-1 bottom-1 w-[3px] bg-primary rounded-full"
-                    transition={sidebarPillSpring}
-                  />
-                )}
                 <div
-                  className="relative z-10 w-2 h-2 rounded-full flex-shrink-0 transition-shadow duration-300"
-                  style={{
-                    backgroundColor: category.color,
-                    boxShadow: !editMode && selectedCategoryId === category.id
-                      ? `0 0 0 2px ${category.color}40, 0 0 0 4px ${category.color}20, 0 0 8px ${category.color}30`
-                      : 'none',
-                  }}
+                  className="relative z-10 w-2 h-2 rounded-full flex-shrink-0 self-start mt-[5px]"
+                  style={{ backgroundColor: category.color }}
                 />
                 <span className="relative z-10 truncate flex-1">
                   {editingId === category.id ? (
@@ -209,7 +195,14 @@ export function CategorySidebar({
                       className="bg-secondary border border-border rounded px-1.5 py-0.5 text-sm w-full outline-none focus:ring-1 focus:ring-ring"
                     />
                   ) : (
-                    category.name
+                    <>
+                      <span className="block truncate">{category.name}</span>
+                      {!editMode && (
+                        <span className="block truncate text-xs font-normal text-muted-foreground mt-0.5">
+                          {courseSummary(tasks.filter((t) => t.categoryId === category.id))}
+                        </span>
+                      )}
+                    </>
                   )}
                 </span>
               </button>

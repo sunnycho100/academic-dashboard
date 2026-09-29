@@ -1,5 +1,5 @@
 import { Task, Category } from '@/lib/types'
-import { Checkbox } from '@/components/ui/checkbox'
+import { CourseRing } from '@/components/tasks/course-ring'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +13,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
-import { GripVertical, MoreVertical, Pencil, Copy, Trash2, StickyNote, ChevronRight, ChevronLeft, Target } from 'lucide-react'
+import { GripVertical, MoreVertical, Pencil, Copy, Trash2, StickyNote, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -31,8 +31,8 @@ interface TaskRowProps {
   onDelete: (id: string) => void
   onSave?: (task: Task) => void
   onAddToToday?: (id: string) => void
-  onRemoveFromToday?: (id: string) => void
-  isInToday?: boolean
+  /** Stagger slot for the ring draw-in; null when the ring is already drawn */
+  drawIndex?: number | null
   isDragging?: boolean
   animationIndex?: number
   weeklyDayLabels?: string[]
@@ -47,8 +47,7 @@ export function TaskRow({
   onDelete,
   onSave,
   onAddToToday,
-  onRemoveFromToday,
-  isInToday,
+  drawIndex = null,
   animationIndex = 0,
   weeklyDayLabels,
 }: TaskRowProps) {
@@ -77,38 +76,25 @@ export function TaskRow({
       animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
       exit={{ opacity: 0, scale: 0.95, filter: 'blur(4px)', height: 0, marginTop: 0, marginBottom: 0, padding: 0, overflow: 'hidden', transition: { duration: 0.25, type: "spring", stiffness: 300, damping: 25 } }}
       transition={childSpring}
-      whileHover={{ y: -3, transition: { type: 'spring', stiffness: 300, damping: 25 } }}
       whileTap={{ scale: 0.995 }}
       className={cn(
-        'group relative flex items-center gap-3 p-3 rounded-xl glass-thin glass-interactive glass-hover-glow cursor-grab active:cursor-grabbing touch-none',
-        'hover:shadow-lg',
+        'group relative flex items-center gap-3 p-3 rounded-xl glass-thin glass-interactive cursor-grab active:cursor-grabbing touch-none',
         isDragging && 'opacity-60 shadow-xl scale-[1.02] z-50 ring-2 ring-primary/20',
         task.status === 'done' && 'opacity-50'
       )}
     >
-      {/* Category left accent bar */}
-      <div
-        className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100 group-hover:shadow-sm"
-        style={{
-          backgroundColor: category.color,
-          boxShadow: `0 0 6px ${category.color}40`,
-        }}
-      />
 
       <div className="flex-shrink-0">
         <GripVertical className="h-4 w-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors" />
       </div>
 
-      <motion.div
-        whileTap={{ scale: 0.85 }}
-        transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-      >
-        <Checkbox
-          checked={task.status === 'done'}
-          onCheckedChange={() => onToggle(task.id)}
-          className="flex-shrink-0"
-        />
-      </motion.div>
+      <CourseRing
+        color={category.color}
+        checked={task.status === 'done'}
+        onToggle={() => onToggle(task.id)}
+        drawIndex={drawIndex}
+        label={`Complete ${task.title}`}
+      />
 
       <div className="flex-1 min-w-0">
         <div
@@ -148,7 +134,7 @@ export function TaskRow({
       </div>
 
       {/* Toggle Today's Plan button */}
-      {onAddToToday && !isInToday && (
+      {onAddToToday && (
         <motion.button
           whileHover={{ scale: 1.15, x: 2 }}
           whileTap={{ scale: 0.9 }}
@@ -158,19 +144,6 @@ export function TaskRow({
           title="Add to Today's Plan"
         >
           <ChevronRight className="h-4 w-4" />
-        </motion.button>
-      )}
-      {onRemoveFromToday && isInToday && (
-        <motion.button
-          whileHover={{ scale: 1.15, x: -2 }}
-          whileTap={{ scale: 0.9 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-          onClick={() => onRemoveFromToday(task.id)}
-          className="group/today flex-shrink-0 h-7 w-7 rounded-lg flex items-center justify-center bg-primary/10 hover:bg-muted/60 transition-all"
-          title="Remove from Today's Plan"
-        >
-          <Target className="h-3 w-3 text-primary/60 group-hover/today:hidden" />
-          <ChevronLeft className="h-4 w-4 text-muted-foreground/50 hidden group-hover/today:block" />
         </motion.button>
       )}
 

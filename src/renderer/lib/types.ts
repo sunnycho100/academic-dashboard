@@ -24,7 +24,6 @@ export interface Task {
 }
 
 export type SortOption = 'due-date' | 'manual'
-export type ViewMode = 'all' | 'overdue' | 'due-soon'
 
 // ---------------------------------------------------------------------------
 // Timetable
