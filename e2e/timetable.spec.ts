@@ -1,15 +1,10 @@
 import { test, expect, APP_URL } from './support/app'
-import { disableLandingAnimation } from './support/helpers'
 
 /**
  * Timetable auto-logic — locks in the "autofill planned start" behavior: focusing
  * an empty planned-start field fills it (current time rounded, or prior row's end).
  */
 test.describe('timetable autofill', () => {
-  test.beforeEach(async ({ page }) => {
-    await disableLandingAnimation(page)
-  })
-
   test('focusing an empty planned-start autofills a time', async ({ page }) => {
     await page.goto(APP_URL)
     await page.getByRole('tab', { name: 'Timetable' }).click()

@@ -1,5 +1,4 @@
 import { test, expect, APP_URL } from './support/app'
-import { disableLandingAnimation } from './support/helpers'
 import { seedCategory, seedTask } from './support/api'
 
 /**
@@ -8,10 +7,6 @@ import { seedCategory, seedTask } from './support/api'
  * against the isolated local test DB which global-setup truncates per run.
  */
 test.describe('task lifecycle', () => {
-  test.beforeEach(async ({ page }) => {
-    await disableLandingAnimation(page)
-  })
-
   test('a seeded task renders in the list', async ({ page, api }) => {
     const cat = await seedCategory(api)
     await seedTask(api, cat.id, { title: 'Read Chapter 5' })

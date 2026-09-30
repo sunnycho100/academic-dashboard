@@ -1,12 +1,7 @@
 import { test, expect, APP_URL } from './support/app'
-import { disableLandingAnimation } from './support/helpers'
 import { seedCategory, seedTask } from './support/api'
 
 test.describe('task groups', () => {
-  test.beforeEach(async ({ page }) => {
-    await disableLandingAnimation(page)
-  })
-
   test('tasks sort into Overdue and Upcoming by due date', async ({ page, api }) => {
     const cat = await seedCategory(api)
     const yesterday = new Date(Date.now() - 24 * 3600 * 1000).toISOString()

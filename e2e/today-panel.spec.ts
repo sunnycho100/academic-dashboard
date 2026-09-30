@@ -1,5 +1,4 @@
 import { test, expect, APP_URL } from './support/app'
-import { disableLandingAnimation } from './support/helpers'
 import { seedCategory, seedTask } from './support/api'
 
 /**
@@ -7,10 +6,6 @@ import { seedCategory, seedTask } from './support/api'
  * in the Today panel).
  */
 test.describe("today's plan", () => {
-  test.beforeEach(async ({ page }) => {
-    await disableLandingAnimation(page)
-  })
-
   test('add a task to today reveals its timer control', async ({ page, api }) => {
     const cat = await seedCategory(api)
     await seedTask(api, cat.id, { title: 'Plan this today' })
@@ -30,10 +25,6 @@ test.describe("today's plan", () => {
 })
 
 test.describe('day timeline', () => {
-  test.beforeEach(async ({ page }) => {
-    await disableLandingAnimation(page)
-  })
-
   test('shows planned and actual lanes, and the setting hides each', async ({ page, api }) => {
     await seedCategory(api) // the Today panel only renders once a course exists
     // Fixed daytime hours inside the default 6 AM day start, so the test passes

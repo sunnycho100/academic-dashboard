@@ -1,11 +1,6 @@
 import { test, expect, APP_URL } from './support/app'
-import { disableLandingAnimation } from './support/helpers'
 
 test.describe('app shell', () => {
-  test.beforeEach(async ({ page }) => {
-    await disableLandingAnimation(page)
-  })
-
   test('a fresh install opens to the welcome state', async ({ page }) => {
     await page.goto(APP_URL)
     await expect(page.getByText('Welcome to Class Catch-up!')).toBeVisible()

@@ -34,7 +34,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { motion } from 'framer-motion'
-import { LandingSequence } from '@/components/layout/landing-sequence'
 import { IdleOverlay } from '@/components/layout/idle-overlay'
 import { useIdleDetector } from '@/hooks/use-idle-detector'
 import {
@@ -116,7 +115,6 @@ export default function Home() {
   const [weeklyEntries, setWeeklyEntries] = useState<WeeklyPlanEntry[]>([])
   const [weeklyRefreshKey, setWeeklyRefreshKey] = useState(0)
   const [mounted, setMounted] = useState(false)
-  const [landingComplete, setLandingComplete] = useState(false)
   const [todayTaskIds, setTodayTaskIds] = useState<string[]>([])
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
   const [completedTodayCount, setCompletedTodayCount] = useState(0)
@@ -495,8 +493,7 @@ export default function Home() {
          On wake-up the overlay unmounts and the dashboard is revealed. */}
     {isIdle && <IdleOverlay onWakeUp={resetIdle} userId={user.id} />}
 
-    <div style={isIdle ? { visibility: 'hidden', pointerEvents: 'none' } : undefined}>
-    <LandingSequence onComplete={() => setLandingComplete(true)} skip={landingComplete}>
+    <div className="app-open" style={isIdle ? { visibility: 'hidden', pointerEvents: 'none' } : undefined}>
     <DndContext
       sensors={sensors}
       collisionDetection={pointerWithin}
@@ -777,7 +774,6 @@ export default function Home() {
       />
     </div>
     </DndContext>
-    </LandingSequence>
     </div>
     </>
   )

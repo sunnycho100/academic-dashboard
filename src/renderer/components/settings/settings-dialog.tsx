@@ -5,10 +5,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Settings as SettingsIcon, MonitorPlay, Zap } from 'lucide-react'
+import { Settings as SettingsIcon, Zap } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Switch } from '@/components/ui/switch'
 
 interface SettingsDialogProps {
@@ -16,31 +15,16 @@ interface SettingsDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-export type AnimationFrequency = 'always' | 'daily' | 'never'
-
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
-  const [frequency, setFrequency] = useState<AnimationFrequency>('always')
   const [powerSaveEnabled, setPowerSaveEnabled] = useState(false)
 
   useEffect(() => {
     if (open) {
       try {
-        const stored = localStorage.getItem('welcome-animation-frequency') as AnimationFrequency
-        if (stored === 'always' || stored === 'daily' || stored === 'never') {
-          setFrequency(stored)
-        }
         setPowerSaveEnabled(localStorage.getItem('power-save-enabled') === 'true')
       } catch {}
     }
   }, [open])
-
-  const handleFrequencyChange = (val: string) => {
-    const newFreq = val as AnimationFrequency
-    setFrequency(newFreq)
-    try {
-      localStorage.setItem('welcome-animation-frequency', newFreq)
-    } catch {}
-  }
 
   const handlePowerSaveChange = (checked: boolean) => {
     setPowerSaveEnabled(checked)
@@ -81,35 +65,8 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               {/* User Preferences Section */}
               <div className="space-y-6">
 
-                {/* Welcome Animation Settings */}
-                <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <MonitorPlay className="h-4 w-4 text-muted-foreground/80" />
-                  <h3 className="text-sm font-semibold tracking-wide">Welcome Animation</h3>
-                </div>
-                <div className="pl-6 space-y-3">
-                  <p className="text-xs text-muted-foreground/60 leading-relaxed">
-                    Choose how often you want to see the cursive greeting screen when you open or reload the dashboard.
-                  </p>
-                  <RadioGroup value={frequency} onValueChange={handleFrequencyChange} className="space-y-2.5">
-                    <div className="flex items-center space-x-3">
-                      <RadioGroupItem value="always" id="freq-always" />
-                      <Label htmlFor="freq-always" className="text-sm cursor-pointer font-medium">Always (Default)</Label>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <RadioGroupItem value="daily" id="freq-daily" />
-                      <Label htmlFor="freq-daily" className="text-sm cursor-pointer font-medium">Start of every day</Label>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <RadioGroupItem value="never" id="freq-never" />
-                      <Label htmlFor="freq-never" className="text-sm cursor-pointer font-medium text-foreground/80">Never turn on</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-              </div>
-
               {/* Power-Save Mode Settings */}
-              <div className="space-y-4 pt-2">
+              <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <Zap className="h-4 w-4 text-muted-foreground/80" />
                   <h3 className="text-sm font-semibold tracking-wide">Time Saver Mode</h3>
