@@ -36,10 +36,9 @@ test.describe('day timeline', () => {
 
   test('shows planned and actual lanes, and the setting hides each', async ({ page, api }) => {
     await seedCategory(api) // the Today panel only renders once a course exists
-    // Fixed daytime hours on the app's logical day (it starts at 6 AM), so the
-    // test passes whatever time CI runs.
+    // Fixed daytime hours inside the default 6 AM day start, so the test passes
+    // whatever time CI runs.
     const day = new Date()
-    if (day.getHours() < 6) day.setDate(day.getDate() - 1)
     const date = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`
     const res = await api.put('/api/timetable', {
       data: {
