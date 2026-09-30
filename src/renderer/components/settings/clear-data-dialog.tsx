@@ -8,6 +8,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { buttonVariants } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 interface ClearDataDialogProps {
   open: boolean
@@ -22,21 +24,21 @@ export function ClearDataDialog({
 }: ClearDataDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent className="max-w-[440px]">
         <AlertDialogHeader>
-          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogTitle className="font-serif text-2xl font-normal">Clear all data?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete all your
-            categories and tasks from local storage.
+            This deletes every course and task on this Mac. Completed task history and time
+            records are kept. It cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogFooter className="gap-2 sm:space-x-0">
+          <AlertDialogCancel className="mt-0 rounded-full border-0 bg-transparent">Cancel</AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className={cn(buttonVariants({ variant: 'destructive' }), 'rounded-full')}
           >
-            Clear All Data
+            Clear all data
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

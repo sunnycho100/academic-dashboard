@@ -1,36 +1,16 @@
 import { useState, useEffect, useMemo } from 'react'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Checkbox } from '@/components/ui/checkbox'
-import { 
-  Clock, 
-  Calendar, 
-  TrendingUp, 
-  TrendingDown, 
-  Minus, 
-  History, 
-  Trash2,
-  Pencil,
-  Check,
-  X
-} from 'lucide-react'
+import { MoreHorizontal } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 import { format, parseISO, startOfDay, addHours, subHours, isSameDay } from 'date-fns'
 
@@ -67,17 +47,21 @@ function formatTimeSpent(minutes: number): string {
 
 const DEFAULT_DAY_START_HOUR = 6 // 6 AM
 
-function formatTimeDiff(diff: number): { text: string; color: string; icon: typeof TrendingUp } {
+function formatTimeDiff(diff: number): { text: string; color: string } {
   const absDiff = Math.abs(diff)
   const label = formatTimeSpent(absDiff)
 
   if (diff > 0) {
-    return { text: `Saved ${label}`, color: 'text-green-600 dark:text-green-400', icon: TrendingDown }
+    return { text: `Saved ${label}`, color: 'text-muted-foreground' }
   } else if (diff < 0) {
-    return { text: `${label} over`, color: 'text-orange-600 dark:text-orange-400', icon: TrendingUp }
+    return { text: `${label} over`, color: 'text-foreground' }
   }
-  return { text: 'On time', color: 'text-muted-foreground', icon: Minus }
+  return { text: 'On time', color: 'text-muted-foreground' }
 }
+
+const sectionLabel = 'text-xs uppercase tracking-wider text-muted-foreground'
+// A hairline focus ring; the global two-pixel offset ring is too heavy inside the dialog
+const field = 'mt-2 focus-visible:ring-1 focus-visible:ring-offset-0'
 
 // Get the "logical day start" for a given date, adjusting for custom day boundary
 function getLogicalDayStart(date: Date, dayStartHour: number): Date {
@@ -132,11 +116,10 @@ function TaskCard({
   const timeSpent = record.actualTimeSpent || 0
   const diff = record.timeDifference
   const diffInfo = diff != null ? formatTimeDiff(diff) : null
-  const DiffIcon = diffInfo?.icon
 
   return (
-    <div 
-      className={`p-4 rounded-lg border bg-card transition-colors hover:bg-accent/50 ${selected ? 'ring-2 ring-primary' : ''} ${!deleteMode && onEdit ? 'cursor-pointer' : ''}`}
+    <div
+      className={`rounded-lg border bg-card p-4 transition-colors hover:bg-accent/50 ${selected ? 'border-foreground' : 'border-border'} ${!deleteMode && onEdit ? 'cursor-pointer' : ''}`}
       onClick={() => {
         if (!deleteMode && onEdit) onEdit(record)
       }}
@@ -150,48 +133,31 @@ function TaskCard({
             onClick={(e) => e.stopPropagation()}
           />
         )}
-        <div className="flex-1 space-y-2">
-          <div className="flex items-center gap-2">
-            <h4 className="font-medium">{record.taskTitle}</h4>
-            <Badge
-              variant="outline"
-              className="text-xs"
-              style={{
-                borderColor: record.categoryColor,
-                color: record.categoryColor,
-              }}
-            >
+        <div className="flex-1 space-y-1">
+          <h4 className="font-medium">{record.taskTitle}</h4>
+          <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: record.categoryColor }} />
               {record.categoryName}
-            </Badge>
-          </div>
-          
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <Badge variant="secondary" className="text-xs">
-              {record.taskType}
-            </Badge>
-            <div className="flex items-center gap-1.5">
-              <Calendar className="h-3.5 w-3.5" />
-              <span>{format(parseISO(record.completedAt), 'h:mm a')}</span>
-            </div>
-            {diffInfo && DiffIcon && (
-              <div className={`flex items-center gap-1 text-xs font-medium ${diffInfo.color}`}>
-                <DiffIcon className="h-3.5 w-3.5" />
-                <span>{diffInfo.text}</span>
-              </div>
+            </span>
+            <span>&middot;</span>
+            <span>{record.taskType}</span>
+            <span>&middot;</span>
+            <span className="tabular-nums">{format(parseISO(record.completedAt), 'h:mm a')}</span>
+            {diffInfo && (
+              <>
+                <span>&middot;</span>
+                <span className={diffInfo.color}>{diffInfo.text}</span>
+              </>
             )}
           </div>
         </div>
 
-        <div className="flex-shrink-0 text-right">
-          {timeSpent > 0 && (
-            <div className="flex items-center gap-1.5 text-lg font-semibold text-primary">
-              <Clock className="h-4 w-4" />
-              {formatTimeSpent(timeSpent)}
-            </div>
-          )}
+        <div className="flex-shrink-0 text-right tabular-nums">
+          {timeSpent > 0 && <div className="text-base">{formatTimeSpent(timeSpent)}</div>}
           {record.estimatedDuration && (
-            <div className="text-xs text-muted-foreground mt-1">
-              Est: {formatTimeSpent(record.estimatedDuration)}
+            <div className="mt-1 text-xs text-muted-foreground">
+              Est. {formatTimeSpent(record.estimatedDuration)}
             </div>
           )}
         </div>
@@ -211,19 +177,19 @@ function StatsRow({ records }: { records: CompletedTaskRecord[] }) {
   )
 
   return (
-    <div className="grid grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
+    <div className="grid grid-cols-3 gap-4 border-y border-border py-4">
       <div>
-        <div className="text-sm text-muted-foreground">Completed</div>
-        <div className="text-2xl font-bold">{records.length}</div>
+        <div className={sectionLabel}>Completed</div>
+        <div className="mt-1 font-serif text-2xl tabular-nums">{records.length}</div>
       </div>
       <div>
-        <div className="text-sm text-muted-foreground">Total Study Time</div>
-        <div className="text-2xl font-bold">{formatTimeSpent(totalTimeSpent)}</div>
+        <div className={sectionLabel}>Study time</div>
+        <div className="mt-1 font-serif text-2xl tabular-nums">{formatTimeSpent(totalTimeSpent)}</div>
       </div>
       <div>
-        <div className="text-sm text-muted-foreground">Time Saved</div>
-        <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-          {totalTimeSaved > 0 ? formatTimeSpent(totalTimeSaved) : '—'}
+        <div className={sectionLabel}>Time saved</div>
+        <div className="mt-1 font-serif text-2xl tabular-nums">
+          {formatTimeSpent(totalTimeSaved)}
         </div>
       </div>
     </div>
@@ -382,142 +348,94 @@ export function ActivitySummaryDialog({
   if (editingRecord) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
-            <div className="flex items-center justify-between">
-              <DialogTitle className="flex items-center gap-2">
-                <Pencil className="h-5 w-5" />
-                Edit Completed Task
-              </DialogTitle>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setEditingRecord(null)}
-                className="h-8 w-8"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <DialogDescription>
-              Update the details of this completed task record
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-5 py-2">
-            {/* Task info summary */}
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Badge
-                variant="outline"
-                className="text-xs"
-                style={{
-                  borderColor: editingRecord.categoryColor,
-                  color: editingRecord.categoryColor,
-                }}
-              >
+        <DialogContent className="max-w-2xl gap-0 p-0" aria-describedby={undefined}>
+          <div className="px-6 pt-6">
+            <DialogTitle className="font-serif text-2xl font-normal">Edit completed task</DialogTitle>
+            <div className="mt-2 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: editingRecord.categoryColor }} />
                 {editingRecord.categoryName}
-              </Badge>
-              <span>&middot;</span>
-              <Badge variant="secondary" className="text-xs">{editingRecord.taskType}</Badge>
-              <span>&middot;</span>
-              <span className="text-xs">
-                Completed {format(parseISO(editingRecord.completedAt), 'MMM d, h:mm a')}
               </span>
+              <span>&middot;</span>
+              <span>{editingRecord.taskType}</span>
+              <span>&middot;</span>
+              <span>Completed {format(parseISO(editingRecord.completedAt), 'MMM d, h:mm a')}</span>
             </div>
+          </div>
 
-            {/* Title */}
-            <div className="space-y-2">
-              <Label htmlFor="edit-title" className="text-sm font-medium">Task Title</Label>
+          <div className="space-y-5 px-6 py-5">
+            <div>
+              <label htmlFor="edit-title" className={sectionLabel}>Title</label>
               <Input
                 id="edit-title"
                 value={editForm.taskTitle}
                 onChange={(e) => setEditForm({ ...editForm, taskTitle: e.target.value })}
+                className={field}
               />
             </div>
 
-            {/* Time fields side by side */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-actual" className="text-sm font-medium">
-                  Actual Time (minutes)
-                </Label>
+              <div>
+                <label htmlFor="edit-actual" className={sectionLabel}>Actual (min)</label>
                 <Input
                   id="edit-actual"
                   type="number"
                   min="0"
-                  placeholder="e.g. 45"
                   value={editForm.actualTimeSpent}
                   onChange={(e) => setEditForm({ ...editForm, actualTimeSpent: e.target.value })}
+                  className={`${field} tabular-nums`}
                 />
                 {editForm.actualTimeSpent && Number(editForm.actualTimeSpent) > 0 && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     = {formatTimeSpent(Number(editForm.actualTimeSpent))}
                   </p>
                 )}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-est" className="text-sm font-medium">
-                  Estimated Duration (minutes)
-                </Label>
+              <div>
+                <label htmlFor="edit-est" className={sectionLabel}>Estimate (min)</label>
                 <Input
                   id="edit-est"
                   type="number"
                   min="0"
-                  placeholder="e.g. 60"
                   value={editForm.estimatedDuration}
                   onChange={(e) => setEditForm({ ...editForm, estimatedDuration: e.target.value })}
+                  className={`${field} tabular-nums`}
                 />
                 {editForm.estimatedDuration && Number(editForm.estimatedDuration) > 0 && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     = {formatTimeSpent(Number(editForm.estimatedDuration))}
                   </p>
                 )}
               </div>
             </div>
 
-            {/* Time difference preview */}
-            {editForm.actualTimeSpent && editForm.estimatedDuration && (
-              <div className="p-3 bg-muted/50 rounded-lg">
-                {(() => {
-                  const diff = Number(editForm.estimatedDuration) - Number(editForm.actualTimeSpent)
-                  const info = formatTimeDiff(diff)
-                  const Icon = info.icon
-                  return (
-                    <div className={`flex items-center gap-2 text-sm font-medium ${info.color}`}>
-                      <Icon className="h-4 w-4" />
-                      <span>{info.text}</span>
-                    </div>
-                  )
-                })()}
-              </div>
-            )}
+            {editForm.actualTimeSpent && editForm.estimatedDuration && (() => {
+              const info = formatTimeDiff(Number(editForm.estimatedDuration) - Number(editForm.actualTimeSpent))
+              return <p className={`text-sm ${info.color}`}>{info.text}</p>
+            })()}
 
-            {/* Notes */}
-            <div className="space-y-2">
-              <Label htmlFor="edit-notes" className="text-sm font-medium">Notes</Label>
+            <div>
+              <label htmlFor="edit-notes" className={sectionLabel}>Notes</label>
               <Input
                 id="edit-notes"
-                placeholder="Optional notes..."
                 value={editForm.notes}
                 onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                className={field}
               />
             </div>
+          </div>
 
-            {/* Actions */}
-            <div className="flex justify-end gap-2 pt-2">
-              <Button
-                variant="outline"
-                onClick={() => setEditingRecord(null)}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSaveEdit}
-                disabled={saving || !editForm.taskTitle.trim()}
-              >
-                <Check className="h-4 w-4 mr-1.5" />
-                {saving ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </div>
+          <div className="flex justify-end gap-2 border-t border-border px-6 py-4">
+            <Button variant="ghost" onClick={() => setEditingRecord(null)} className="rounded-full">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={saving || !editForm.taskTitle.trim()}
+              className="rounded-full px-5"
+            >
+              {saving ? 'Saving' : 'Save'}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -526,54 +444,34 @@ export function ActivitySummaryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Activity Summary
-            </DialogTitle>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+      <DialogContent className="max-w-2xl gap-0 p-0" aria-describedby={undefined}>
+        <div className="flex items-center justify-between gap-2 px-6 pr-14 pt-6">
+          <DialogTitle className="font-serif text-2xl font-normal">Activity summary</DialogTitle>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" aria-label="More options">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setDeleteMode(!deleteMode)}>
+                {deleteMode ? 'Stop deleting' : 'Delete tasks'}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        <div className="space-y-4 px-6 py-5">
+          {deleteMode && (
+            <div className="flex items-center justify-between gap-4 rounded-lg border border-border p-3">
+              <p className="text-sm text-muted-foreground">
+                {selectedIds.size} selected. Deleted tasks can be restored within 3 days.
+              </p>
+              <div className="flex shrink-0 gap-2">
                 <Button
                   variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                >
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="1" />
-                    <circle cx="19" cy="12" r="1" />
-                    <circle cx="5" cy="12" r="1" />
-                  </svg>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setDeleteMode(!deleteMode)}>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  {deleteMode ? 'Exit Delete Mode' : 'Delete Tasks'}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-          <DialogDescription>
-            {deleteMode 
-              ? 'Select tasks to delete. Deleted tasks can be restored within 3 days.'
-              : 'Click on a task to edit its details'
-            }
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          {/* Delete mode actions */}
-          {deleteMode && (
-            <div className="flex items-center justify-between gap-2 p-3 bg-muted/50 rounded-lg">
-              <div className="text-sm text-muted-foreground">
-                {selectedIds.size} task{selectedIds.size !== 1 ? 's' : ''} selected
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
                   size="sm"
+                  className="rounded-full"
                   onClick={() => { setDeleteMode(false); setSelectedIds(new Set()) }}
                 >
                   Cancel
@@ -581,67 +479,54 @@ export function ActivitySummaryDialog({
                 <Button
                   variant="destructive"
                   size="sm"
+                  className="rounded-full"
                   onClick={handleDeleteSelected}
                   disabled={selectedIds.size === 0}
                 >
-                  <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                  Delete Selected
+                  Delete
                 </Button>
               </div>
             </div>
           )}
 
-          {/* Today / All Tabs */}
           <Tabs value={tab} onValueChange={(v) => setTab(v as 'today' | 'all')}>
             <TabsList className="w-full">
               <TabsTrigger value="today" className="flex-1 gap-1.5">
-                <Clock className="h-3.5 w-3.5" />
                 Today
                 {todayRecords.length > 0 && (
-                  <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">
-                    {todayRecords.length}
-                  </Badge>
+                  <span className="tabular-nums text-muted-foreground">{todayRecords.length}</span>
                 )}
               </TabsTrigger>
               <TabsTrigger value="all" className="flex-1 gap-1.5">
-                <History className="h-3.5 w-3.5" />
                 All
                 {records.length > 0 && (
-                  <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">
-                    {records.length}
-                  </Badge>
+                  <span className="tabular-nums text-muted-foreground">{records.length}</span>
                 )}
               </TabsTrigger>
             </TabsList>
           </Tabs>
 
-          {/* Stats for active view */}
           {!deleteMode && <StatsRow records={activeRecords} />}
 
-          {/* Task List */}
           <ScrollArea className="h-[400px] pr-4">
             {loading ? (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-muted-foreground">Loading...</p>
+              <div className="flex h-full items-center justify-center">
+                <p className="text-muted-foreground">Loading</p>
               </div>
             ) : activeRecords.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center p-8">
-                <Clock className="h-12 w-12 text-muted-foreground/40 mb-4" />
+              <div className="flex h-full flex-col items-center justify-center p-8 text-center">
                 <p className="text-muted-foreground">
-                  {tab === 'today'
-                    ? 'No tasks completed today yet.'
-                    : 'No completed tasks recorded yet.'}
+                  {tab === 'today' ? 'Nothing completed today.' : 'No completed tasks yet.'}
                 </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Start the timer on tasks in Today&apos;s Plan to track your study time.
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Start the timer on a task in Today&apos;s plan to track study time.
                 </p>
               </div>
             ) : tab === 'today' ? (
-              /* Today — flat list */
               <div className="space-y-3">
                 {todayRecords.map((record) => (
-                  <TaskCard 
-                    key={record.id} 
+                  <TaskCard
+                    key={record.id}
                     record={record}
                     deleteMode={deleteMode}
                     selected={selectedIds.has(record.id)}
@@ -651,23 +536,19 @@ export function ActivitySummaryDialog({
                 ))}
               </div>
             ) : (
-              /* All — grouped by day */
               <div className="space-y-6">
                 {groupedByDay.map((group) => (
                   <div key={group.date.toISOString()}>
-                    <div className="flex items-center gap-2 mb-3">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <h3 className="text-sm font-semibold text-muted-foreground">
-                        {group.label}
-                      </h3>
-                      <span className="text-xs text-muted-foreground/60">
+                    <div className="mb-3 flex items-baseline gap-2">
+                      <h3 className={sectionLabel}>{group.label}</h3>
+                      <span className="text-xs tabular-nums text-muted-foreground">
                         {group.records.length} task{group.records.length !== 1 ? 's' : ''}
                       </span>
                     </div>
                     <div className="space-y-3">
                       {group.records.map((record) => (
-                        <TaskCard 
-                          key={record.id} 
+                        <TaskCard
+                          key={record.id}
                           record={record}
                           deleteMode={deleteMode}
                           selected={selectedIds.has(record.id)}
@@ -686,4 +567,3 @@ export function ActivitySummaryDialog({
     </Dialog>
   )
 }
-

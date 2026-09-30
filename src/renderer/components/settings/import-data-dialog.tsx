@@ -37,16 +37,16 @@ export function ImportDataDialog({
     reader.onload = (e) => {
       try {
         const data = JSON.parse(e.target?.result as string) as AppState
-        
+
         // Validate the data structure
         if (!data.categories || !data.tasks) {
           throw new Error('Invalid data format')
         }
-        
+
         onImport(data)
         onOpenChange(false)
       } catch (error) {
-        alert('Failed to import data. Please ensure the file is a valid JSON export from this app.')
+        alert('Could not import that file. Choose a JSON file exported from this app.')
         console.error('Import error:', error)
       }
     }
@@ -72,18 +72,18 @@ export function ImportDataDialog({
         className="hidden"
       />
       <AlertDialog open={open} onOpenChange={onOpenChange}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-[440px]">
           <AlertDialogHeader>
-            <AlertDialogTitle>Import Data</AlertDialogTitle>
+            <AlertDialogTitle className="font-serif text-2xl font-normal">Import data</AlertDialogTitle>
             <AlertDialogDescription>
-              This will replace all your current categories and tasks with the imported data.
-              Make sure to export your current data first if you want to keep it.
+              Your current courses and tasks are replaced by the ones in the file. Export first if
+              you want to keep them.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleImportClick}>
-              Choose File to Import
+          <AlertDialogFooter className="gap-2 sm:space-x-0">
+            <AlertDialogCancel className="mt-0 rounded-full border-0 bg-transparent">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleImportClick} className="rounded-full">
+              Choose file
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

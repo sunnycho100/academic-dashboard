@@ -20,7 +20,6 @@ import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useDroppable } from '@dnd-kit/core'
 import {
-  CalendarDays,
   ChevronDown,
   ChevronUp,
   Plus,
@@ -176,7 +175,7 @@ export function WeeklyPlan({ tasks, categories, open, onOpenChange, onEntriesCha
   const todayKey = formatDateKey(new Date())
 
   // Week range label
-  const weekLabel = `${formatShortDate(weekDates[0])} — ${formatShortDate(weekDates[6])}`
+  const weekLabel = `${formatShortDate(weekDates[0])} – ${formatShortDate(weekDates[6])}`
 
   return (
     <AnimatePresence>
@@ -195,16 +194,7 @@ export function WeeklyPlan({ tasks, categories, open, onOpenChange, onEntriesCha
             {/* Header */}
             <div className="relative z-10 px-4 pt-4 pb-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <motion.div
-                    className="h-7 w-7 rounded-xl bg-today/10 flex items-center justify-center"
-                    whileHover={{ scale: 1.1, rotate: 5 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <CalendarDays className="h-3.5 w-3.5 text-today" />
-                  </motion.div>
-                  <h2 className="font-semibold text-sm tracking-tight">Weekly Plan</h2>
-                </div>
+                <h2 className="font-serif text-lg">Weekly plan</h2>
 
                 <div className="flex items-center gap-2">
                   {/* Week navigation */}
@@ -292,9 +282,9 @@ export function WeeklyPlan({ tasks, categories, open, onOpenChange, onEntriesCha
                             return (
                               <motion.div
                                 key={entry.id}
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.9, height: 0, marginTop: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0, overflow: 'hidden' }}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0, height: 0, marginTop: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0, overflow: 'hidden' }}
                                 transition={{ duration: 0.15 }}
                                 className="group relative flex items-start gap-1 rounded-lg px-1.5 py-1 hover:bg-muted/40 transition-colors"
                               >
@@ -347,7 +337,7 @@ export function WeeklyPlan({ tasks, categories, open, onOpenChange, onEntriesCha
                             align="start"
                           >
                             <Command>
-                              <CommandInput placeholder="Search tasks..." className="text-xs" />
+                              <CommandInput placeholder="Search tasks" className="text-xs" />
                               <CommandList>
                                 <CommandEmpty className="text-xs text-center py-4 text-muted-foreground">
                                   No tasks available
