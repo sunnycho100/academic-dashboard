@@ -1,0 +1,894 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Editorial theme: warm ivory canvas, serif display type, hairline borders.
+   Spec: docs/superpowers/specs/2026-09-28-mac-redesign-design.md */
+:root {
+  --font-cursive: 'Great Vibes';
+}
+
+html {
+  font-size: 75%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  /* Header row doubles as the window drag area (titleBarStyle: hiddenInset) */
+  .app-drag {
+    -webkit-app-region: drag;
+  }
+  .app-drag button,
+  .app-drag input,
+  .app-drag a,
+  .app-drag [role='tab'],
+  .app-drag [role='button'] {
+    -webkit-app-region: no-drag;
+  }
+}
+
+@layer base {
+  :root {
+    --background: 45 34% 95%;          /* #f7f5ef ivory canvas */
+    --foreground: 36 9% 11%;           /* #1f1d1a ink */
+    --card: 45 40% 98%;                /* #fcfbf8 */
+    --card-foreground: 36 9% 11%;
+    --popover: 45 40% 98%;
+    --popover-foreground: 36 9% 11%;
+    --primary: 36 9% 11%;
+    --primary-foreground: 45 40% 98%;
+    --secondary: 43 30% 91%;           /* #efebe1 chips, subtle fills */
+    --secondary-foreground: 36 9% 11%;
+    --muted: 43 30% 91%;
+    --muted-foreground: 40 8% 35%;     /* #625d53, 4.5:1 on canvas */
+    --accent: 43 30% 91%;
+    --accent-foreground: 36 9% 11%;
+    --destructive: 10 62% 43%;         /* #b3402a */
+    --destructive-foreground: 45 40% 98%;
+    --border: 43 23% 88%;              /* #e7e3d9 hairline */
+    --input: 43 23% 88%;
+    --ring: 171 100% 12%;
+    --radius: 0.75rem;
+
+    --sidebar: 44 30% 93%;             /* #f2efe7 */
+    --today: 171 100% 12%;             /* #003c33 Today panel */
+    --today-foreground: 160 20% 93%;
+    --today-muted: 163 20% 69%;        /* #9fbdb4 */
+    --coral: 11 100% 67%;              /* #ff7759: running and now only */
+    --ring-track: 42 17% 82%;          /* #ddd7ca task ring track */
+  }
+
+  .dark {
+    --background: 40 7% 8%;
+    --foreground: 42 25% 92%;
+    --card: 36 9% 11%;
+    --card-foreground: 42 25% 92%;
+    --popover: 36 9% 11%;
+    --popover-foreground: 42 25% 92%;
+    --primary: 42 25% 92%;
+    --primary-foreground: 36 9% 11%;
+    --secondary: 38 7% 16%;
+    --secondary-foreground: 42 25% 92%;
+    --muted: 38 7% 16%;
+    --muted-foreground: 40 8% 62%;
+    --accent: 38 7% 16%;
+    --accent-foreground: 42 25% 92%;
+    --destructive: 10 70% 58%;
+    --destructive-foreground: 42 25% 92%;
+    --border: 38 7% 18%;
+    --input: 38 7% 18%;
+    --ring: 163 20% 69%;
+
+    --sidebar: 40 6% 10%;
+    --today: 171 70% 11%;
+    --today-foreground: 160 20% 93%;
+    --today-muted: 163 20% 62%;
+    --coral: 11 100% 67%;
+    --ring-track: 38 7% 26%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* ── Surfaces ──────────────────────────────────────────────────────
+   Class names are kept from the old glass theme so every screen picks up
+   the flat editorial look without component changes. */
+
+.mesh-gradient {
+  background: hsl(var(--background));
+}
+
+/* Primary chrome: sidebar, top bar */
+.glass-thick {
+  background: hsl(var(--sidebar));
+  border: 1px solid hsl(var(--border));
+  position: relative;
+  overflow: hidden;
+}
+
+/* Content cards and panels */
+.glass-thin {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  position: relative;
+}
+
+.glass-rim {
+  position: relative;
+}
+
+.glass-float {
+  box-shadow: 0 1px 2px rgba(40, 30, 10, 0.06);
+}
+
+/* Dropdowns, selects, popovers, tooltips */
+.glass-overlay {
+  background: hsl(var(--popover));
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 8px 24px rgba(40, 30, 10, 0.1);
+}
+.dark .glass-overlay {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.glass-interactive {
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.glass-interactive:hover {
+  border-color: hsl(var(--foreground) / 0.18);
+}
+.glass-interactive:active {
+  transform: scale(0.99);
+}
+
+.glass-button {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.glass-button:hover {
+  background: hsl(var(--secondary));
+}
+
+.glass-focus:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring) / 0.5);
+}
+
+.glass-hover-glow {
+  position: relative;
+}
+
+/* ── Liquid Page Transition ─────────────────────────────────────── */
+
+.liquid-page-transition {
+  will-change: transform, opacity;
+  transform-origin: center top;
+}
+
+/* ── View / Tab Content Transition ─────────────────────────────── */
+
+@keyframes view-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.99);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes view-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.99);
+    filter: blur(1px);
+  }
+}
+
+.view-transition-enter {
+  animation: view-enter 0.3s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+.view-transition-exit {
+  animation: view-exit 0.15s cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+/* ── Glass Shimmer Sweep (hover effect for premium feel) ───────── */
+
+/* Hover shimmer retired with the glass theme; class kept as a no-op. */
+.glass-shimmer-on-hover {
+  position: relative;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view-transition-enter {
+    animation-duration: 0.15s;
+  }
+  .view-transition-exit {
+    animation-duration: 0.1s;
+  }
+}
+
+/* ── Shimmer / Skeleton Loading ─────────────────────────────────── */
+
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+
+.shimmer-line {
+  background: linear-gradient(90deg,
+    rgba(0,0,0,0.04) 25%, rgba(0,0,0,0.08) 50%, rgba(0,0,0,0.04) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+.dark .shimmer-line {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+  background-size: 800px 100%;
+}
+
+.animate-shimmer {
+  animation: shimmer 3s infinite ease-in-out;
+}
+
+/* ── Status Pulse Indicators ─────────────────────────────────────── */
+
+@keyframes status-pulse {
+  0%, 100% { opacity: 1;    box-shadow: 0 0 0 0 currentColor; }
+  50%      { opacity: 0.85; box-shadow: 0 0 8px 2px currentColor; }
+}
+
+@keyframes status-fade {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 0.2; }
+}
+
+.status-dot-connected    { animation: status-pulse 2s ease-in-out infinite; }
+.status-dot-disconnected { animation: status-fade  3s ease-in-out infinite; }
+
+/* ── Message Entry Animation ──────────────────────────────────────── */
+
+@keyframes message-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.message-enter {
+  animation: message-enter 0.3s ease-out both;
+}
+
+/* ── Smooth page transitions ──────────────────────────────────────── */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+
+/* ── Chromatic Shimmer (static utility) ────────────────────────────── */
+
+.liquid-chromatic-active {
+  text-shadow:
+    -0.5px 0 1px rgba(0, 60, 51,0.15),
+     0.5px 0 1px rgba(0, 60, 51,0.15);
+}
+
+/* ── Scrollbar styling (glass aesthetic) ───────────────────────────── */
+
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: rgba(0,0,0,0.1); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.18); }
+
+.dark ::-webkit-scrollbar-thumb       { background: rgba(255,255,255,0.1); }
+.dark ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+
+/* ── Focus ring improvements ──────────────────────────────────────── */
+
+@layer base {
+  *:focus-visible {
+    @apply outline-none ring-2 ring-ring/50 ring-offset-2 ring-offset-background;
+    box-shadow:
+      0 0 0 2px hsl(var(--background)),
+      0 0 0 4px hsl(var(--ring) / 0.4),
+      0 0 12px hsl(var(--ring) / 0.1);
+  }
+}
+
+/* ── Landing Sequence ─────────────────────────────────────────────── */
+
+.landing-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 20%, rgba(0, 60, 51,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 85% 15%, rgba(0, 60, 51,0.035) 0%, transparent 55%),
+    linear-gradient(160deg, #f8f9fc 0%, #eef0f8 50%, #f8f9fc 100%);
+  z-index: -1;
+}
+
+.dark .landing-bg {
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 20%, rgba(0, 60, 51,0.14) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 85% 15%, rgba(0, 60, 51,0.09) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 60% at 50% 80%, rgba(0, 60, 51,0.1) 0%, transparent 60%),
+    linear-gradient(160deg, #141310 0%, #1a1916 30%, #161512 60%, #141310 100%);
+}
+
+/* Soft ambient center glow */
+.landing-ambient-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(0, 60, 51,0.03) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.dark .landing-ambient-glow {
+  background: radial-gradient(ellipse, rgba(0, 60, 51,0.08) 0%, rgba(0, 60, 51,0.04) 40%, transparent 70%);
+}
+
+.landing-text-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: clamp(3rem, 12vw, 7rem);
+  padding: 0 2rem;
+}
+
+/* Wrapper positions ghost + visible text on top of each other */
+.landing-greeting-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.landing-greeting {
+  font-family: var(--font-cursive), 'Great Vibes', cursive;
+  font-weight: 400;
+  font-size: clamp(2.9rem, 8.4vw, 6rem);
+  letter-spacing: 0.01em;
+  line-height: 1.4;
+  color: #1d1d1f;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.dark .landing-greeting {
+  color: #f0f0f5;
+}
+
+/* Ghost text — invisible, just holds the width/height */
+.landing-greeting-ghost {
+  visibility: hidden;
+}
+
+/* Visible text — overlaid on ghost, revealed via clip-path */
+.landing-greeting-visible {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: clip-path;
+}
+
+/* Pen cursor that follows the writing */
+.landing-cursor {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 60%;
+  background: linear-gradient(to bottom, transparent, currentColor, transparent);
+  color: #6e6e73;
+  pointer-events: none;
+  border-radius: 1px;
+}
+
+.dark .landing-cursor {
+  color: rgba(255,255,255,0.3);
+}
+
+/* Decorative line under greeting */
+.landing-line {
+  width: 60px;
+  height: 1px;
+  margin-top: 1.5rem;
+  background: linear-gradient(90deg, transparent, #6e6e73, transparent);
+  transform-origin: center;
+}
+
+.dark .landing-line {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+}
+
+.landing-indicator {
+  position: absolute;
+  bottom: clamp(1.5rem, 5vh, 3rem);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.landing-indicator-text {
+  font-size: 0.75rem;
+  color: #86868b;
+  font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.dark .landing-indicator-text {
+  color: rgba(255,255,255,0.35);
+}
+
+.landing-pulse-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #0071e3;
+  animation: landing-pulse 2.8s ease-in-out infinite;
+  will-change: opacity, box-shadow;
+}
+
+.dark .landing-pulse-dot {
+  background: #5a9cf5;
+}
+
+@keyframes landing-pulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(0, 113, 227, 0.3);
+  }
+  50% {
+    opacity: 0.5;
+    box-shadow: 0 0 8px 3px rgba(0, 113, 227, 0.1);
+  }
+}
+
+/* Reduced motion: disable sweep, simple fade */
+@media (prefers-reduced-motion: reduce) {
+  .landing-greeting-visible {
+    will-change: opacity;
+  }
+  .landing-cursor {
+    display: none;
+  }
+  .landing-pulse-dot {
+    animation: none;
+    opacity: 0.8;
+  }
+}
+
+/* ── Idle / Power-Save Overlay ────────────────────────────────────── */
+
+.idle-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: idle-fade-in 0.8s ease-out both;
+  overflow: hidden;
+}
+
+@keyframes idle-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Mesh gradient background — matches main dashboard */
+.idle-mesh-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 20%, rgba(0, 60, 51,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 85% 15%, rgba(0, 60, 51,0.035) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 60% at 50% 80%, rgba(0, 60, 51,0.035) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 75% 60%, rgba(0, 60, 51,0.03) 0%, transparent 50%),
+    linear-gradient(160deg, #f8f9fc 0%, #eef0f8 30%, #f0f2fa 60%, #f8f9fc 100%);
+  z-index: -2;
+}
+
+.dark .idle-mesh-bg {
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 20%, rgba(0, 60, 51,0.14) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 85% 15%, rgba(0, 60, 51,0.09) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 60% at 50% 80%, rgba(0, 60, 51,0.1) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 75% 60%, rgba(0, 60, 51,0.06) 0%, transparent 50%),
+    linear-gradient(160deg, #141310 0%, #1a1916 30%, #161512 60%, #141310 100%);
+}
+
+/* Ambient floating orbs */
+.idle-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0;
+  z-index: -1;
+  animation: idle-orb-drift 20s ease-in-out infinite, idle-orb-in 1.5s ease-out forwards;
+}
+
+.idle-orb-1 {
+  width: 400px;
+  height: 400px;
+  background: rgba(0, 60, 51, 0.08);
+  top: 15%;
+  left: 10%;
+  animation-delay: 0s, 0s;
+}
+
+.idle-orb-2 {
+  width: 300px;
+  height: 300px;
+  background: rgba(0, 60, 51, 0.06);
+  bottom: 20%;
+  right: 15%;
+  animation-delay: -7s, 0.2s;
+}
+
+.idle-orb-3 {
+  width: 250px;
+  height: 250px;
+  background: rgba(0, 60, 51, 0.06);
+  top: 50%;
+  right: 30%;
+  animation-delay: -14s, 0.4s;
+}
+
+.dark .idle-orb-1 { background: rgba(0, 60, 51, 0.15); }
+.dark .idle-orb-2 { background: rgba(0, 60, 51, 0.1); }
+.dark .idle-orb-3 { background: rgba(0, 60, 51, 0.12); }
+
+@keyframes idle-orb-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes idle-orb-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(30px, -20px) scale(1.05); }
+  50% { transform: translate(-20px, 15px) scale(0.95); }
+  75% { transform: translate(15px, 25px) scale(1.02); }
+}
+
+/* Layout */
+.idle-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  text-align: center;
+  padding: 2rem;
+  animation: idle-content-in 0.8s ease-out 0.3s both;
+}
+
+@keyframes idle-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Clock section */
+.idle-clock-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.idle-clock {
+  font-size: clamp(3rem, 8vw, 5.5rem);
+  font-weight: 200;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  color: #1d1d1f;
+  font-variant-numeric: tabular-nums;
+  animation: idle-clock-in 1s ease-out 0.5s both;
+}
+
+.dark .idle-clock {
+  color: rgba(240, 240, 245, 0.9);
+}
+
+@keyframes idle-clock-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+.idle-date {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: rgba(29, 29, 31, 0.45);
+  letter-spacing: 0.02em;
+}
+
+.dark .idle-date {
+  color: rgba(240, 240, 245, 0.35);
+}
+
+/* Glass card */
+.idle-glass-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 2rem;
+  border-radius: 20px;
+  min-width: 240px;
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-top-color: rgba(255, 255, 255, 0.7);
+  border-bottom-color: rgba(255, 255, 255, 0.2);
+  box-shadow:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.5),
+    0 8px 40px rgba(0, 0, 0, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.03);
+  animation: idle-card-in 0.8s ease-out 0.6s both;
+}
+
+.dark .idle-glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
+  border-top-color: rgba(255, 255, 255, 0.14);
+  border-bottom-color: rgba(255, 255, 255, 0.02);
+  box-shadow:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.06),
+    0 8px 40px rgba(0, 0, 0, 0.25),
+    0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+@keyframes idle-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Status badge */
+.idle-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.85rem;
+  border-radius: 100px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(0, 60, 51, 0.85);
+  background: rgba(0, 60, 51, 0.08);
+  border: 1px solid rgba(0, 60, 51, 0.12);
+}
+
+.dark .idle-status-badge {
+  color: rgba(139, 142, 255, 0.85);
+  background: rgba(0, 60, 51, 0.12);
+  border-color: rgba(0, 60, 51, 0.18);
+}
+
+/* Paused info (no timers running) */
+.idle-paused-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+}
+
+.idle-moon-icon {
+  color: rgba(29, 29, 31, 0.2);
+  animation: idle-icon-breathe 4s ease-in-out infinite;
+}
+
+.dark .idle-moon-icon {
+  color: rgba(240, 240, 245, 0.2);
+}
+
+@keyframes idle-icon-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.06); opacity: 1; }
+}
+
+.idle-paused-text {
+  font-size: 0.8rem;
+  color: rgba(29, 29, 31, 0.35);
+}
+
+.dark .idle-paused-text {
+  color: rgba(240, 240, 245, 0.3);
+}
+
+/* Running timers section */
+.idle-timers {
+  width: 100%;
+  padding: 0.75rem 0;
+}
+
+.idle-timers-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(74, 222, 128, 0.85);
+  margin-bottom: 0.6rem;
+}
+
+:root:not(.dark) .idle-timers-header {
+  color: rgba(22, 163, 74, 0.85);
+}
+
+.idle-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(74, 222, 128, 0.9);
+  animation: idle-pulse-anim 2s ease-in-out infinite;
+}
+
+:root:not(.dark) .idle-pulse {
+  background: rgba(22, 163, 74, 0.8);
+}
+
+@keyframes idle-pulse-anim {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.idle-timers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.idle-timer-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.03);
+  transition: background 0.2s ease;
+}
+
+.dark .idle-timer-row {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.idle-timer-icon {
+  color: rgba(29, 29, 31, 0.25);
+  flex-shrink: 0;
+}
+
+.dark .idle-timer-icon {
+  color: rgba(240, 240, 245, 0.25);
+}
+
+.idle-timer-label {
+  flex: 1;
+  text-align: left;
+  color: rgba(29, 29, 31, 0.7);
+  font-weight: 500;
+}
+
+.dark .idle-timer-label {
+  color: rgba(240, 240, 245, 0.7);
+}
+
+.idle-timer-elapsed {
+  font-family: ui-monospace, 'SF Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  color: rgba(29, 29, 31, 0.45);
+  font-size: 0.75rem;
+}
+
+.dark .idle-timer-elapsed {
+  color: rgba(240, 240, 245, 0.45);
+}
+
+/* Resume hint */
+.idle-hint {
+  font-size: 0.7rem;
+  color: rgba(29, 29, 31, 0.2);
+  animation: idle-hint-blink 3s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+.dark .idle-hint {
+  color: rgba(240, 240, 245, 0.18);
+}
+
+@keyframes idle-hint-blink {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .idle-orb { animation: idle-orb-in 0.5s ease-out forwards; }
+  .idle-clock { animation: none; opacity: 1; }
+  .idle-glass-card { animation: none; opacity: 1; }
+  .idle-layout { animation: none; opacity: 1; }
+  .idle-moon-icon { animation: none; opacity: 0.6; }
+  .idle-pulse { animation: none; opacity: 1; }
+  .idle-hint { animation: none; opacity: 0.6; }
+}
+
+/* ── Course ring draw-in ───────────────────────────────────────────
+   r=8 circle, circumference 50.3. Anticlockwise comes from the SVG's scaleX(-1). */
+.ring-draw {
+  stroke-dasharray: 50.3;
+  stroke-dashoffset: 50.3;
+  animation: ring-draw 0.7s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+@keyframes ring-draw {
+  to { stroke-dashoffset: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ring-draw {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}

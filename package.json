@@ -1,23 +1,35 @@
 {
-  "name": "my-project",
-  "version": "2.3.1",
+  "name": "academic-dashboard",
+  "productName": "Academic Dashboard",
+  "version": "3.0.0",
   "private": true,
+  "description": "Local macOS app for catching up on lectures, assignments, and exam prep.",
+  "main": "out/main/index.js",
   "scripts": {
-    "dev": "next dev --turbo",
-    "build": "prisma generate && next build",
-    "start": "next start",
-    "lint": "eslint .",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "test:e2e:report": "playwright show-report"
+    "postinstall": "electron-builder install-app-deps",
+    "dev": "electron-vite dev",
+    "build": "prisma generate && electron-vite build",
+    "start": "electron-vite preview",
+    "dist": "pnpm build && electron-builder --mac --dir",
+    "app": "pnpm dist && ditto \"release/mac-arm64/Academic Dashboard.app\" \"/Applications/Academic Dashboard.app\"",
+    "db:migrate": "prisma migrate dev",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test 'src/**/*.test.ts'",
+    "test:e2e": "electron-vite build && playwright test -c e2e"
   },
   "dependencies": {
+    "@prisma/adapter-better-sqlite3": "^7.10.0",
+    "@prisma/client": "^7.10.0",
+    "better-sqlite3": "^12.6.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^9.0.0",
     "@dnd-kit/utilities": "^3.2.2",
-    "@prisma/adapter-pg": "^7.4.0",
-    "@prisma/client": "^7.4.0",
+    "@fontsource/great-vibes": "^5.3.0",
+    "@playwright/test": "^1.61.1",
     "@radix-ui/react-alert-dialog": "1.1.4",
     "@radix-ui/react-checkbox": "1.1.3",
     "@radix-ui/react-dialog": "1.1.4",
@@ -31,48 +43,35 @@
     "@radix-ui/react-switch": "1.1.2",
     "@radix-ui/react-tabs": "1.1.2",
     "@radix-ui/react-tooltip": "1.1.6",
-    "@supabase/ssr": "^0.9.0",
-    "@supabase/supabase-js": "^2.99.1",
-    "autoprefixer": "^10.4.20",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "^5.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "1.1.1",
     "date-fns": "4.1.0",
-    "dotenv": "^17.3.1",
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
     "framer-motion": "^12.34.0",
     "lucide-react": "^0.544.0",
-    "next": "16.1.6",
     "next-themes": "^0.4.6",
-    "pg": "^8.18.0",
+    "prisma": "^7.10.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "tailwind-merge": "^2.5.5",
-    "tailwindcss-animate": "^1.0.7",
-    "zod": "^3.24.1"
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.61.1",
-    "@tailwindcss/postcss": "^4.1.13",
-    "@types/node": "^22",
-    "@types/pg": "^8.16.0",
-    "@types/react": "19.2.7",
-    "@types/react-dom": "19.2.3",
-    "eslint": "^9.39.4",
-    "eslint-config-next": "16.1.6",
-    "postcss": "^8.5",
-    "prisma": "^7.4.0",
     "tailwindcss": "^3.4.17",
-    "typescript": "5.7.3"
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "5.7.3",
+    "vite": "^7.0.0"
   },
-  "pnpm": {
-    "overrides": {
-      "@types/react": "19.2.7",
-      "@types/react-dom": "19.2.3"
-    },
-    "onlyBuiltDependencies": [
-      "@prisma/engines",
-      "prisma",
-      "sharp"
-    ]
+  "build": {
+    "appId": "com.sunnycho.academic-dashboard",
+    "productName": "Academic Dashboard",
+    "directories": { "output": "release" },
+    "files": ["out/**"],
+    "mac": { "category": "public.app-category.productivity" }
   }
 }

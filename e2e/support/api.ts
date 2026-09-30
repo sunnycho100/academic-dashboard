@@ -1,10 +1,8 @@
-import { type APIRequestContext, expect } from '@playwright/test'
+import { expect, type ApiClient } from './app'
 
 /**
- * Authenticated API seed helpers. In the `authed` project the request context
- * inherits storageState, so these calls are authenticated as the test user and
- * scoped to their userId. Used to set up deterministic state without driving
- * multi-step UI for every precondition.
+ * API seed helpers. Calls go through the running app, into that test's own
+ * temp database. Used to set up state without driving multi-step UI.
  */
 
 export interface SeededCategory {
@@ -24,10 +22,10 @@ export interface SeededTask {
 }
 
 export async function seedCategory(
-  request: APIRequestContext,
+  api: ApiClient,
   overrides: Partial<{ name: string; color: string; order: number }> = {},
 ): Promise<SeededCategory> {
-  const res = await request.post('/api/categories', {
+  const res = await api.post('/api/categories', {
     data: {
       name: overrides.name ?? 'TEST CS101',
       color: overrides.color ?? 'hsl(110, 70%, 50%)',
@@ -39,11 +37,11 @@ export async function seedCategory(
 }
 
 export async function seedTask(
-  request: APIRequestContext,
+  api: ApiClient,
   categoryId: string,
   overrides: Partial<{ title: string; type: string; dueAt: string | null }> = {},
 ): Promise<SeededTask> {
-  const res = await request.post('/api/tasks', {
+  const res = await api.post('/api/tasks', {
     data: {
       title: overrides.title ?? 'Watch Lecture 12',
       type: overrides.type ?? 'lecture',

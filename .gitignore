@@ -1,71 +1,24 @@
-# Dependencies
 node_modules/
-.pnp
-.pnp.js
-
-# Testing
-coverage/
+out/
+release/
+src/main/lib/generated/
+*.tsbuildinfo
+.DS_Store
 
 # Playwright
 /test-results/
 /playwright-report/
-/blob-report/
-/.last-run.json
 /e2e/.auth/
 
-# Next.js
-.next/
-out/
-build/
-dist/
-
-# Production
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Environment variables
-.env
-.env*.local
-.env.test
-
-# Vercel
-.vercel
-
-# TypeScript
-*.tsbuildinfo
-next-env.d.ts
-
-# OS
-.DS_Store
-*.pem
-Thumbs.db
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# Debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# Local
-.cache/
-
-# Claude Code (local/machine-specific)
+# Local-only
+.env*
 .claude/settings.local.json
+.agents/
+.superpowers/
+prisma/dev.db*
+.vercel/
 skills-lock.json
 .claude/skills/**/*.zip
 
-/src/lib/generated/prisma
-
-# JSON data files (user data, not tracked)
-data/*.json
-!data/.gitkeep
-.agents/
+# Old JSON-mode data (personal, never committed)
+data/
