@@ -67,6 +67,7 @@ body {
   }
 
   .dark {
+    color-scheme: dark; /* native date and number controls follow the theme */
     --background: 40 7% 8%;
     --foreground: 42 25% 92%;
     --card: 36 9% 11%;
@@ -320,8 +321,7 @@ body {
     @apply outline-none ring-2 ring-ring/50 ring-offset-2 ring-offset-background;
     box-shadow:
       0 0 0 2px hsl(var(--background)),
-      0 0 0 4px hsl(var(--ring) / 0.4),
-      0 0 12px hsl(var(--ring) / 0.1);
+      0 0 0 4px hsl(var(--ring) / 0.4);
   }
 }
 

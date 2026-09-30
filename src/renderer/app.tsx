@@ -711,6 +711,7 @@ export default function Home() {
         open={addTaskOpen}
         onOpenChange={setAddTaskOpen}
         categories={categories}
+        defaultCategoryId={selectedCategoryId}
         onAdd={handleAddTask}
       />
       <EditTaskSheet

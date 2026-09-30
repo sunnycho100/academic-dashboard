@@ -1,19 +1,10 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Category, Task, TaskType } from '@/lib/types'
-import { motion, AnimatePresence } from 'framer-motion'
-import { X, Plus, Sparkles, Pencil } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -28,6 +19,8 @@ interface TaskFormSheetBaseProps {
 interface AddModeProps extends TaskFormSheetBaseProps {
   mode: 'add'
   task?: undefined
+  /** Course to preselect, e.g. the one filtered in the sidebar */
+  defaultCategoryId?: string | null
   onAdd: (taskData: {
     title: string
     categoryId: string
@@ -35,7 +28,6 @@ interface AddModeProps extends TaskFormSheetBaseProps {
     dueAt: string | null
     notes?: string
     estimatedDuration?: number
-    isOverdue?: boolean
   }) => void
   onSave?: undefined
 }
@@ -43,6 +35,7 @@ interface AddModeProps extends TaskFormSheetBaseProps {
 interface EditModeProps extends TaskFormSheetBaseProps {
   mode: 'edit'
   task: Task | null
+  defaultCategoryId?: undefined
   onSave: (task: Task) => void
   onAdd?: undefined
 }
@@ -50,495 +43,271 @@ interface EditModeProps extends TaskFormSheetBaseProps {
 export type TaskFormSheetProps = AddModeProps | EditModeProps
 
 // ---------------------------------------------------------------------------
-// Constants
+// Helpers
 // ---------------------------------------------------------------------------
 
-const taskTypes: TaskType[] = [
-  'Lecture',
-  'Discussion',
-  'Lab',
-  'Assignment',
-  'Exam Prep',
+const taskTypes: TaskType[] = ['Lecture', 'Discussion', 'Lab', 'Assignment', 'Exam Prep']
+const estimateChips = [15, 30, 60, 90]
+const LAST_COURSE_KEY = 'task-form-last-course'
+
+/** yyyy-mm-dd in local time (toISOString would give the UTC date and shift it a day). */
+function localDate(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function inDays(n: number) {
+  const d = new Date()
+  d.setDate(d.getDate() + n)
+  return localDate(d)
+}
+
+const dueChips = [
+  { label: 'Today', value: () => inDays(0) },
+  { label: 'Tomorrow', value: () => inDays(1) },
+  { label: 'Next week', value: () => inDays(7) },
 ]
 
-const formFields = [
-  { id: 'title', delay: 0 },
-  { id: 'category', delay: 0.04 },
-  { id: 'type', delay: 0.08 },
-  { id: 'date', delay: 0.12 },
-  { id: 'duration', delay: 0.15 },
-  { id: 'overdue', delay: 0.18 },
-  { id: 'notes', delay: 0.22 },
-]
+function lastCourse(): string | null {
+  try {
+    return localStorage.getItem(LAST_COURSE_KEY)
+  } catch {
+    return null
+  }
+}
+
+const fieldLabel = 'text-xs uppercase tracking-wider text-muted-foreground'
+const chip =
+  'h-8 rounded-full border px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+const chipIdle = 'border-border text-foreground hover:bg-secondary'
+const chipOn = 'border-foreground bg-foreground text-background'
+// A hairline focus ring; the global two-pixel offset ring is too heavy inside the form
+const field = 'mt-2 focus-visible:ring-1 focus-visible:ring-offset-0'
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export function TaskFormSheet(props: TaskFormSheetProps) {
-  const { mode, open, onOpenChange, categories } = props
+  const { mode, open, onOpenChange } = props
+  const shouldRender = mode === 'edit' ? open && props.task !== null : open
+
+  // Radix unmounts the content on close, so the form's state starts fresh on every open.
+  return (
+    <Dialog open={shouldRender} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-[460px] gap-0 p-0" aria-describedby={undefined}>
+        <TaskForm {...props} />
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function TaskForm(props: TaskFormSheetProps) {
+  const { mode, onOpenChange, categories } = props
   const isEdit = mode === 'edit'
   const editTask = isEdit ? props.task : null
 
-  // Helper to compute initial overdue state
-  const computeOverdue = (task: Task | null) => {
-    if (task?.dueAt) {
-      const dueDay = new Date(task.dueAt)
-      dueDay.setHours(0, 0, 0, 0)
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      return dueDay.getTime() < today.getTime()
-    }
-    return false
+  const initialCourse = () => {
+    if (editTask) return editTask.categoryId
+    const ids = categories.map((c) => c.id)
+    const candidates = [props.defaultCategoryId, lastCourse(), ids.length === 1 ? ids[0] : null]
+    return candidates.find((id) => id && ids.includes(id)) ?? ''
   }
 
-  // Form state — initialise from task when in edit mode so the first render
-  // already shows the previously-stored values (the component is keyed by
-  // task id, so it remounts whenever a different task is selected).
   const [title, setTitle] = useState(editTask?.title ?? '')
-  const [categoryId, setCategoryId] = useState(editTask?.categoryId ?? '')
+  const [categoryId, setCategoryId] = useState(initialCourse)
   const [type, setType] = useState<TaskType>(editTask?.type ?? 'Lecture')
-  const [dueDate, setDueDate] = useState(
-    editTask?.dueAt ? new Date(editTask.dueAt).toISOString().split('T')[0] : ''
-  )
+  const [dueDate, setDueDate] = useState(editTask?.dueAt ? localDate(new Date(editTask.dueAt)) : '')
+  const [estimate, setEstimate] = useState(editTask?.estimatedDuration ? String(editTask.estimatedDuration) : '')
   const [notes, setNotes] = useState(editTask?.notes ?? '')
-  const [isOverdue, setIsOverdue] = useState(computeOverdue(editTask))
-  const [durationHours, setDurationHours] = useState(
-    editTask?.estimatedDuration ? String(Math.floor(editTask.estimatedDuration / 60)) : ''
-  )
-  const [durationMinutes, setDurationMinutes] = useState(
-    editTask?.estimatedDuration ? String(editTask.estimatedDuration % 60) : ''
-  )
-  const [showContent, setShowContent] = useState(false)
-  const [activeField, setActiveField] = useState<string | null>(null)
-  const titleInputRef = useRef<HTMLInputElement>(null)
+  const [showNotes, setShowNotes] = useState(Boolean(editTask?.notes))
+  const formRef = useRef<HTMLFormElement>(null)
 
-  // Re-sync form state when the sheet re-opens for the same task (key
-  // doesn't change so useState initialisers won't re-run).
-  useEffect(() => {
-    if (open && isEdit && editTask) {
-      setTitle(editTask.title)
-      setCategoryId(editTask.categoryId)
-      setType(editTask.type)
-      setDueDate(editTask.dueAt ? new Date(editTask.dueAt).toISOString().split('T')[0] : '')
-      setNotes(editTask.notes || '')
-      setDurationHours(editTask.estimatedDuration ? String(Math.floor(editTask.estimatedDuration / 60)) : '')
-      setDurationMinutes(editTask.estimatedDuration ? String(editTask.estimatedDuration % 60) : '')
-      setActiveField(null)
-      setIsOverdue(computeOverdue(editTask))
-    }
-  }, [open, isEdit, editTask])
-
-  // Reveal content immediately with dialog
-  useEffect(() => {
-    if (open) {
-      setShowContent(true)
-      setTimeout(() => titleInputRef.current?.focus(), 100)
-    } else {
-      setShowContent(false)
-    }
-  }, [open])
-
-  const resetForm = () => {
-    setTitle('')
-    setCategoryId('')
-    setType('Lecture')
-    setDueDate('')
-    setNotes('')
-    setDurationHours('')
-    setDurationMinutes('')
-    setIsOverdue(false)
-  }
+  const valid = Boolean(title.trim() && categoryId)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!title.trim() || !categoryId) return
+    if (!valid) return
 
-    const yesterday = new Date()
-    yesterday.setDate(yesterday.getDate() - 1)
-    yesterday.setHours(0, 0, 0, 0)
-
-    const computedDueAt = dueDate
-      ? new Date(dueDate + 'T00:00:00').toISOString()
-      : isOverdue
-        ? yesterday.toISOString()
-        : null
-
-    const computedDuration = (durationHours || durationMinutes)
-      ? (parseInt(durationHours || '0') * 60) + parseInt(durationMinutes || '0') || undefined
-      : undefined
+    const dueAt = dueDate ? new Date(dueDate + 'T00:00:00').toISOString() : null
+    const estimatedDuration = parseInt(estimate) > 0 ? parseInt(estimate) : undefined
+    const fields = { title: title.trim(), categoryId, type, dueAt, notes: notes.trim() || undefined, estimatedDuration }
 
     if (isEdit && editTask) {
-      props.onSave({
-        ...editTask,
-        title: title.trim(),
-        categoryId,
-        type,
-        dueAt: computedDueAt,
-        notes: notes.trim() || undefined,
-        estimatedDuration: computedDuration,
-      })
-      onOpenChange(false)
+      props.onSave({ ...editTask, ...fields })
     } else if (!isEdit) {
-      props.onAdd({
-        title: title.trim(),
-        categoryId,
-        type,
-        dueAt: computedDueAt,
-        notes: notes.trim() || undefined,
-        estimatedDuration: computedDuration,
-        isOverdue,
-      })
-      resetForm()
-      onOpenChange(false)
+      try {
+        localStorage.setItem(LAST_COURSE_KEY, categoryId)
+      } catch {}
+      props.onAdd(fields)
+    }
+    onOpenChange(false)
+  }
+
+  // Cmd+Enter submits from anywhere, including the notes field
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault()
+      formRef.current?.requestSubmit()
     }
   }
 
-  const handleClose = () => {
-    setShowContent(false)
-    setTimeout(() => onOpenChange(false), 150)
-  }
-
-  // Mode-specific config
-  const idPrefix = isEdit ? 'edit-task' : 'task'
-  const headerTitle = isEdit ? 'Edit Task' : 'Add Task'
-  const headerSubtitle = isEdit
-    ? 'Make changes to your task details.'
-    : 'Create a new task to track your coursework.'
-  const HeaderIcon = isEdit ? Pencil : Sparkles
-  const headerIconColor = 'text-foreground'
-  const SubmitIcon = isEdit ? Pencil : Plus
-  const submitText = isEdit ? 'Save Changes' : 'Add Task'
-
-  const shouldRender = isEdit ? (open && editTask !== null) : open
-
   return (
-    <AnimatePresence mode={isEdit ? 'wait' : undefined}>
-      {shouldRender && (
-        <div key={isEdit && editTask ? editTask.id : 'add-task-form'}>
-          {/* Backdrop */}
-          <motion.div
-            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={handleClose}
-          />
+    <form ref={formRef} onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
+      <div className="px-6 pt-6">
+        <DialogTitle className="font-serif text-2xl font-normal">{isEdit ? 'Edit task' : 'New task'}</DialogTitle>
 
-          {/* Dialog container */}
-          <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
-            <motion.div
-              className="pointer-events-auto w-full max-w-lg mx-4"
-              initial={{ opacity: 0, scale: 0.95, y: 12 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 12 }}
-              transition={{
-                type: 'spring',
-                stiffness: 400,
-                damping: 30,
-                mass: 0.6,
-              }}
-            >
-              <motion.div
-                className="relative glass-overlay border border-border rounded-2xl shadow-2xl overflow-hidden"
-                initial={{ boxShadow: '0 0 0 0 rgba(59, 130, 246, 0)' }}
-                animate={{
-                  boxShadow: showContent
-                    ? '0 25px 60px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(59, 130, 246, 0.05)'
-                    : '0 0 0 0 rgba(59, 130, 246, 0)',
-                }}
-                transition={{ duration: 0.4 }}
+        <input
+          autoFocus
+          aria-label="Task name"
+          placeholder="Task name"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="mt-4 w-full border-b border-border bg-transparent pb-2 text-lg placeholder:text-muted-foreground/70 focus:border-foreground focus-visible:[box-shadow:none]"
+        />
+      </div>
+
+      <div className="space-y-5 px-6 py-5">
+        <fieldset>
+          <legend className={fieldLabel}>Course</legend>
+          <div role="radiogroup" aria-label="Course" className="mt-2 flex flex-wrap gap-2">
+            {categories.map((cat) => {
+              const on = cat.id === categoryId
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  onClick={() => setCategoryId(cat.id)}
+                  className={cn(chip, 'flex items-center gap-2 pl-2', on ? chipOn : chipIdle)}
+                >
+                  <svg viewBox="0 0 12 12" className="h-3 w-3" aria-hidden>
+                    <circle cx="6" cy="6" r="4.5" fill={on ? cat.color : 'none'} stroke={cat.color} strokeWidth="1.5" />
+                  </svg>
+                  {cat.name}
+                </button>
+              )
+            })}
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend className={fieldLabel}>Type</legend>
+          <div role="radiogroup" aria-label="Type" className="mt-2 flex flex-wrap gap-2">
+            {taskTypes.map((t) => (
+              <button
+                key={t}
+                type="button"
+                role="radio"
+                aria-checked={t === type}
+                onClick={() => setType(t)}
+                className={cn(chip, t === type ? chipOn : chipIdle)}
               >
-                {/* Animated top gradient bar */}
-                <motion.div
-                  className="h-px bg-border"
-                  initial={{ scaleX: 0 }}
-                  animate={{ scaleX: 1 }}
-                  transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
-                  style={{ transformOrigin: 'left' }}
-                />
+                {t}
+              </button>
+            ))}
+          </div>
+        </fieldset>
 
-                <div className="p-6 max-h-[80vh] overflow-y-auto">
-                  {/* Header */}
-                  <motion.div
-                    className="flex items-center justify-between mb-5"
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: showContent ? 1 : 0, y: showContent ? 0 : -10 }}
-                    transition={{ duration: 0.25, delay: 0.05 }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <motion.div
-                        initial={{ rotate: -90, opacity: 0 }}
-                        animate={{ rotate: 0, opacity: 1 }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.15 }}
-                      >
-                        <HeaderIcon className={`h-5 w-5 ${headerIconColor}`} />
-                      </motion.div>
-                      <div>
-                        <h2 className="text-lg font-semibold tracking-tight">{headerTitle}</h2>
-                        <p className="text-xs text-muted-foreground">
-                          {headerSubtitle}
-                        </p>
-                      </div>
-                    </div>
-                    <motion.button
-                      onClick={handleClose}
-                      className="rounded-full p-1.5 hover:bg-secondary/80 transition-colors"
-                      whileHover={{ rotate: 90, scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                    >
-                      <X className="h-4 w-4 text-muted-foreground" />
-                    </motion.button>
-                  </motion.div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="task-due" className={fieldLabel}>
+              Due
+            </label>
+            <Input
+              id="task-due"
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className={cn(field, 'h-9')}
+            />
+            <div className="mt-2 flex gap-3 text-xs">
+              {dueChips.map((c) => (
+                <button
+                  key={c.label}
+                  type="button"
+                  onClick={() => setDueDate(c.value())}
+                  className={cn(
+                    'text-muted-foreground hover:text-foreground',
+                    dueDate === c.value() && 'text-foreground underline underline-offset-4',
+                  )}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-                  {/* Form */}
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* Task Title */}
-                    <motion.div
-                      className="space-y-2"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{
-                        opacity: showContent ? 1 : 0,
-                        x: showContent ? 0 : -20,
-                      }}
-                      transition={{ duration: 0.3, delay: formFields[0].delay }}
-                    >
-                      <Label htmlFor={`${idPrefix}-title`} className="text-sm font-medium">
-                        Task Title
-                      </Label>
-                      <motion.div
-                        animate={{
-                          borderColor: activeField === 'title' ? 'hsl(var(--ring))' : 'transparent',
-                        }}
-                        className="rounded-lg border-2 border-transparent transition-colors"
-                      >
-                        <Input
-                          ref={titleInputRef}
-                          id={`${idPrefix}-title`}
-                          placeholder="e.g., Watch Lecture 12"
-                          value={title}
-                          onChange={(e) => setTitle(e.target.value)}
-                          onFocus={() => setActiveField('title')}
-                          onBlur={() => setActiveField(null)}
-                          className="border-border/50 focus-visible:ring-0 focus-visible:border-transparent"
-                        />
-                      </motion.div>
-                    </motion.div>
-
-                    {/* Category & Type row */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <motion.div
-                        className="space-y-2"
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{
-                          opacity: showContent ? 1 : 0,
-                          x: showContent ? 0 : -20,
-                        }}
-                        transition={{ duration: 0.3, delay: formFields[1].delay }}
-                      >
-                        <Label htmlFor={`${idPrefix}-category`} className="text-sm font-medium">
-                          Category
-                        </Label>
-                        <Select value={categoryId} onValueChange={setCategoryId}>
-                          <SelectTrigger id={`${idPrefix}-category`} className="border-border/50">
-                            <SelectValue placeholder="Select a category" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {categories.map((cat) => (
-                              <SelectItem key={cat.id} value={cat.id}>
-                                <div className="flex items-center gap-2">
-                                  <div
-                                    className="w-2 h-2 rounded-full"
-                                    style={{ backgroundColor: cat.color }}
-                                  />
-                                  {cat.name}
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </motion.div>
-
-                      <motion.div
-                        className="space-y-2"
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{
-                          opacity: showContent ? 1 : 0,
-                          x: showContent ? 0 : -20,
-                        }}
-                        transition={{ duration: 0.3, delay: formFields[2].delay }}
-                      >
-                        <Label htmlFor={`${idPrefix}-type`} className="text-sm font-medium">
-                          Task Type
-                        </Label>
-                        <Select
-                          value={type}
-                          onValueChange={(value) => setType(value as TaskType)}
-                        >
-                          <SelectTrigger id={`${idPrefix}-type`} className="border-border/50">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {taskTypes.map((taskType) => (
-                              <SelectItem key={taskType} value={taskType}>
-                                {taskType}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </motion.div>
-                    </div>
-
-                    {/* Due Date */}
-                    <motion.div
-                      className="space-y-2"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{
-                        opacity: showContent ? 1 : 0,
-                        x: showContent ? 0 : -20,
-                      }}
-                      transition={{ duration: 0.3, delay: formFields[3].delay }}
-                    >
-                      <Label htmlFor={`${idPrefix}-due-date`} className="text-sm font-medium">
-                        Due Date
-                      </Label>
-                      <Input
-                        id={`${idPrefix}-due-date`}
-                        type="date"
-                        value={dueDate}
-                        onChange={(e) => setDueDate(e.target.value)}
-                        className="border-border/50"
-                      />
-                    </motion.div>
-
-                    {/* Est. Duration */}
-                    <motion.div
-                      className="space-y-2"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{
-                        opacity: showContent ? 1 : 0,
-                        x: showContent ? 0 : -20,
-                      }}
-                      transition={{ duration: 0.3, delay: formFields[4].delay }}
-                    >
-                      <Label className="text-sm font-medium">
-                        Est. Duration
-                      </Label>
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1">
-                          <Input
-                            id={`${idPrefix}-duration-hours`}
-                            type="number"
-                            min="0"
-                            max="99"
-                            placeholder="0"
-                            value={durationHours}
-                            onChange={(e) => setDurationHours(e.target.value)}
-                            className="border-border/50"
-                          />
-                        </div>
-                        <span className="text-xs text-muted-foreground">hr</span>
-                        <div className="flex-1">
-                          <Input
-                            id={`${idPrefix}-duration-minutes`}
-                            type="number"
-                            min="0"
-                            max="59"
-                            placeholder="0"
-                            value={durationMinutes}
-                            onChange={(e) => setDurationMinutes(e.target.value)}
-                            className="border-border/50"
-                          />
-                        </div>
-                        <span className="text-xs text-muted-foreground">min</span>
-                      </div>
-                    </motion.div>
-
-                    {/* Overdue checkbox */}
-                    <motion.div
-                      className="flex items-center space-x-2"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{
-                        opacity: showContent ? 1 : 0,
-                        x: showContent ? 0 : -20,
-                      }}
-                      transition={{ duration: 0.3, delay: formFields[5].delay }}
-                    >
-                      <Checkbox
-                        id={`${idPrefix}-overdue`}
-                        checked={isOverdue}
-                        onCheckedChange={(checked) => setIsOverdue(checked as boolean)}
-                        className="h-4 w-4 rounded"
-                      />
-                      <Label
-                        htmlFor={`${idPrefix}-overdue`}
-                        className="text-sm font-normal cursor-pointer text-muted-foreground"
-                      >
-                        Mark as overdue
-                      </Label>
-                    </motion.div>
-
-                    {/* Notes */}
-                    <motion.div
-                      className="space-y-2"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{
-                        opacity: showContent ? 1 : 0,
-                        x: showContent ? 0 : -20,
-                      }}
-                      transition={{ duration: 0.3, delay: formFields[6].delay }}
-                    >
-                      <Label htmlFor={`${idPrefix}-notes`} className="text-sm font-medium">
-                        Notes (Optional)
-                      </Label>
-                      <Textarea
-                        id={`${idPrefix}-notes`}
-                        placeholder="Add any additional notes..."
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        rows={3}
-                        className="border-border/50 resize-none"
-                      />
-                    </motion.div>
-
-                    {/* Footer buttons */}
-                    <motion.div
-                      className="flex justify-end gap-2 pt-2"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{
-                        opacity: showContent ? 1 : 0,
-                        y: showContent ? 0 : 10,
-                      }}
-                      transition={{ duration: 0.3, delay: 0.25 }}
-                    >
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleClose}
-                        className="rounded-lg"
-                      >
-                        Cancel
-                      </Button>
-                      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
-                        <Button
-                          type="submit"
-                          disabled={!title.trim() || !categoryId}
-                          className="rounded-lg shadow-sm"
-                        >
-                          <SubmitIcon className="h-4 w-4 mr-1.5" />
-                          {submitText}
-                        </Button>
-                      </motion.div>
-                    </motion.div>
-                  </form>
-                </div>
-              </motion.div>
-            </motion.div>
+          <div>
+            <label htmlFor="task-estimate" className={fieldLabel}>
+              Estimate
+            </label>
+            <div className="relative mt-2">
+              <Input
+                id="task-estimate"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                value={estimate}
+                onChange={(e) => setEstimate(e.target.value)}
+                className="h-9 pr-12 tabular-nums focus-visible:ring-1 focus-visible:ring-offset-0"
+              />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                min
+              </span>
+            </div>
+            <div className="mt-2 flex gap-3 text-xs tabular-nums">
+              {estimateChips.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setEstimate(String(m))}
+                  className={cn(
+                    'text-muted-foreground hover:text-foreground',
+                    estimate === String(m) && 'text-foreground underline underline-offset-4',
+                  )}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      )}
-    </AnimatePresence>
+
+        {showNotes ? (
+          <div>
+            <label htmlFor="task-notes" className={fieldLabel}>
+              Note
+            </label>
+            <Textarea
+              id="task-notes"
+              autoFocus={!isEdit}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              className={cn(field, 'resize-none')}
+            />
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowNotes(true)}
+            className="text-sm text-muted-foreground hover:text-foreground"
+          >
+            Add a note
+          </button>
+        )}
+      </div>
+
+      <div className="flex items-center justify-end gap-2 border-t border-border px-6 py-4">
+        <span className="mr-auto text-xs text-muted-foreground">⌘ Return to {isEdit ? 'save' : 'add'}</span>
+        <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="rounded-full">
+          Cancel
+        </Button>
+        <Button type="submit" disabled={!valid} className="rounded-full px-5">
+          {isEdit ? 'Save' : 'Add task'}
+        </Button>
+      </div>
+    </form>
   )
 }

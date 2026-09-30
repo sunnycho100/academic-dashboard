@@ -25,11 +25,9 @@ test.describe('task lifecycle', () => {
     await page.goto(APP_URL)
 
     await page.getByRole('button', { name: /add task/i }).first().click()
-    await page.getByPlaceholder('e.g., Watch Lecture 12').fill('Finish problem set')
+    await page.getByPlaceholder('Task name').fill('Finish problem set')
 
-    // Radix Select for category
-    await page.getByText('Select a category').click()
-    await page.getByRole('option').first().click()
+    await page.getByRole('radiogroup', { name: 'Course' }).getByRole('radio').first().click()
 
     await page.getByRole('button', { name: /^add task$/i }).last().click()
     await expect(page.getByText('Finish problem set')).toBeVisible()
