@@ -1,23 +1,10 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
-import {
-  Clock,
-  Zap,
-  Coffee,
-  TrendingUp,
-  Download,
-  ChevronLeft,
-  ChevronRight,
-  X,
-  CalendarDays,
-  Settings,
-  Trash2,
-  Plus,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { ChevronLeft, ChevronRight, Settings, Trash2, Plus } from 'lucide-react'
 import { format, addDays, subDays } from 'date-fns'
-import { motion, AnimatePresence } from 'framer-motion'
 import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { Switch } from '@/components/ui/switch'
 import {
   MetricCard,
   TimeBlock,
@@ -50,7 +37,6 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
   const [loading, setLoading] = useState(false)
   // Will be overridden to logical today once day boundaries load
   const [selectedDate, setSelectedDate] = useState(new Date())
-  const [showContent, setShowContent] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({ taskTitle: '', startTime: '', endTime: '' })
@@ -96,18 +82,13 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
     localStorage.setItem('timeRecords-dayBoundaries', JSON.stringify({ start: timelineStartHour, end: val }))
   }
 
-  // Reveal content immediately with dialog and fetch categories
+  // Fetch categories when the dialog opens
   useEffect(() => {
-    if (open) {
-      setShowContent(true)
-      // Fetch categories
-      fetch('/api/categories')
-        .then((res) => res.json())
-        .then((data) => setCategories(data.map((c: { name: string; color: string }) => ({ name: c.name, color: c.color }))))
-        .catch(() => {})
-    } else {
-      setShowContent(false)
-    }
+    if (!open) return
+    fetch('/api/categories')
+      .then((res) => res.json())
+      .then((data) => setCategories(data.map((c: { name: string; color: string }) => ({ name: c.name, color: c.color }))))
+      .catch(() => {})
   }, [open])
 
   // Fetch records when dialog opens or date/boundaries change
@@ -167,7 +148,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
       return {
         totalFocus: '0m',
         longestSession: '0m',
-        idleTime: '—',
+        idleTime: '–',
         productivityRatio: '0%',
       }
     }
@@ -221,12 +202,13 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
   }
   const handleToday = () => setSelectedDate(getLogicalToday(timelineStartHour, timelineEndHour))
 
-  const handleClose = () => {
-    setShowContent(false)
-    setEditMode(false)
-    setEditingId(null)
-    setAddingNew(false)
-    setTimeout(() => onOpenChange(false), 150)
+  const handleOpenChange = (next: boolean) => {
+    if (!next) {
+      setEditMode(false)
+      setEditingId(null)
+      setAddingNew(false)
+    }
+    onOpenChange(next)
   }
 
   const handleExport = () => {
@@ -412,530 +394,325 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
     ))
   }
 
+  const selectClass =
+    'h-7 rounded-md border border-border bg-card px-2 text-xs text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring'
+
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={handleClose}
-          />
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[85vh] gap-0 p-0 flex flex-col overflow-hidden" aria-describedby={undefined}>
+        {/* Header */}
+        <div className="px-6 pt-6 pb-4 border-b border-border flex-shrink-0">
+          <DialogTitle className="font-serif text-2xl font-normal">Time records</DialogTitle>
 
-          {/* Dialog container */}
-          <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
-            <motion.div
-              className="pointer-events-auto w-full max-w-2xl mx-4"
-              initial={{ opacity: 0, scale: 0.95, y: 12 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 12 }}
-              transition={{
-                type: 'spring',
-                stiffness: 400,
-                damping: 30,
-                mass: 0.6,
-              }}
-            >
-              <motion.div
-                className="relative glass-overlay border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col w-full"
-                style={{ maxHeight: '85vh' }}
-                initial={{ boxShadow: '0 0 0 0 rgba(59, 130, 246, 0)' }}
-                animate={{
-                  boxShadow: showContent
-                    ? '0 25px 60px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(59, 130, 246, 0.05)'
-                    : '0 0 0 0 rgba(59, 130, 246, 0)',
-                }}
-                transition={{ duration: 0.4 }}
+          {/* Date navigation + edit toggle */}
+          <div className="mt-4 flex items-center justify-between">
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handlePrevDay} aria-label="Previous day">
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <button
+                onClick={handleToday}
+                className="px-1 text-sm text-foreground hover:text-muted-foreground transition-colors"
               >
-                {/* Animated top gradient bar */}
-                <motion.div
-                  className="h-[2px] bg-gradient-to-r from-blue-500/80 via-cyan-400/80 to-emerald-400/80"
-                  initial={{ scaleX: 0 }}
-                  animate={{ scaleX: 1 }}
-                  transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
-                  style={{ transformOrigin: 'left' }}
-                />
+                {isToday ? 'Today' : format(selectedDate, 'EEEE')},{' '}
+                {format(selectedDate, 'MMMM d')}
+              </button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={handleNextDay}
+                disabled={addDays(selectedDate, 1) > logicalToday}
+                aria-label="Next day"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
 
-                {/* Header */}
-                <motion.div
-                  className="px-6 pt-5 pb-4 border-b border-border flex-shrink-0"
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: showContent ? 1 : 0, y: showContent ? 0 : -10 }}
-                  transition={{ duration: 0.25, delay: 0.05 }}
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setAddingNew(!addingNew)}
+                title="Add record manually"
+                aria-label="Add record manually"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant={editMode ? 'secondary' : 'ghost'}
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => { setEditMode(!editMode); setEditingId(null); setAddingNew(false) }}
+                title="Edit records"
+                aria-label="Edit records"
+                aria-pressed={editMode}
+              >
+                <Settings className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Day boundary selects */}
+          {editMode && (
+            <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border">
+              <label className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                Start
+                <select
+                  value={timelineStartHour}
+                  onChange={(e) => handleStartHourChange(Number(e.target.value))}
+                  className={selectClass}
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <motion.div
-                        className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-sm flex items-center justify-center border border-blue-500/10"
-                        initial={{ rotate: -90, opacity: 0 }}
-                        animate={{ rotate: 0, opacity: 1 }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.15 }}
-                      >
-                        <CalendarDays className="h-4.5 w-4.5 text-blue-400" />
-                      </motion.div>
+                  {Array.from({ length: 13 }, (_, i) => (
+                    <option key={i} value={i}>
+                      {formatHourOption(i, false)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                End
+                <select
+                  value={timelineEndHour}
+                  onChange={(e) => handleEndHourChange(Number(e.target.value))}
+                  className={selectClass}
+                >
+                  {Array.from({ length: 13 }, (_, i) => {
+                    const hour = 18 + i // 6 PM through 6 AM next day
+                    const isNextDay = hour > 24
+                    return (
+                      <option key={hour} value={hour}>
+                        {formatHourOption(hour, isNextDay)}
+                      </option>
+                    )
+                  })}
+                </select>
+              </label>
+
+              <div className="flex-1" />
+
+              <label
+                className="flex items-center gap-2 text-xs text-muted-foreground select-none whitespace-nowrap"
+                title="Auto-shift end time when start time changes"
+              >
+                <Switch checked={autoShiftEnd} onCheckedChange={setAutoShiftEnd} />
+                Auto-shift
+              </label>
+              <label
+                className="flex items-center gap-2 text-xs text-muted-foreground select-none whitespace-nowrap"
+                title="Cascade shift subsequent records on save"
+              >
+                <Switch checked={cascadeShift} onCheckedChange={setCascadeShift} />
+                Cascade
+              </label>
+            </div>
+          )}
+        </div>
+
+        {/* Summary */}
+        <div className="px-6 py-4 flex items-baseline gap-x-7 gap-y-3 flex-wrap flex-shrink-0 border-b border-border">
+          <MetricCard label="focus" value={analytics.totalFocus} />
+          <MetricCard label="longest" value={analytics.longestSession} />
+          <MetricCard label="idle" value={analytics.idleTime} />
+          <MetricCard label="productive" value={analytics.productivityRatio} />
+        </div>
+
+        {/* Timeline or edit list */}
+        <div className="flex-1 min-h-0 overflow-hidden">
+          {loading ? (
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground min-h-[400px] max-h-[calc(85vh-300px)]">
+              <div className="h-4 w-4 border-2 border-border border-t-foreground rounded-full animate-spin" />
+              Loading...
+            </div>
+          ) : editMode ? (
+            /* Edit mode: list view */
+            <div className="overflow-y-auto px-6 py-3 max-h-[calc(85vh-300px)]">
+              <div className="space-y-2">
+                {records.map((record) => {
+                  const isEditing = editingId === record.id
+                  const start = new Date(record.startTime)
+                  const end = new Date(record.endTime)
+
+                  return (
+                    <div
+                      key={record.id}
+                      className="flex items-center gap-3 rounded-md border border-border bg-card px-3 py-2.5"
+                    >
+                      {/* Color dot */}
+                      <div
+                        className="h-2.5 w-2.5 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: record.categoryColor }}
+                      />
+
+                      {isEditing ? (
+                        /* Inline edit form */
+                        <div className="flex-1 flex items-center gap-2 flex-wrap">
+                          <Input
+                            value={editForm.taskTitle}
+                            onChange={(e) => setEditForm({ ...editForm, taskTitle: e.target.value })}
+                            className="h-7 text-xs flex-1 min-w-[100px]"
+                            placeholder="Title"
+                          />
+                          <Input
+                            type="time"
+                            value={editForm.startTime}
+                            onChange={(e) => handleEditStartTimeChange(e.target.value)}
+                            className="h-7 text-xs w-[90px]"
+                          />
+                          <span className="text-xs text-muted-foreground">–</span>
+                          <Input
+                            type="time"
+                            value={editForm.endTime}
+                            onChange={(e) => setEditForm({ ...editForm, endTime: e.target.value })}
+                            className="h-7 text-xs w-[90px]"
+                          />
+                          <Button
+                            size="sm"
+                            className="h-7 rounded-full px-3 text-xs"
+                            onClick={() => handleSaveEdit(record.id)}
+                          >
+                            Save
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-xs"
+                            onClick={() => setEditingId(null)}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : (
+                        /* Display row */
+                        <>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm truncate">{record.taskTitle}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {record.categoryName} · {formatTimeLabel(start)} – {formatTimeLabel(end)} · {formatDurationShort(record.duration)}
+                            </p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                            onClick={() => handleStartEdit(record)}
+                            title="Edit"
+                            aria-label="Edit"
+                          >
+                            <Settings className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={() => handleDelete(record.id)}
+                            title="Delete"
+                            aria-label="Delete"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  )
+                })}
+
+                {/* Add new record form */}
+                {addingNew && (
+                  <TimeRecordForm
+                    form={newForm}
+                    onFormChange={setNewForm}
+                    categories={categories}
+                    onSave={handleAddNew}
+                    onCancel={() => setAddingNew(false)}
+                  />
+                )}
+
+                {records.length === 0 && !addingNew && (
+                  <p className="py-8 text-center text-sm text-muted-foreground">No records to edit</p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col h-full max-h-[calc(85vh-300px)]">
+              {/* Inline add form (shown when + is clicked from header) */}
+              {addingNew && (
+                <div className="px-4 py-3 border-b border-border flex-shrink-0">
+                  <TimeRecordForm
+                    form={newForm}
+                    onFormChange={setNewForm}
+                    categories={categories}
+                    onSave={handleAddNew}
+                    onCancel={() => setAddingNew(false)}
+                  />
+                </div>
+              )}
+              <div
+                ref={scrollRefCallback}
+                className="flex-1 overflow-y-auto px-2"
+              >
+                <div
+                  className="relative pt-4"
+                  style={{ height: `${totalHours * HOUR_HEIGHT + 16}px` }}
+                >
+                  {/* Hour grid lines and labels */}
+                  {hourLabels.map(({ hour, label }, i) => {
+                    const y = i * HOUR_HEIGHT + 16
+                    return (
+                      <div key={hour} className="absolute left-0 right-0" style={{ top: `${y}px` }}>
+                        <span className="absolute left-2 -top-[9px] text-[10px] text-muted-foreground tabular-nums select-none">
+                          {label}
+                        </span>
+                        <div className="absolute left-[72px] right-3 h-px bg-border" />
+                        {i < totalHours &&
+                          [1, 2, 3].map((q) => (
+                            <div
+                              key={q}
+                              className="absolute left-[72px] right-3 h-px bg-border/40"
+                              style={{ top: `${q * QUARTER_HEIGHT}px` }}
+                            />
+                          ))}
+                      </div>
+                    )
+                  })}
+
+                  {/* Time blocks */}
+                  {records.map((record) => (
+                    <TimeBlock key={record.id} record={record} timelineStartHour={timelineStartHour} />
+                  ))}
+
+                  {/* Current time line */}
+                  <CurrentTimeLine date={selectedDate} timelineStartHour={timelineStartHour} timelineEndHour={timelineEndHour} />
+
+                  {/* Empty state */}
+                  {records.length === 0 && !loading && (
+                    <div className="absolute inset-0 flex items-center justify-center text-center">
                       <div>
-                        <h2 className="text-lg font-bold tracking-tight">Time Records</h2>
-                        <p className="text-[11px] text-muted-foreground/60 font-medium tracking-wide">
-                          Your daily focus timeline
+                        <p className="text-sm text-muted-foreground">No time records</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Start a timer on a task to begin tracking
                         </p>
                       </div>
                     </div>
-                    <motion.button
-                      onClick={handleClose}
-                      className="rounded-full p-1.5 hover:bg-secondary transition-colors"
-                      whileHover={{ rotate: 90, scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                    >
-                      <X className="h-4 w-4 text-muted-foreground/60" />
-                    </motion.button>
-                  </div>
-
-                  {/* Date navigation + Edit toggle */}
-                  <div className="flex items-center justify-between">
-                    <motion.div
-                      className="flex items-center gap-2"
-                      initial={{ opacity: 0, x: -12 }}
-                      animate={{ opacity: showContent ? 1 : 0, x: showContent ? 0 : -12 }}
-                      transition={{ duration: 0.25, delay: 0.1 }}
-                    >
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 rounded-lg"
-                        onClick={handlePrevDay}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      <button
-                        onClick={handleToday}
-                        className={cn(
-                          'text-sm font-semibold px-3.5 py-1.5 rounded-lg transition-all duration-200',
-                          isToday
-                            ? 'bg-gradient-to-r from-blue-500/15 to-cyan-500/15 text-blue-400 border border-blue-500/10'
-                            : 'text-muted-foreground/70 hover:text-foreground hover:bg-secondary'
-                        )}
-                      >
-                        {isToday ? 'Today' : format(selectedDate, 'EEEE')},{' '}
-                        {format(selectedDate, 'MMMM d')}
-                      </button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 rounded-lg"
-                        onClick={handleNextDay}
-                        disabled={addDays(selectedDate, 1) > logicalToday}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </motion.div>
-
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 rounded-lg"
-                        onClick={() => setAddingNew(!addingNew)}
-                        title="Add record manually"
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant={editMode ? 'secondary' : 'ghost'}
-                        size="icon"
-                        className={cn('h-7 w-7 rounded-lg', editMode && 'bg-primary/10 text-primary')}
-                        onClick={() => { setEditMode(!editMode); setEditingId(null); setAddingNew(false) }}
-                        title="Edit records"
-                      >
-                        <Settings className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Day boundary selects */}
-                  <AnimatePresence>
-                    {editMode && (
-                      <motion.div
-                        className="flex items-center gap-3 mt-3 pt-3 border-t border-border"
-                        initial={{ opacity: 0, height: 0, marginTop: 0, paddingTop: 0 }}
-                        animate={{ opacity: 1, height: 'auto', marginTop: 12, paddingTop: 12 }}
-                        exit={{ opacity: 0, height: 0, marginTop: 0, paddingTop: 0 }}
-                        transition={{ duration: 0.2, ease: 'easeInOut' }}
-                      >
-                        <div className="flex items-center gap-2">
-                          <label className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold whitespace-nowrap">Start</label>
-                          <select
-                            value={timelineStartHour}
-                            onChange={(e) => handleStartHourChange(Number(e.target.value))}
-                            className="h-7 rounded-md border border-border bg-secondary backdrop-blur-sm px-2 text-xs text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring"
-                          >
-                            {Array.from({ length: 13 }, (_, i) => (
-                              <option key={i} value={i}>
-                                {formatHourOption(i, false)}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <label className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold whitespace-nowrap">End</label>
-                          <select
-                            value={timelineEndHour}
-                            onChange={(e) => handleEndHourChange(Number(e.target.value))}
-                            className="h-7 rounded-md border border-border bg-secondary backdrop-blur-sm px-2 text-xs text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring"
-                          >
-                            {Array.from({ length: 13 }, (_, i) => {
-                              const hour = 18 + i // 6 PM through 6 AM next day
-                              const isNextDay = hour > 24
-                              return (
-                                <option key={hour} value={hour}>
-                                  {formatHourOption(hour, isNextDay)}
-                                </option>
-                              )
-                            })}
-                          </select>
-                        </div>
-
-                        <div className="flex-1" />
-
-                        {/* Auto-shift toggle */}
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={() => setAutoShiftEnd((v) => !v)}
-                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
-                              autoShiftEnd
-                                ? 'bg-today dark:bg-today-muted'
-                                : 'bg-foreground/10'
-                            }`}
-                            title="Auto-shift end time when start time changes"
-                          >
-                            <span
-                              className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-                                autoShiftEnd ? 'translate-x-[18px]' : 'translate-x-[3px]'
-                              }`}
-                            />
-                          </button>
-                          <span className="text-[10px] text-muted-foreground/60 select-none whitespace-nowrap">Auto-shift</span>
-                        </div>
-
-                        {/* Cascade toggle */}
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={() => setCascadeShift((v) => !v)}
-                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
-                              cascadeShift
-                                ? 'bg-today dark:bg-today-muted'
-                                : 'bg-foreground/10'
-                            }`}
-                            title="Cascade shift subsequent records on save"
-                          >
-                            <span
-                              className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-                                cascadeShift ? 'translate-x-[18px]' : 'translate-x-[3px]'
-                              }`}
-                            />
-                          </button>
-                          <span className="text-[10px] text-muted-foreground/60 select-none whitespace-nowrap">Cascade</span>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-
-                {/* Analytics Cards */}
-                <div className="px-6 py-4 flex gap-3 flex-wrap flex-shrink-0 border-b border-border">
-                  <MetricCard
-                    icon={Clock}
-                    label="Total Focus"
-                    value={analytics.totalFocus}
-                    iconColor="hsl(210, 100%, 60%)"
-                    gradient="bg-gradient-to-br from-blue-500 to-cyan-500"
-                    delay={0.08}
-                    show={showContent}
-                  />
-                  <MetricCard
-                    icon={Zap}
-                    label="Longest"
-                    value={analytics.longestSession}
-                    iconColor="hsl(35, 95%, 60%)"
-                    gradient="bg-gradient-to-br from-amber-500 to-orange-500"
-                    delay={0.12}
-                    show={showContent}
-                  />
-                  <MetricCard
-                    icon={Coffee}
-                    label="Idle Time"
-                    value={analytics.idleTime}
-                    iconColor="hsl(0, 0%, 60%)"
-                    gradient="bg-gradient-to-br from-slate-400 to-slate-500"
-                    delay={0.16}
-                    show={showContent}
-                  />
-                  <MetricCard
-                    icon={TrendingUp}
-                    label="Productive"
-                    value={analytics.productivityRatio}
-                    iconColor="hsl(140, 70%, 50%)"
-                    gradient="bg-gradient-to-br from-emerald-500 to-green-500"
-                    delay={0.20}
-                    show={showContent}
-                  />
-                </div>
-
-                {/* Timeline or Edit List */}
-                <motion.div
-                  className="flex-1 min-h-0 overflow-hidden"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: showContent ? 1 : 0 }}
-                  transition={{ duration: 0.3, delay: 0.2 }}
-                >
-                  {loading ? (
-                    <div className="flex items-center justify-center text-muted-foreground" style={{ maxHeight: 'calc(85vh - 300px)', minHeight: '400px' }}>
-                      <motion.div
-                        className="flex items-center gap-2"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.1 }}
-                      >
-                        <div className="h-4 w-4 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
-                        Loading...
-                      </motion.div>
-                    </div>
-                  ) : editMode ? (
-                    /* ── Edit Mode: list view ── */
-                    <div className="overflow-y-auto px-6 py-3" style={{ maxHeight: 'calc(85vh - 300px)' }}>
-                      <div className="space-y-2">
-                        {records.map((record) => {
-                          const isEditing = editingId === record.id
-                          const start = new Date(record.startTime)
-                          const end = new Date(record.endTime)
-
-                          return (
-                            <motion.div
-                              key={record.id}
-                              layout
-                              className="flex items-center gap-3 rounded-xl border border-border bg-secondary backdrop-blur-sm px-3 py-2.5"
-                            >
-                              {/* Color dot */}
-                              <div
-                                className="h-3 w-3 rounded-full flex-shrink-0"
-                                style={{ backgroundColor: record.categoryColor }}
-                              />
-
-                              {isEditing ? (
-                                /* Inline edit form */
-                                <div className="flex-1 flex items-center gap-2 flex-wrap">
-                                  <Input
-                                    value={editForm.taskTitle}
-                                    onChange={(e) => setEditForm({ ...editForm, taskTitle: e.target.value })}
-                                    className="h-7 text-xs flex-1 min-w-[100px]"
-                                    placeholder="Title"
-                                  />
-                                  <Input
-                                    type="time"
-                                    value={editForm.startTime}
-                                    onChange={(e) => handleEditStartTimeChange(e.target.value)}
-                                    className="h-7 text-xs w-[90px]"
-                                  />
-                                  <span className="text-xs text-muted-foreground">–</span>
-                                  <Input
-                                    type="time"
-                                    value={editForm.endTime}
-                                    onChange={(e) => setEditForm({ ...editForm, endTime: e.target.value })}
-                                    className="h-7 text-xs w-[90px]"
-                                  />
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 px-2 text-xs text-primary"
-                                    onClick={() => handleSaveEdit(record.id)}
-                                  >
-                                    Save
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 px-2 text-xs"
-                                    onClick={() => setEditingId(null)}
-                                  >
-                                    Cancel
-                                  </Button>
-                                </div>
-                              ) : (
-                                /* Display row */
-                                <>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate">{record.taskTitle}</p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {record.categoryName} · {formatTimeLabel(start)} – {formatTimeLabel(end)} · {formatDurationShort(record.duration)}
-                                    </p>
-                                  </div>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground"
-                                    onClick={() => handleStartEdit(record)}
-                                    title="Edit"
-                                  >
-                                    <Settings className="h-3.5 w-3.5" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7 rounded-lg text-muted-foreground hover:text-destructive"
-                                    onClick={() => handleDelete(record.id)}
-                                    title="Delete"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </Button>
-                                </>
-                              )}
-                            </motion.div>
-                          )
-                        })}
-
-                        {/* Add new record form */}
-                        {addingNew && (
-                          <TimeRecordForm
-                            form={newForm}
-                            onFormChange={setNewForm}
-                            categories={categories}
-                            onSave={handleAddNew}
-                            onCancel={() => setAddingNew(false)}
-                          />
-                        )}
-
-                        {records.length === 0 && !addingNew && (
-                          <div className="text-center py-8">
-                            <p className="text-sm text-muted-foreground/50">No records to edit</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col h-full" style={{ maxHeight: 'calc(85vh - 300px)' }}>
-                      {/* Inline add form (shown when + is clicked from header) */}
-                      <AnimatePresence>
-                        {addingNew && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="px-4 py-3 border-b border-border flex-shrink-0"
-                          >
-                            <TimeRecordForm
-                              form={newForm}
-                              onFormChange={setNewForm}
-                              categories={categories}
-                              onSave={handleAddNew}
-                              onCancel={() => setAddingNew(false)}
-                            />
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                      <div
-                        ref={scrollRefCallback}
-                        className="flex-1 overflow-y-auto px-2"
-                      >
-                      <div
-                        className="relative"
-                        style={{ height: `${totalHours * HOUR_HEIGHT + 16}px`, paddingTop: '16px' }}
-                      >
-                        {/* Hour grid lines and labels */}
-                        {hourLabels.map(({ hour, label }, i) => {
-                          const y = i * HOUR_HEIGHT + 16
-                          return (
-                            <div key={hour} className="absolute left-0 right-0" style={{ top: `${y}px` }}>
-                              <span className="absolute left-2 -top-[9px] text-[10px] font-semibold text-muted-foreground/40 tabular-nums select-none tracking-wide">
-                                {label}
-                              </span>
-                              <div className="absolute left-[72px] right-3 h-px bg-secondary dark:bg-white/[0.06]" />
-                              {i < totalHours &&
-                                [1, 2, 3].map((q) => (
-                                  <div
-                                    key={q}
-                                    className="absolute left-[72px] right-3 h-px bg-secondary dark:bg-white/[0.03]"
-                                    style={{ top: `${q * QUARTER_HEIGHT}px` }}
-                                  />
-                                ))}
-                            </div>
-                          )
-                        })}
-
-                        {/* Time blocks */}
-                        <AnimatePresence>
-                          {records.map((record, i) => (
-                            <TimeBlock key={record.id} record={record} index={i} timelineStartHour={timelineStartHour} />
-                          ))}
-                        </AnimatePresence>
-
-                        {/* Current time line */}
-                        <CurrentTimeLine date={selectedDate} timelineStartHour={timelineStartHour} timelineEndHour={timelineEndHour} />
-
-                        {/* Empty state */}
-                        {records.length === 0 && !loading && (
-                          <motion.div
-                            className="absolute inset-0 flex items-center justify-center"
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.25, type: 'spring', stiffness: 200, damping: 20 }}
-                          >
-                            <div className="text-center">
-                              <motion.div
-                                animate={{ y: [0, -6, 0] }}
-                                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-                              >
-                                <Clock className="h-10 w-10 text-muted-foreground/20 mx-auto mb-3" />
-                              </motion.div>
-                              <p className="text-sm text-muted-foreground/50 font-medium">
-                                No time records
-                              </p>
-                              <p className="text-xs text-muted-foreground/30 mt-1">
-                                Start a timer on a task to begin tracking
-                              </p>
-                            </div>
-                          </motion.div>
-                        )}
-                      </div>
-                    </div>
-                    </div>
                   )}
-                </motion.div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
-                {/* Footer */}
-                <motion.div
-                  className="px-6 py-3 border-t border-border flex items-center justify-end gap-2 flex-shrink-0"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: showContent ? 1 : 0, y: showContent ? 0 : 10 }}
-                  transition={{ duration: 0.25, delay: 0.22 }}
-                >
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleExport}
-                    disabled={records.length === 0}
-                    className="gap-1.5"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    Export
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleClose}
-                  >
-                    Close
-                  </Button>
-                </motion.div>
-              </motion.div>
-            </motion.div>
-          </div>
-        </>
-      )}
-    </AnimatePresence>
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-border flex items-center justify-end flex-shrink-0">
+          <Button
+            onClick={handleExport}
+            disabled={records.length === 0}
+            className="rounded-full px-5"
+          >
+            Export
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }

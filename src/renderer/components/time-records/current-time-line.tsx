@@ -32,9 +32,9 @@ export function CurrentTimeLine({ date, timelineStartHour, timelineEndHour }: Cu
       style={{ top: `${position}px` }}
     >
       <div className="relative flex items-center">
-        <div className="absolute left-[72px] right-3 h-[2px] bg-gradient-to-r from-rose-500 via-rose-400 to-rose-500/50 shadow-[0_0_6px_rgba(244,63,94,0.4)]" />
-        <div className="absolute left-[66px] w-3 h-3 rounded-full bg-rose-500 border-2 border-background shadow-[0_0_8px_rgba(244,63,94,0.5)]" />
-        <span className="absolute right-4 -top-3 bg-rose-500/90 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-0.5 rounded-md tabular-nums shadow-lg">
+        <div className="absolute left-[72px] right-3 h-px bg-coral" />
+        <div className="absolute left-[69px] h-[7px] w-[7px] rounded-full bg-coral" />
+        <span className="absolute right-4 -top-4 bg-popover px-1 text-[10px] text-coral tabular-nums">
           {format(new Date(), 'h:mm a')}
         </span>
       </div>

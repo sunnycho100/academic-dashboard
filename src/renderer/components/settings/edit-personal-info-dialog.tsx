@@ -1,16 +1,7 @@
 import { useState, useEffect } from 'react'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Loader2 } from 'lucide-react'
 
 interface EditPersonalInfoDialogProps {
   open: boolean
@@ -51,12 +42,12 @@ export function EditPersonalInfoDialog({ open, onOpenChange }: EditPersonalInfoD
         body: JSON.stringify({ name: trimmed }),
       })
       if (!res.ok) {
-        setError('Failed to update. Please try again.')
+        setError('Could not save. Try again.')
         return
       }
       onOpenChange(false)
     } catch {
-      setError('Failed to update. Please try again.')
+      setError('Could not save. Try again.')
     } finally {
       setLoading(false)
     }
@@ -64,42 +55,39 @@ export function EditPersonalInfoDialog({ open, onOpenChange }: EditPersonalInfoD
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px]">
-        <DialogHeader>
-          <DialogTitle>Edit Personal Info</DialogTitle>
-          <DialogDescription>
-            Update your display name. This is how you&apos;ll be greeted.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 py-2">
-          <div className="space-y-2">
-            <Label htmlFor="edit-name">Display Name</Label>
-            <Input
-              id="edit-name"
-              type="text"
-              placeholder="Your name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              disabled={loading || fetching}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  handleSave()
-                }
-              }}
-            />
-          </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
+      <DialogContent className="max-w-[400px] gap-0 p-0" aria-describedby={undefined}>
+        <div className="px-6 pt-6">
+          <DialogTitle className="font-serif text-2xl font-normal">Personal info</DialogTitle>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+        <div className="px-6 py-5">
+          <label htmlFor="edit-name" className="text-xs uppercase tracking-wider text-muted-foreground">
+            Display name
+          </label>
+          <Input
+            id="edit-name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={loading || fetching}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                handleSave()
+              }
+            }}
+            className="mt-2 focus-visible:ring-1 focus-visible:ring-offset-0"
+          />
+          <p className="mt-2 text-xs text-muted-foreground">Used in the greeting.</p>
+          {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
+        </div>
+        <div className="flex justify-end gap-2 border-t border-border px-6 py-4">
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={loading} className="rounded-full">
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={loading || fetching}>
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save
+          <Button onClick={handleSave} disabled={loading || fetching} className="rounded-full px-5">
+            {loading ? 'Saving' : 'Save'}
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   )

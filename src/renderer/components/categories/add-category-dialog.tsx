@@ -1,15 +1,7 @@
 import { useState } from 'react'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 
 interface AddCategoryDialogProps {
   open: boolean
@@ -35,38 +27,32 @@ export function AddCategoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Add Category</DialogTitle>
-          <DialogDescription>
-            Create a new category for organizing your tasks.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-md gap-0 p-0" aria-describedby={undefined}>
         <form onSubmit={handleSubmit}>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="category-name">Category Name</Label>
-              <Input
-                id="category-name"
-                placeholder="e.g., COMPSCI400"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                autoFocus
-              />
-            </div>
+          <div className="px-6 pt-6">
+            <DialogTitle className="font-serif text-2xl font-normal">New course</DialogTitle>
           </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
+          <div className="px-6 py-5">
+            <label htmlFor="category-name" className="text-xs uppercase tracking-wider text-muted-foreground">
+              Name
+            </label>
+            <Input
+              id="category-name"
+              placeholder="COMPSCI 400"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoFocus
+              className="mt-2 focus-visible:ring-1 focus-visible:ring-offset-0"
+            />
+          </div>
+          <div className="flex justify-end gap-2 border-t border-border px-6 py-4">
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="rounded-full">
               Cancel
             </Button>
-            <Button type="submit" disabled={!name.trim()}>
-              Add Category
+            <Button type="submit" disabled={!name.trim()} className="rounded-full px-5">
+              Add course
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

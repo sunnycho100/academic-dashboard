@@ -4,7 +4,7 @@ import { courseSummary } from '@/lib/task-format'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Plus, Search, BarChart3, Clock, Pencil, ChevronUp, ChevronDown, Trash2 } from 'lucide-react'
+import { Search, ChevronUp, ChevronDown, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ActivitySummaryDialog } from './activity-summary-dialog'
@@ -77,60 +77,51 @@ export function CategorySidebar({
 
   return (
     <div className="w-64 border-r border-border bg-sidebar flex flex-col h-full">
-      {/* Top inset clears the macOS traffic lights and doubles as a drag area */}
-      <div className="app-drag h-11 flex-shrink-0" />
-      <div className="px-4 pb-4 border-b border-border">
+      {/* Title-bar row for the macOS traffic lights; same height as the main header so the borders line up */}
+      <div className="app-drag h-[72px] flex-shrink-0 border-b border-border" />
+      <div className="px-4 pt-4 pb-4 border-b border-border">
         <h2 className="font-medium text-xs mb-3 text-muted-foreground uppercase tracking-widest">
           Courses
         </h2>
         <div className="relative mb-3">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground/50" />
           <Input
-            placeholder="Search..."
+            placeholder="Search"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="pl-8 h-9 rounded-lg bg-secondary border-border text-sm placeholder:text-muted-foreground/40"
           />
         </div>
-        <div className="flex gap-2">
-          <motion.div whileTap={{ scale: 0.97 }} className="flex-1">
-            <Button
-              onClick={onAddCategory}
-              variant="outline"
-              size="sm"
-              className="w-full rounded-lg border-dashed border-border hover:border-foreground/20 hover:bg-secondary transition-all duration-200"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add
-            </Button>
-          </motion.div>
+        <div className="flex gap-1 -mx-2">
+          <Button
+            onClick={onAddCategory}
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground"
+          >
+            New course
+          </Button>
           {categories.length > 0 && (
-            <motion.div whileTap={{ scale: 0.97 }}>
-              <Button
-                onClick={() => {
-                  setEditMode(!editMode)
-                  if (editMode) {
-                    setEditingId(null)
-                    setEditValue('')
-                  }
-                }}
-                variant={editMode ? 'default' : 'outline'}
-                size="sm"
-                className={cn(
-                  'rounded-lg transition-all duration-200',
-                  !editMode && 'border-dashed border-border hover:border-primary/50 hover:bg-primary/5 hover:text-primary'
-                )}
-              >
-                <Pencil className="h-4 w-4 mr-1" />
-                {editMode ? 'Done' : 'Edit'}
-              </Button>
-            </motion.div>
+            <Button
+              onClick={() => {
+                setEditMode(!editMode)
+                if (editMode) {
+                  setEditingId(null)
+                  setEditValue('')
+                }
+              }}
+              variant="ghost"
+              size="sm"
+              className={cn('ml-auto', editMode ? 'text-foreground' : 'text-muted-foreground hover:text-foreground')}
+            >
+              {editMode ? 'Done' : 'Edit'}
+            </Button>
           )}
         </div>
       </div>
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-0.5">
-          {/* "All Categories" — only clickable when NOT in edit mode */}
+          {/* "All tasks": only clickable when NOT in edit mode */}
           {!editMode && (
             <button
               onClick={() => onSelectCategory(null)}
@@ -148,13 +139,7 @@ export function CategorySidebar({
             </button>
           )}
           {filteredCategories.map((category, index) => (
-            <motion.div
-              key={category.id}
-              initial={{ opacity: 0, x: -12 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.2, delay: index * 0.03 }}
-              className="relative flex items-center group"
-            >
+            <div key={category.id} className="relative flex items-center group">
               <button
                 onClick={() => {
                   if (editMode) {
@@ -176,10 +161,13 @@ export function CategorySidebar({
                       : 'hover:bg-secondary text-foreground/80 cursor-text'
                 )}
               >
-                <div
-                  className="relative z-10 w-2 h-2 rounded-full flex-shrink-0 self-start mt-[5px]"
-                  style={{ backgroundColor: category.color }}
-                />
+                <svg
+                  viewBox="0 0 10 10"
+                  className="relative z-10 w-2.5 h-2.5 flex-shrink-0 self-start mt-[5px]"
+                  aria-hidden="true"
+                >
+                  <circle cx="5" cy="5" r="4" fill="none" stroke={category.color} strokeWidth="2" />
+                </svg>
                 <span className="relative z-10 truncate flex-1">
                   {editingId === category.id ? (
                     <input
@@ -211,10 +199,10 @@ export function CategorySidebar({
               <AnimatePresence>
                 {editMode && (
                   <motion.div
-                    initial={{ opacity: 0, x: 10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 10 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
                     className="absolute right-1.5 z-20 flex items-center gap-0.5"
                   >
                     {/* Move up */}
@@ -248,8 +236,7 @@ export function CategorySidebar({
                     {/* Remove */}
                     {onRemoveCategory && (
                       <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.85 }}
+                          whileTap={{ scale: 0.85 }}
                         onClick={(e) => {
                           e.stopPropagation()
                           onRemoveCategory(category.id)
@@ -262,35 +249,29 @@ export function CategorySidebar({
                   </motion.div>
                 )}
               </AnimatePresence>
-            </motion.div>
+            </div>
           ))}
         </div>
       </ScrollArea>
 
       {/* Time Records & Activity Summary Buttons */}
-      <div className="p-3 border-t border-border space-y-2">
-        <motion.div whileTap={{ scale: 0.97 }}>
-          <Button
-            onClick={onOpenTimeRecords}
-            variant="outline"
-            size="sm"
-            className="w-full rounded-lg border-border hover:border-foreground/20 hover:bg-secondary transition-all duration-200"
-          >
-            <Clock className="h-4 w-4 mr-2" />
-            Time Records
-          </Button>
-        </motion.div>
-        <motion.div whileTap={{ scale: 0.97 }}>
-          <Button
-            onClick={() => setSummaryOpen(true)}
-            variant="outline"
-            size="sm"
-            className="w-full rounded-lg border-border hover:border-foreground/20 hover:bg-secondary transition-all duration-200"
-          >
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Activity Summary
-          </Button>
-        </motion.div>
+      <div className="p-2 border-t border-border">
+        <Button
+          onClick={onOpenTimeRecords}
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start text-muted-foreground hover:text-foreground"
+        >
+          Time records
+        </Button>
+        <Button
+          onClick={() => setSummaryOpen(true)}
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start text-muted-foreground hover:text-foreground"
+        >
+          Activity summary
+        </Button>
       </div>
 
       {/* Activity Summary Dialog */}

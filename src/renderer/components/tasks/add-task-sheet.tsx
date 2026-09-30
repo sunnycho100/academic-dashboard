@@ -5,6 +5,7 @@ interface AddTaskDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   categories: Category[]
+  defaultCategoryId?: string | null
   onAdd: (task: {
     title: string
     categoryId: string
@@ -12,7 +13,6 @@ interface AddTaskDialogProps {
     dueAt: string | null
     notes?: string
     estimatedDuration?: number
-    isOverdue?: boolean
   }) => void
 }
 
@@ -20,6 +20,7 @@ export function AddTaskDialog({
   open,
   onOpenChange,
   categories,
+  defaultCategoryId,
   onAdd,
 }: AddTaskDialogProps) {
   return (
@@ -28,6 +29,7 @@ export function AddTaskDialog({
       open={open}
       onOpenChange={onOpenChange}
       categories={categories}
+      defaultCategoryId={defaultCategoryId}
       onAdd={onAdd}
     />
   )

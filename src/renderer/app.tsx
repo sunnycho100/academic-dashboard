@@ -21,7 +21,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
-import { Settings, Download, Upload, Trash2, Palette, AlertTriangle, UserPen, Plus } from 'lucide-react'
+import { Settings, UserPen } from 'lucide-react'
 import { EditPersonalInfoDialog } from '@/components/settings/edit-personal-info-dialog'
 import {
   AlertDialog,
@@ -34,7 +34,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { motion } from 'framer-motion'
-import { LandingSequence } from '@/components/layout/landing-sequence'
 import { IdleOverlay } from '@/components/layout/idle-overlay'
 import { useIdleDetector } from '@/hooks/use-idle-detector'
 import {
@@ -116,7 +115,6 @@ export default function Home() {
   const [weeklyEntries, setWeeklyEntries] = useState<WeeklyPlanEntry[]>([])
   const [weeklyRefreshKey, setWeeklyRefreshKey] = useState(0)
   const [mounted, setMounted] = useState(false)
-  const [landingComplete, setLandingComplete] = useState(false)
   const [todayTaskIds, setTodayTaskIds] = useState<string[]>([])
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
   const [completedTodayCount, setCompletedTodayCount] = useState(0)
@@ -495,8 +493,7 @@ export default function Home() {
          On wake-up the overlay unmounts and the dashboard is revealed. */}
     {isIdle && <IdleOverlay onWakeUp={resetIdle} userId={user.id} />}
 
-    <div style={isIdle ? { visibility: 'hidden', pointerEvents: 'none' } : undefined}>
-    <LandingSequence onComplete={() => setLandingComplete(true)} skip={landingComplete}>
+    <div className="app-open" style={isIdle ? { visibility: 'hidden', pointerEvents: 'none' } : undefined}>
     <DndContext
       sensors={sensors}
       collisionDetection={pointerWithin}
@@ -522,8 +519,8 @@ export default function Home() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Header */}
-        <header className="app-drag border-b border-border bg-background px-7 pt-5 pb-4 sticky top-0 z-30">
-          <div className="flex items-center justify-between gap-4">
+        <header className="app-drag border-b border-border bg-background px-7 h-[72px] flex-shrink-0 flex items-center sticky top-0 z-30">
+          <div className="flex flex-1 items-center justify-between gap-4">
             <div className="flex items-center gap-5 min-w-0">
               <h1 className="font-serif text-[2rem] leading-none tracking-tight">Class Catch-up</h1>
               {/* Segmented control: Weekly plan is the task view with the week grid shown */}
@@ -564,19 +561,7 @@ export default function Home() {
             <div className="flex items-center gap-2">
               {activeMainTab === 'catchup' && categories.length > 0 && (
                 <Button id="add-task-button" onClick={() => setAddTaskOpen(true)} className="rounded-full px-4 mr-1">
-                  <Plus className="h-4 w-4 mr-1.5" />
                   Add task
-                </Button>
-              )}
-              {activeMainTab === 'catchup' && tasks.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setDeleteAllOpen(true)}
-                  className="rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive"
-                >
-                  <Trash2 className="h-[1.2rem] w-[1.2rem]" />
-                  <span className="sr-only">Delete all tasks</span>
                 </Button>
               )}
               <DropdownMenu>
@@ -588,29 +573,27 @@ export default function Home() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
-                    <Settings className="h-4 w-4 mr-2" />
-                    General Settings
+                    Settings
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setColorSchemeOpen(true)}>
-                    <Palette className="h-4 w-4 mr-2" />
-                    Color Scheme
+                    Colors
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleExportData}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Export Data
+                    Export data
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setImportDataOpen(true)}>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Import Data
+                    Import data
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
+                  {tasks.length > 0 && (
+                    <DropdownMenuItem onClick={() => setDeleteAllOpen(true)}>Delete all tasks</DropdownMenuItem>
+                  )}
                   <DropdownMenuItem
                     onClick={() => setClearDataOpen(true)}
                     className="text-destructive focus:text-destructive"
                   >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Clear All Data
+                    Clear all data
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -667,23 +650,22 @@ export default function Home() {
       {/* Drag Overlay */}
       <DragOverlay dropAnimation={{
         duration: 250,
-        easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+        easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
       }}>
         {activeDragTask && (() => {
           const dragCat = categories.find(c => c.id === activeDragTask.categoryId)
           return (
             <motion.div
-              initial={{ scale: 1, rotate: 0 }}
-              animate={{ scale: 1.05, rotate: 2 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-              className="bg-card/95 backdrop-blur-xl border border-border/40 rounded-xl p-3 max-w-sm cursor-grabbing"
-              style={{
-                boxShadow: '0 25px 60px -12px rgba(0,0,0,0.15), 0 12px 28px -8px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.03)',
-              }}
+              initial={{ scale: 1 }}
+              animate={{ scale: 1.02 }}
+              transition={{ duration: 0.15, ease: 'easeOut' }}
+              className="bg-card border border-border rounded-lg p-3 max-w-sm cursor-grabbing shadow-[0_8px_24px_rgba(40,30,10,0.12)]"
             >
               <div className="flex items-center gap-3">
                 {dragCat && (
-                  <div className="w-1 h-8 rounded-full flex-shrink-0" style={{ backgroundColor: dragCat.color }} />
+                  <svg viewBox="0 0 20 20" className="h-5 w-5 flex-shrink-0" aria-hidden>
+                    <circle cx="10" cy="10" r="8" fill="none" stroke={dragCat.color} strokeWidth="2" />
+                  </svg>
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{activeDragTask.title}</p>
@@ -711,6 +693,7 @@ export default function Home() {
         open={addTaskOpen}
         onOpenChange={setAddTaskOpen}
         categories={categories}
+        defaultCategoryId={selectedCategoryId}
         onAdd={handleAddTask}
       />
       <EditTaskSheet
@@ -742,12 +725,11 @@ export default function Home() {
       <AlertDialog open={deleteAllOpen} onOpenChange={setDeleteAllOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
+            <AlertDialogTitle>
               Delete all tasks?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete all {tasks.length} active task{tasks.length !== 1 ? 's' : ''}? This will remove them from both the task list and today&apos;s plan. Your completed task history and time records will not be affected.
+              This deletes {tasks.length} active task{tasks.length !== 1 ? 's' : ''} from the list and today&apos;s plan. Completed history and time records stay.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -757,9 +739,9 @@ export default function Home() {
                 handleDeleteAllTasks()
                 setDeleteAllOpen(false)
               }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Yes, delete all tasks
+              Delete all
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -776,7 +758,6 @@ export default function Home() {
       />
     </div>
     </DndContext>
-    </LandingSequence>
     </div>
     </>
   )

@@ -1,12 +1,7 @@
 import { test, expect, APP_URL } from './support/app'
-import { disableLandingAnimation } from './support/helpers'
 import { seedCategory, seedTask } from './support/api'
 
 test.describe('task groups', () => {
-  test.beforeEach(async ({ page }) => {
-    await disableLandingAnimation(page)
-  })
-
   test('tasks sort into Overdue and Upcoming by due date', async ({ page, api }) => {
     const cat = await seedCategory(api)
     const yesterday = new Date(Date.now() - 24 * 3600 * 1000).toISOString()
@@ -45,9 +40,8 @@ test.describe('task groups', () => {
     await expect(ringOf('Existing task')).toHaveCount(0)
 
     await page.getByRole('button', { name: /add task/i }).first().click()
-    await page.getByPlaceholder('e.g., Watch Lecture 12').fill('Brand new task')
-    await page.getByText('Select a category').click()
-    await page.getByRole('option').first().click()
+    await page.getByPlaceholder('Task name').fill('Brand new task')
+    await page.getByRole('radiogroup', { name: 'Course' }).getByRole('radio').first().click()
     await page.getByRole('button', { name: /^add task$/i }).last().click()
     await expect(ringOf('Brand new task')).toHaveCount(1)
     await expect(ringOf('Existing task')).toHaveCount(0)

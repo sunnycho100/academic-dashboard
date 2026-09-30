@@ -48,7 +48,8 @@ export function TimetableRow({
   const inputBase =
     'bg-transparent border-none outline-none text-sm w-full placeholder:text-muted-foreground/30 focus-visible:ring-0 focus-visible:shadow-none focus:bg-foreground/[0.03] dark:focus:bg-white/[0.06] px-2 py-1 -mx-2 -my-1 rounded-md transition-all tabular-nums'
 
-  const timeInputClass = `${inputBase} min-w-[118px] w-[118px]`
+  // Native clock icon only shows on row hover or while a cell in the row has focus.
+  const timeInputClass = `${inputBase} min-w-[118px] w-[118px] [&::-webkit-calendar-picker-indicator]:opacity-0 group-hover:[&::-webkit-calendar-picker-indicator]:opacity-100 group-focus-within:[&::-webkit-calendar-picker-indicator]:opacity-100`
 
   /** Move focus to the same column in an adjacent row on Arrow/Enter keys. */
   const handleGridNav = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -81,7 +82,7 @@ export function TimetableRow({
       ref={setNodeRef}
       style={style}
       layout
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0 }}
       animate={{
         opacity: 1,
         y: 0,
@@ -89,7 +90,7 @@ export function TimetableRow({
           ? 'rgba(52, 211, 153, 0.08)'
           : 'rgba(0, 0, 0, 0)',
       }}
-      exit={{ opacity: 0, x: -20, height: 0 }}
+      exit={{ opacity: 0 }}
       transition={{ duration: 0.2, backgroundColor: { duration: 0.5, ease: 'easeOut' } }}
       className="group hover:bg-foreground/[0.02] transition-[filter]"
     >
@@ -147,13 +148,13 @@ export function TimetableRow({
         {fmtDuration(entry.expectedMinutes)}
       </td>
 
-      {/* Activity — shrinks last */}
+      {/* Activity: shrinks last */}
       <td className={`${tdBase} min-w-[80px]`}>
         <input
           type="text"
           value={entry.activityName}
           onChange={(e) => onUpdate(entry.id, { activityName: e.target.value })}
-          placeholder="Activity name…"
+          placeholder="Activity"
           data-row={rowIndex}
           data-col="2"
           onKeyDown={handleGridNav}
@@ -205,7 +206,7 @@ export function TimetableRow({
         {fmtDuration(entry.actualMinutes)}
       </td>
 
-      {/* Notes / Variance — shrinks first */}
+      {/* Notes and variance: shrinks first */}
       <td className={`${tdBase} text-xs font-medium max-w-[120px] truncate`}>
         <span
           className={
@@ -218,7 +219,7 @@ export function TimetableRow({
                   : 'text-muted-foreground/50'
           }
         >
-          {varianceText || '—'}
+          {varianceText}
         </span>
       </td>
 

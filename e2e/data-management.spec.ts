@@ -1,12 +1,7 @@
 import { test, expect, APP_URL } from './support/app'
-import { disableLandingAnimation } from './support/helpers'
 import { seedCategory, seedTask } from './support/api'
 
 test.describe('data management', () => {
-  test.beforeEach(async ({ page }) => {
-    await disableLandingAnimation(page)
-  })
-
   test('export saves a dashboard JSON file', async ({ page, api, electronApp }) => {
     const cat = await seedCategory(api)
     await seedTask(api, cat.id, { title: 'Exportable task' })

@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { motion } from 'framer-motion'
 import { loadPersonalDevColors } from '@/components/settings/color-scheme-dialog'
 import type { NewRecordForm } from './helpers'
 
@@ -24,14 +23,10 @@ export function TimeRecordForm({
   const [customCategoryName, setCustomCategoryName] = useState('')
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl border border-primary/30 bg-primary/5 px-3 py-3 space-y-2"
-    >
+    <div className="rounded-md border border-border bg-card px-3 py-3 space-y-2">
       {/* Quick-pick presets for Personal Dev */}
       <div className="flex items-center gap-1.5 flex-wrap">
-        <span className="text-[10px] text-muted-foreground mr-1">Quick:</span>
+        <span className="text-xs text-muted-foreground mr-1">Quick</span>
         {(() => {
           const pdColors = loadPersonalDevColors()
           return [
@@ -89,7 +84,7 @@ export function TimeRecordForm({
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 px-1.5 text-xs text-primary"
+              className="h-7 px-1.5 text-xs"
               onClick={() => {
                 if (customCategoryName.trim()) {
                   onFormChange({ ...form, categoryName: customCategoryName.trim(), categoryColor: '#6366f1' })
@@ -112,13 +107,13 @@ export function TimeRecordForm({
               const cat = categories.find((c) => c.name === e.target.value)
               onFormChange({ ...form, categoryName: e.target.value, categoryColor: cat?.color || '#6366f1' })
             }}
-            className="h-7 rounded-md border border-border bg-secondary backdrop-blur-sm px-2 text-xs text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring min-w-[100px]"
+            className="h-7 rounded-md border border-border bg-card px-2 text-xs text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring min-w-[100px]"
           >
             <option value="">Category</option>
             {categories.map((cat) => (
               <option key={cat.name} value={cat.name}>{cat.name}</option>
             ))}
-            <option value="__add_new__">+ Add New</option>
+            <option value="__add_new__">Add new</option>
           </select>
         )}
         <Input
@@ -135,9 +130,8 @@ export function TimeRecordForm({
           className="h-7 text-xs w-[90px]"
         />
         <Button
-          variant="ghost"
           size="sm"
-          className="h-7 px-2 text-xs text-primary"
+          className="h-7 rounded-full px-3 text-xs"
           onClick={onSave}
         >
           Save
@@ -151,6 +145,6 @@ export function TimeRecordForm({
           Cancel
         </Button>
       </div>
-    </motion.div>
+    </div>
   )
 }

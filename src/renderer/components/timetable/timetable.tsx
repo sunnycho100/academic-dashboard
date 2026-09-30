@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button'
-import { Plus, ChevronLeft, ChevronRight, Calendar, GripVertical, HelpCircle, RefreshCw, FastForward, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar, GripVertical, HelpCircle, RefreshCw, FastForward, Trash2 } from 'lucide-react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   DndContext,
@@ -51,6 +52,19 @@ export function Timetable() {
     totalExpected,
     totalActual,
   } = useTimetableLogic()
+
+  // Show filled rows plus one blank row; "Add row" reveals more blanks for this date.
+  const [extra, setExtra] = useState({ date, n: 0 })
+  const extraRows = extra.date === date ? extra.n : 0
+  let lastFilled = -1
+  entries.forEach((e, i) => {
+    if (e.plannedStart || e.plannedEnd || e.activityName || e.actualStart || e.actualEnd) lastFilled = i
+  })
+  const visibleEntries = entries.slice(0, lastFilled + 2 + extraRows)
+  const handleAddRow = () => {
+    if (visibleEntries.length >= entries.length) addRow()
+    setExtra({ date, n: extraRows + 1 })
+  }
 
   // ── Render ──────────────────────────────────────────────────────────────
   return (
@@ -214,10 +228,10 @@ export function Timetable() {
               <th className="w-8 border-b border-border" />
             </tr>
           </thead>
-          <SortableContext items={entries.map((e) => e.id)} strategy={verticalListSortingStrategy}>
+          <SortableContext items={visibleEntries.map((e) => e.id)} strategy={verticalListSortingStrategy}>
           <tbody>
             <AnimatePresence>
-              {entries.map((entry, index) => (
+              {visibleEntries.map((entry, index) => (
                 <TimetableRow
                   key={entry.id}
                   entry={entry}
@@ -239,13 +253,10 @@ export function Timetable() {
       {/* Drag overlay */}
       <DragOverlay dropAnimation={{
         duration: 200,
-        easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+        easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
       }}>
         {activeDragEntry && (
-          <div
-            className="bg-card/95 backdrop-blur-xl border border-border/40 rounded-lg px-3 py-2 shadow-xl flex items-center gap-3 text-sm"
-            style={{ boxShadow: '0 20px 50px -12px rgba(0,0,0,0.15), 0 8px 24px -8px rgba(0,0,0,0.1)' }}
-          >
+          <div className="bg-card border border-border rounded-md px-3 py-2 shadow-md flex items-center gap-3 text-sm">
             <GripVertical className="h-3.5 w-3.5 text-muted-foreground/40 flex-shrink-0" />
             {activeDragEntry.plannedStart && (
               <span className="text-muted-foreground/60 tabular-nums text-xs">
@@ -268,9 +279,8 @@ export function Timetable() {
       {/* Add row button */}
       <div className="mt-3 flex justify-start">
         <motion.div whileTap={{ scale: 0.95 }}>
-          <Button variant="outline" size="sm" className="rounded-lg text-xs" onClick={addRow}>
-            <Plus className="h-3.5 w-3.5 mr-1.5" />
-            Add Row
+          <Button variant="ghost" size="sm" className="rounded-lg text-xs text-muted-foreground" onClick={handleAddRow}>
+            Add row
           </Button>
         </motion.div>
       </div>
@@ -279,7 +289,7 @@ export function Timetable() {
       <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
         <DialogContent className="sm:max-w-md glass-overlay">
           <DialogHeader>
-            <DialogTitle className="text-base font-semibold">Auto-Logic</DialogTitle>
+            <DialogTitle className="text-base font-semibold">Auto logic</DialogTitle>
           </DialogHeader>
           <div className="text-sm text-muted-foreground space-y-3 leading-relaxed">
             {/* Autofill */}
@@ -336,7 +346,7 @@ export function Timetable() {
 
             {/* Always-on features */}
             <div className="rounded-lg bg-foreground/[0.03] p-3 space-y-2 text-xs">
-              <p className="font-medium text-foreground/80">Always On</p>
+              <p className="font-medium text-foreground/80">Always on</p>
               <ul className="list-disc list-inside space-y-1 text-muted-foreground/70">
                 <li>Expected &amp; actual durations auto-calculated from start/end times</li>
                 <li>Variance notes auto-generated (over / under / on time)</li>

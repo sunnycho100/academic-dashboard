@@ -40,7 +40,7 @@ export function diffMinutes(start: string, end: string): number {
 
 /** Format minutes as "Xh Ym". */
 export function fmtDuration(minutes: number | null | undefined): string {
-  if (minutes === null || minutes === undefined || minutes === 0) return '—'
+  if (minutes === null || minutes === undefined || minutes === 0) return '–'
   const h = Math.floor(minutes / 60)
   const m = minutes % 60
   if (h === 0) return `${m}m`
@@ -72,8 +72,8 @@ export function prettyDate(dateStr: string): string {
     day: 'numeric',
   })
 
-  if (dateStr === todayStr) return `Today — ${label}`
-  if (dateStr === tomorrowStr) return `Tomorrow — ${label}`
+  if (dateStr === todayStr) return `Today, ${label}`
+  if (dateStr === tomorrowStr) return `Tomorrow, ${label}`
   return label
 }
 
