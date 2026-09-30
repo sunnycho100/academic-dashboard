@@ -245,6 +245,18 @@ export default function Home() {
     }
   }, [todayTaskIds, mounted, user])
 
+  // Cmd+N opens a new task from anywhere on the task views
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'n' && (e.metaKey || e.ctrlKey) && activeMainTab === 'catchup' && categories.length > 0) {
+        e.preventDefault()
+        setAddTaskOpen(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [activeMainTab, categories.length])
+
   const handleEditTask = (task: Task) => {
     setTaskToEdit(task)
     setEditTaskOpen(true)
@@ -559,11 +571,6 @@ export default function Home() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {activeMainTab === 'catchup' && categories.length > 0 && (
-                <Button id="add-task-button" onClick={() => setAddTaskOpen(true)} className="rounded-full px-4 mr-1">
-                  Add task
-                </Button>
-              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-lg">
@@ -628,6 +635,7 @@ export default function Home() {
               weeklyDayLabels={weeklyDayLabels}
               emptyMessage={emptyMessage}
               onAddCategoryOpen={() => setAddCategoryOpen(true)}
+              onAddTask={() => setAddTaskOpen(true)}
               onToggleTask={handleToggleTask}
               onEditTask={handleEditTask}
               onSaveTask={handleSaveTask}

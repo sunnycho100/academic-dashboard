@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { useTodaySession } from '@/hooks/use-today-session'
@@ -34,6 +35,7 @@ export interface CatchupContentProps {
   weeklyDayLabels: Record<string, string[]>
   emptyMessage: string
   onAddCategoryOpen: () => void
+  onAddTask: () => void
   onToggleTask: (id: string, timeSpentSeconds?: number) => void
   onEditTask: (task: Task) => void
   onSaveTask: (task: Task) => void
@@ -65,6 +67,7 @@ export function CatchupContent({
   weeklyDayLabels,
   emptyMessage,
   onAddCategoryOpen,
+  onAddTask,
   onToggleTask,
   onEditTask,
   onSaveTask,
@@ -115,6 +118,10 @@ export function CatchupContent({
                 <SelectItem value="manual">Manual order</SelectItem>
               </SelectContent>
             </Select>
+            {/* Next to the list it adds to, so adding several tasks in a row stays in one place */}
+            <Button id="add-task-button" onClick={onAddTask} title="Command N" className="rounded-full px-4">
+              Add task
+            </Button>
           </div>
         </div>
 
