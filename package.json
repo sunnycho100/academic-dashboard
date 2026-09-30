@@ -72,6 +72,6 @@
     "productName": "Academic Dashboard",
     "directories": { "output": "release" },
     "files": ["out/**"],
-    "mac": { "category": "public.app-category.productivity" }
+    "mac": { "category": "public.app-category.productivity", "icon": "src/icon/icon.png" }
   }
 }

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <!-- Brushed metal: noise stretched along x, kept to faint grey streaks -->
+    <filter id="brush" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.0015 0.55" numOctaves="3" seed="7"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0.9 0 0 0 -0.35"/>
+    </filter>
+    <radialGradient id="sheen" cx="0.35" cy="0.2" r="0.95">
+      <stop offset="0" stop-color="#3a3a3a"/>
+      <stop offset="0.55" stop-color="#161616"/>
+      <stop offset="1" stop-color="#050505"/>
+    </radialGradient>
+    <clipPath id="squircle"><rect x="100" y="100" width="824" height="824" rx="185"/></clipPath>
+  </defs>
+  <g clip-path="url(#squircle)">
+    <rect width="1024" height="1024" fill="url(#sheen)"/>
+    <rect width="1024" height="1024" filter="url(#brush)" opacity="0.18"/>
+  </g>
+  <rect x="100.5" y="100.5" width="823" height="823" rx="185" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="2"/>
+  <text x="512" y="522" text-anchor="middle" dominant-baseline="central" font-family="Didot" font-weight="bold" font-size="640" fill="#ffffff">S</text>
+</svg>
