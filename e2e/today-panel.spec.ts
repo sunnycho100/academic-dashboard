@@ -36,19 +36,22 @@ test.describe('day timeline', () => {
 
   test('shows planned and actual lanes, and the setting hides each', async ({ page, api }) => {
     await seedCategory(api) // the Today panel only renders once a course exists
-    const now = new Date()
-    const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-    const hh = (h: number) => `${String(((h % 24) + 24) % 24).padStart(2, '0')}:00`
+    // Fixed daytime hours on the app's logical day (it starts at 6 AM), so the
+    // test passes whatever time CI runs.
+    const day = new Date()
+    if (day.getHours() < 6) day.setDate(day.getDate() - 1)
+    const date = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`
     const res = await api.put('/api/timetable', {
       data: {
         date,
         entries: [
-          { order: 0, plannedStart: hh(now.getHours()), plannedEnd: hh(now.getHours() + 1), expectedMinutes: 60, activityName: 'Planned reading', notes: '', actualStart: null, actualEnd: null, actualMinutes: null },
+          { order: 0, plannedStart: '10:00', plannedEnd: '11:00', expectedMinutes: 60, activityName: 'Planned reading', notes: '', actualStart: null, actualEnd: null, actualMinutes: null },
         ],
       },
     })
     expect(res.ok()).toBeTruthy()
-    const start = new Date(now.getTime() - 50 * 60_000)
+    const start = new Date(day)
+    start.setHours(14, 0, 0, 0)
     await api.post('/api/time-records', {
       data: { taskTitle: 'Tracked lab', categoryName: 'X', categoryColor: '#3f7d5c', taskType: 'Lab', startTime: start.toISOString(), endTime: new Date(start.getTime() + 30 * 60_000).toISOString(), duration: 1800 },
     })
