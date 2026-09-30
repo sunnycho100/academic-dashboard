@@ -122,6 +122,9 @@ function TaskForm(props: TaskFormSheetProps) {
   const [notes, setNotes] = useState(editTask?.notes ?? '')
   const [showNotes, setShowNotes] = useState(Boolean(editTask?.notes))
   const formRef = useRef<HTMLFormElement>(null)
+  const titleRef = useRef<HTMLInputElement>(null)
+  // Set by "Add another" (or Shift+Cmd+Return): add, then stay open for the next task
+  const keepOpenRef = useRef(false)
 
   const valid = Boolean(title.trim() && categoryId)
 
@@ -140,14 +143,24 @@ function TaskForm(props: TaskFormSheetProps) {
         localStorage.setItem(LAST_COURSE_KEY, categoryId)
       } catch {}
       props.onAdd(fields)
+      if (keepOpenRef.current) {
+        // Keep course, type, due and estimate; most tasks added in a row share them
+        keepOpenRef.current = false
+        setTitle('')
+        setNotes('')
+        setShowNotes(false)
+        titleRef.current?.focus()
+        return
+      }
     }
     onOpenChange(false)
   }
 
-  // Cmd+Enter submits from anywhere, including the notes field
+  // Cmd+Enter submits from anywhere, including the notes field; with Shift it adds another
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault()
+      keepOpenRef.current = !isEdit && e.shiftKey
       formRef.current?.requestSubmit()
     }
   }
@@ -158,6 +171,7 @@ function TaskForm(props: TaskFormSheetProps) {
         <DialogTitle className="font-serif text-2xl font-normal">{isEdit ? 'Edit task' : 'New task'}</DialogTitle>
 
         <input
+          ref={titleRef}
           autoFocus
           aria-label="Task name"
           placeholder="Task name"
@@ -300,10 +314,24 @@ function TaskForm(props: TaskFormSheetProps) {
       </div>
 
       <div className="flex items-center justify-end gap-2 border-t border-border px-6 py-4">
-        <span className="mr-auto text-xs text-muted-foreground">⌘ Return to {isEdit ? 'save' : 'add'}</span>
+        <span className="mr-auto text-xs text-muted-foreground">
+          ⌘ Return to {isEdit ? 'save' : 'add'}
+        </span>
         <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="rounded-full">
           Cancel
         </Button>
+        {!isEdit && (
+          <Button
+            type="submit"
+            variant="ghost"
+            disabled={!valid}
+            onClick={() => (keepOpenRef.current = true)}
+            title="Shift Command Return"
+            className="rounded-full"
+          >
+            Add another
+          </Button>
+        )}
         <Button type="submit" disabled={!valid} className="rounded-full px-5">
           {isEdit ? 'Save' : 'Add task'}
         </Button>
