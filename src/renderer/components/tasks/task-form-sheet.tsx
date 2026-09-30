@@ -76,10 +76,11 @@ function lastCourse(): string | null {
 }
 
 const fieldLabel = 'text-xs uppercase tracking-wider text-muted-foreground'
-const chip =
-  'h-8 rounded-full border px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-const chipIdle = 'border-border text-foreground hover:bg-secondary'
-const chipOn = 'border-foreground bg-foreground text-background'
+// Choices are plain text; the chosen one is underlined, like the Due and Estimate quick picks
+const choiceRow = 'mt-2 flex flex-wrap gap-x-5 gap-y-2'
+const choice =
+  'border-b-2 border-transparent pb-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
+const choiceIdle = 'text-muted-foreground hover:text-foreground'
 // A hairline focus ring; the global two-pixel offset ring is too heavy inside the form
 const field = 'mt-2 focus-visible:ring-1 focus-visible:ring-offset-0'
 
@@ -169,7 +170,7 @@ function TaskForm(props: TaskFormSheetProps) {
       <div className="space-y-5 px-6 py-5">
         <fieldset>
           <legend className={fieldLabel}>Course</legend>
-          <div role="radiogroup" aria-label="Course" className="mt-2 flex flex-wrap gap-2">
+          <div role="radiogroup" aria-label="Course" className={choiceRow}>
             {categories.map((cat) => {
               const on = cat.id === categoryId
               return (
@@ -179,11 +180,10 @@ function TaskForm(props: TaskFormSheetProps) {
                   role="radio"
                   aria-checked={on}
                   onClick={() => setCategoryId(cat.id)}
-                  className={cn(chip, 'flex items-center gap-2 pl-2', on ? chipOn : chipIdle)}
+                  className={cn(choice, on ? 'text-foreground' : choiceIdle)}
+                  // The course color only appears on the chosen one, as its underline
+                  style={{ borderBottomColor: on ? cat.color : 'transparent' }}
                 >
-                  <svg viewBox="0 0 12 12" className="h-3 w-3" aria-hidden>
-                    <circle cx="6" cy="6" r="4.5" fill={on ? cat.color : 'none'} stroke={cat.color} strokeWidth="1.5" />
-                  </svg>
                   {cat.name}
                 </button>
               )
@@ -193,7 +193,7 @@ function TaskForm(props: TaskFormSheetProps) {
 
         <fieldset>
           <legend className={fieldLabel}>Type</legend>
-          <div role="radiogroup" aria-label="Type" className="mt-2 flex flex-wrap gap-2">
+          <div role="radiogroup" aria-label="Type" className={choiceRow}>
             {taskTypes.map((t) => (
               <button
                 key={t}
@@ -201,7 +201,7 @@ function TaskForm(props: TaskFormSheetProps) {
                 role="radio"
                 aria-checked={t === type}
                 onClick={() => setType(t)}
-                className={cn(chip, t === type ? chipOn : chipIdle)}
+                className={cn(choice, t === type ? 'border-foreground text-foreground' : choiceIdle)}
               >
                 {t}
               </button>
