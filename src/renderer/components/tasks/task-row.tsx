@@ -13,7 +13,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
-import { GripVertical, MoreVertical, Pencil, Copy, Trash2, StickyNote, ChevronRight } from 'lucide-react'
+import { GripVertical, MoreVertical, Pencil, Copy, Trash2, StickyNote, ArrowUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -135,16 +135,16 @@ export function TaskRow({
 
       {/* Toggle Today's Plan button */}
       {onAddToToday && (
-        <motion.button
-          whileHover={{ scale: 1.15, x: 2 }}
-          whileTap={{ scale: 0.9 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+        // Points up: the Today group sits above the rest of the list
+        <button
+          type="button"
           onClick={() => onAddToToday(task.id)}
-          className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 rounded-lg flex items-center justify-center hover:bg-primary/10 text-muted-foreground/50 hover:text-primary"
+          className="flex-shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity h-7 w-7 rounded-lg flex items-center justify-center hover:bg-secondary text-muted-foreground hover:text-foreground"
           title="Add to Today's Plan"
+          aria-label="Add to Today's Plan"
         >
-          <ChevronRight className="h-4 w-4" />
-        </motion.button>
+          <ArrowUp className="h-4 w-4" />
+        </button>
       )}
 
       <DropdownMenu>
