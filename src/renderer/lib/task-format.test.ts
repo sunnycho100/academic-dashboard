@@ -36,12 +36,13 @@ test('courseSummary: overdue first, then next due, else nothing', () => {
   assert.equal(courseSummary([{ dueAt: '2026-09-29T09:00:00' }], now), '1 due · tomorrow')
 })
 
-test('currentDayStart is the most recent day start', () => {
-  const at = (s: string) => currentDayStart(new Date(s), 6).toISOString()
-  // Afternoon: today at 6 AM
-  assert.equal(at('2026-09-30T15:00:00'), new Date('2026-09-30T06:00:00').toISOString())
-  // 2 AM, before the day starts: still counting from 6 AM yesterday
-  assert.equal(at('2026-09-30T02:00:00'), new Date('2026-09-29T06:00:00').toISOString())
-  // Day running past midnight (10 AM to 3 AM next day), at 1 AM: yesterday at 10 AM
-  assert.equal(currentDayStart(new Date("2026-09-30T01:00:00"), 10).toISOString(), new Date('2026-09-29T10:00:00').toISOString())
+test('currentDayStart is the most recent rollover', () => {
+  const at = (s: string, hour: number) => currentDayStart(new Date(s), hour).toISOString()
+  const iso = (s: string) => new Date(s).toISOString()
+  // Midnight rollover: 2 AM already belongs to the new day
+  assert.equal(at('2026-09-30T02:00:00', 0), iso('2026-09-30T00:00:00'))
+  assert.equal(at('2026-09-30T15:00:00', 0), iso('2026-09-30T00:00:00'))
+  // Day ending at 2 AM: 1 AM is still yesterday, 3 AM is the new day
+  assert.equal(at('2026-09-30T01:00:00', 2), iso('2026-09-29T02:00:00'))
+  assert.equal(at('2026-09-30T03:00:00', 2), iso('2026-09-30T02:00:00'))
 })
