@@ -82,6 +82,7 @@ test.describe('task lifecycle', () => {
 
     // Back in the active list, gone from Done today, and it stays that way after a reload
     await expect(done).toHaveCount(0)
+    await expect(page.locator('.group').filter({ hasText: 'Problem set 2' }).getByRole('checkbox')).toBeVisible()
     await page.reload()
     await expect(page.locator('.group').filter({ hasText: 'Problem set 2' }).getByRole('checkbox')).toBeVisible()
     await expect(page.getByRole('region', { name: 'Done today' })).toHaveCount(0)

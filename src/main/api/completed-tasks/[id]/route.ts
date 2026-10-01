@@ -75,21 +75,3 @@ export async function PATCH(
     )
   }
 }
-
-/** Hard delete: used when a completion is undone, so it never counted */
-export async function DELETE(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const userId = await getAuthenticatedUser()
-    const { id } = await params
-    const { count } = await prisma.completedTask.deleteMany({ where: { id, userId } })
-    if (count === 0) return Response.json({ error: 'Not found' }, { status: 404 })
-    return new Response(null, { status: 204 })
-  } catch (error) {
-    if (error instanceof Response) return error
-    console.error('Failed to delete completed task:', error)
-    return Response.json({ error: 'Failed to delete completed task' }, { status: 500 })
-  }
-}

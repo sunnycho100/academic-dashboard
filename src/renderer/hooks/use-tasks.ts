@@ -178,30 +178,20 @@ export function useTasks({
     }
   }, [setTasks, setTodayTaskIds])
 
-  /** Undo a completion: recreate the task in its course and drop the completed record */
+  /** Undo a completion: the main process recreates the task and drops the record in one transaction */
   const handleUndoComplete = useCallback(async (item: CompletedTask) => {
     const category = categories.find((c) => c.name === item.categoryName)
     if (!category || item.id.startsWith('local-')) return
     setCompletedToday((prev) => prev.filter((c) => c.id !== item.id))
     try {
-      const res = await fetch('/api/tasks', {
+      const res = await fetch(`/api/completed-tasks/${item.id}/restore`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: item.taskTitle,
-          categoryId: category.id,
-          type: item.taskType,
-          dueAt: item.dueAt ?? null,
-          notes: item.notes ?? undefined,
-          estimatedDuration: item.estimatedDuration ?? undefined,
-          actualTimeSpent: item.actualTimeSpent ?? null,
-          priorityOrder: tasks.length,
-        }),
+        body: JSON.stringify({ categoryId: category.id, priorityOrder: tasks.length }),
       })
       if (!res.ok) throw new Error(`Restore failed: ${res.status}`)
       const restored: Task = await res.json()
       setTasks((prev) => [...prev, restored])
-      await fetch(`/api/completed-tasks/${item.id}`, { method: 'DELETE' })
     } catch (err) {
       console.error('Failed to undo completion:', err)
       // Put it back so the list matches what is saved
