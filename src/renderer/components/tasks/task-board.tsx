@@ -20,6 +20,8 @@ interface TaskBoardProps {
   session: TodaySession
   weeklyDayLabels: Record<string, string[]>
   emptyMessage: string
+  /** Rendered at the end of the scrolling list (the Done today section) */
+  children?: React.ReactNode
   isDragging: boolean
   hasYesterdayTasks?: boolean
   onCarryOverYesterday?: () => void
@@ -148,6 +150,7 @@ export function TaskBoard(props: TaskBoardProps) {
             )}
           </>
         )}
+        {props.children}
       </div>
     </ScrollArea>
   )

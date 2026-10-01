@@ -1,11 +1,11 @@
 import { useCallback } from 'react'
-import { Task, TaskType } from '@/lib/types'
+import { Task, TaskType, CompletedTask } from '@/lib/types'
 
 interface UseTasksOptions {
   tasks: Task[]
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>
   setTodayTaskIds: React.Dispatch<React.SetStateAction<string[]>>
-  setCompletedTodayCount: React.Dispatch<React.SetStateAction<number>>
+  setCompletedToday: React.Dispatch<React.SetStateAction<CompletedTask[]>>
   categories: { id: string; name?: string; color?: string }[]
   completingRef: React.MutableRefObject<Set<string>>
 }
@@ -14,7 +14,7 @@ export function useTasks({
   tasks,
   setTasks,
   setTodayTaskIds,
-  setCompletedTodayCount,
+  setCompletedToday,
   categories,
   completingRef,
 }: UseTasksOptions) {
@@ -60,10 +60,20 @@ export function useTasks({
       // Optimistic: remove from UI immediately
       setTasks((prev) => prev.filter((t) => t.id !== id))
       setTodayTaskIds((prev) => prev.filter((tid) => tid !== id))
-      setCompletedTodayCount((prev) => prev + 1)
-
       // Archive to CompletedTask table
       const category = categories.find((c) => c.id === task.categoryId)
+      setCompletedToday((prev) => [
+        ...prev,
+        {
+          id: `local-${id}`,
+          taskTitle: task.title,
+          categoryName: category?.name ?? 'Unknown',
+          categoryColor: category?.color ?? '#888',
+          taskType: task.type,
+          completedAt: new Date().toISOString(),
+          actualTimeSpent: actualMinutes ?? task.actualTimeSpent ?? null,
+        },
+      ])
       try {
         await fetch('/api/completed-tasks', {
           method: 'POST',
@@ -104,7 +114,7 @@ export function useTasks({
         body: JSON.stringify({ status: 'todo' }),
       }).catch((err) => console.error('Failed to update task status:', err))
     }
-  }, [tasks, categories, setTasks, setTodayTaskIds, setCompletedTodayCount, completingRef])
+  }, [tasks, categories, setTasks, setTodayTaskIds, setCompletedToday, completingRef])
 
   const handleSaveTask = useCallback((updatedTask: Task) => {
     // Optimistic update

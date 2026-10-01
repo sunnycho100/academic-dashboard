@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { Task, Category, SortOption } from '@/lib/types'
+import { Task, Category, SortOption, CompletedTask } from '@/lib/types'
 import { CategorySidebar } from '@/components/categories/category-sidebar'
 import { AddCategoryDialog } from '@/components/categories/add-category-dialog'
 import { AddTaskDialog } from '@/components/tasks/add-task-sheet'
@@ -117,7 +117,7 @@ export default function Home() {
   const [mounted, setMounted] = useState(false)
   const [todayTaskIds, setTodayTaskIds] = useState<string[]>([])
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
-  const [completedTodayCount, setCompletedTodayCount] = useState(0)
+  const [completedToday, setCompletedToday] = useState<CompletedTask[]>([])
   const [activeMainTab, setActiveMainTab] = useState<'catchup' | 'timetable'>('catchup')
   const [deleteAllOpen, setDeleteAllOpen] = useState(false)
   const [editPersonalInfoOpen, setEditPersonalInfoOpen] = useState(false)
@@ -144,7 +144,7 @@ export default function Home() {
     tasks,
     setTasks,
     setTodayTaskIds,
-    setCompletedTodayCount,
+    setCompletedToday,
     categories,
     completingRef,
   })
@@ -215,10 +215,9 @@ export default function Home() {
           }
           todayStart.setHours(dayStartHour, 0, 0, 0)
 
-          const todayCount = completedAll.filter(
-            (ct: { completedAt: string }) => new Date(ct.completedAt) >= todayStart
-          ).length
-          setCompletedTodayCount(todayCount)
+          setCompletedToday(
+            completedAll.filter((ct: CompletedTask) => new Date(ct.completedAt) >= todayStart),
+          )
         } catch (err) {
           console.error('Failed to fetch completed tasks count:', err)
         }
@@ -624,7 +623,7 @@ export default function Home() {
               sortedTasks={sortedTasks}
               todayTaskIds={todayTaskIds}
               activeDragId={activeDragId}
-              completedTodayCount={completedTodayCount}
+              completedToday={completedToday}
               sortOption={sortOption}
               setSortOption={setSortOption}
               groupByCategory={groupByCategory}

@@ -45,3 +45,14 @@ export interface TimetableEntry {
   createdAt: string
   updatedAt: string
 }
+
+/** An archived completion (the CompletedTask table), denormalized so it outlives its course */
+export interface CompletedTask {
+  id: string
+  taskTitle: string
+  categoryName: string
+  categoryColor: string
+  taskType: string
+  completedAt: string
+  actualTimeSpent?: number | null
+}

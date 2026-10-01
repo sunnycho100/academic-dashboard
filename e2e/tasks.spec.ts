@@ -48,7 +48,7 @@ test.describe('task lifecycle', () => {
     await expect(page.getByText('Read chapter 2')).toBeVisible()
   })
 
-  test('completing a task removes it from the active list', async ({ page, api }) => {
+  test('completing a task moves it to Done today', async ({ page, api }) => {
     const cat = await seedCategory(api)
     await seedTask(api, cat.id, { title: 'Submit assignment' })
 
@@ -57,7 +57,13 @@ test.describe('task lifecycle', () => {
     await expect(row).toBeVisible()
 
     await row.getByRole('checkbox').click()
-    // Completing optimistically removes the task from the active list
-    await expect(page.getByText('Submit assignment')).toBeHidden()
+    // Leaves the active list and shows under Done today
+    await expect(row).toBeHidden()
+    const done = page.getByRole('region', { name: 'Done today' })
+    await expect(done.getByText('Submit assignment')).toBeVisible()
+
+    // Still there after a reload (read back from completed tasks)
+    await page.reload()
+    await expect(page.getByRole('region', { name: 'Done today' }).getByText('Submit assignment')).toBeVisible()
   })
 })
