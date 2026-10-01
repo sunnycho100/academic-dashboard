@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Task, Category, SortOption, CompletedTask } from '@/lib/types'
+import { currentDayStart } from '@/lib/task-format'
 import { CategorySidebar } from '@/components/categories/category-sidebar'
 import { AddCategoryDialog } from '@/components/categories/add-category-dialog'
 import { AddTaskDialog } from '@/components/tasks/add-task-sheet'
@@ -195,26 +196,16 @@ export default function Home() {
 
           if (!Array.isArray(completedAll)) throw new Error('Expected array from /api/completed-tasks')
 
-          // Read day boundaries from localStorage
+          // Day boundaries from the Time Records settings
           let dayStartHour = 6
-          let dayEndHour = 24
           try {
             const saved = localStorage.getItem('timeRecords-dayBoundaries')
             if (saved) {
-              const { start, end } = JSON.parse(saved)
+              const { start } = JSON.parse(saved)
               if (typeof start === 'number') dayStartHour = start
-              if (typeof end === 'number') dayEndHour = end
             }
           } catch {}
-
-          // Compute effective "today start" respecting day boundaries
-          const now = new Date()
-          const todayStart = new Date(now)
-          if (dayEndHour > 24 && now.getHours() < dayEndHour - 24) {
-            // Past midnight but before end-hour: still in yesterday's day
-            todayStart.setDate(todayStart.getDate() - 1)
-          }
-          todayStart.setHours(dayStartHour, 0, 0, 0)
+          const todayStart = currentDayStart(new Date(), dayStartHour)
 
           setCompletedToday(
             completedAll.filter((ct: CompletedTask) => new Date(ct.completedAt) >= todayStart),

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { formatMinutes, dueLabel, formatClock, courseSummary } from './task-format.ts'
+import { formatMinutes, dueLabel, formatClock, courseSummary, currentDayStart } from './task-format.ts'
 
 test('formatMinutes', () => {
   assert.equal(formatMinutes(25), '25m')
@@ -34,4 +34,14 @@ test('courseSummary: overdue first, then next due, else nothing', () => {
     '2 due · next Thu',
   )
   assert.equal(courseSummary([{ dueAt: '2026-09-29T09:00:00' }], now), '1 due · tomorrow')
+})
+
+test('currentDayStart is the most recent day start', () => {
+  const at = (s: string) => currentDayStart(new Date(s), 6).toISOString()
+  // Afternoon: today at 6 AM
+  assert.equal(at('2026-09-30T15:00:00'), new Date('2026-09-30T06:00:00').toISOString())
+  // 2 AM, before the day starts: still counting from 6 AM yesterday
+  assert.equal(at('2026-09-30T02:00:00'), new Date('2026-09-29T06:00:00').toISOString())
+  // Day running past midnight (10 AM to 3 AM next day), at 1 AM: yesterday at 10 AM
+  assert.equal(currentDayStart(new Date("2026-09-30T01:00:00"), 10).toISOString(), new Date('2026-09-29T10:00:00').toISOString())
 })

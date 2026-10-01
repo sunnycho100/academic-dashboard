@@ -40,3 +40,15 @@ export function courseSummary(tasks: { dueAt: string | null }[], now = new Date(
   const when = next === 'Today' || next === 'Tomorrow' ? next.toLowerCase() : `next ${next}`
   return `${dated.length} due · ${when}`
 }
+
+/**
+ * Start of the current day for "done today": the latest day-start hour that has
+ * already passed. Before the start hour (e.g. 2 AM with a 6 AM start) that is
+ * yesterday's start, so late-night work still counts toward the day it belongs to.
+ */
+export function currentDayStart(now: Date, startHour: number): Date {
+  const start = new Date(now)
+  start.setHours(startHour, 0, 0, 0)
+  if (start > now) start.setDate(start.getDate() - 1)
+  return start
+}
