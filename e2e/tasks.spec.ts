@@ -88,3 +88,37 @@ test.describe('task lifecycle', () => {
     await expect(page.getByRole('region', { name: 'Done today' })).toHaveCount(0)
   })
 })
+
+test.describe('due date picker', () => {
+  test('type a date or pick one from the month grid', async ({ page, api }) => {
+    await seedCategory(api)
+    await page.goto(APP_URL)
+    await page.getByRole('button', { name: /add task/i }).first().click()
+
+    const due = page.locator('#task-due')
+    await expect(due).toHaveText('No due date')
+
+    // Typing previews the resolved date, Return picks it
+    await due.click()
+    await page.getByLabel('Type a date').fill('tomorrow')
+    await expect(page.getByText('Tomorrow, press Return')).toBeVisible()
+    await page.keyboard.press('Enter')
+    await expect(due).toHaveText('Tomorrow')
+
+    // The grid marks the chosen day and picks another on click
+    await due.click()
+    const inAWeek = new Date()
+    inAWeek.setDate(inAWeek.getDate() + 7)
+    const label = inAWeek.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+    if (inAWeek.getMonth() !== new Date(Date.now() + 864e5).getMonth()) {
+      await page.getByRole('button', { name: 'Next month' }).click()
+    }
+    await page.getByRole('gridcell', { name: label }).click()
+    await expect(due).not.toHaveText('Tomorrow')
+
+    // No date clears it
+    await due.click()
+    await page.getByRole('button', { name: 'No date' }).click()
+    await expect(due).toHaveText('No due date')
+  })
+})

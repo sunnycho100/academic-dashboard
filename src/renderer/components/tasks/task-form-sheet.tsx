@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { DueDatePicker } from '@/components/tasks/due-date-picker'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Category, Task, TaskType } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -228,13 +229,7 @@ function TaskForm(props: TaskFormSheetProps) {
             <label htmlFor="task-due" className={fieldLabel}>
               Due
             </label>
-            <Input
-              id="task-due"
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className={cn(field, 'h-9')}
-            />
+            <DueDatePicker id="task-due" value={dueDate} onChange={setDueDate} className="mt-2" />
             <div className="mt-2 flex gap-3 text-xs">
               {dueChips.map((c) => (
                 <button
