@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Task, Category, SortOption, CompletedTask } from '@/lib/types'
 import { currentDayStart } from '@/lib/task-format'
+import { rolloverHour } from '@/hooks/use-today-session'
 import { CategorySidebar } from '@/components/categories/category-sidebar'
 import { AddCategoryDialog } from '@/components/categories/add-category-dialog'
 import { AddTaskDialog } from '@/components/tasks/add-task-sheet'
@@ -196,16 +197,8 @@ export default function Home() {
 
           if (!Array.isArray(completedAll)) throw new Error('Expected array from /api/completed-tasks')
 
-          // Day boundaries from the Time Records settings
-          let dayStartHour = 6
-          try {
-            const saved = localStorage.getItem('timeRecords-dayBoundaries')
-            if (saved) {
-              const { start } = JSON.parse(saved)
-              if (typeof start === 'number') dayStartHour = start
-            }
-          } catch {}
-          const todayStart = currentDayStart(new Date(), dayStartHour)
+          // Same rollover as the Today panel (midnight, or the day end if it runs past midnight)
+          const todayStart = currentDayStart(new Date(), rolloverHour())
 
           setCompletedToday(
             completedAll.filter((ct: CompletedTask) => new Date(ct.completedAt) >= todayStart),
@@ -235,6 +228,25 @@ export default function Home() {
       saveTodayIds(todayTaskIds, user.id)
     }
   }, [todayTaskIds, mounted, user])
+
+  // Reload when the day rolls over, so a window left open overnight starts the new day
+  // fresh (Today plan, Done today, timeline). Polling also catches waking from sleep.
+  useEffect(() => {
+    const dayKey = () => currentDayStart(new Date(), rolloverHour()).getTime()
+    const openedOn = dayKey()
+    const check = () => {
+      // Never reload under an open dialog; try again on the next tick
+      if (dayKey() !== openedOn && !document.querySelector('[role="dialog"], [role="alertdialog"]')) {
+        window.location.reload()
+      }
+    }
+    const tick = setInterval(check, 60_000)
+    window.addEventListener('focus', check)
+    return () => {
+      clearInterval(tick)
+      window.removeEventListener('focus', check)
+    }
+  }, [])
 
   // Cmd+N opens a new task from anywhere on the task views
   useEffect(() => {

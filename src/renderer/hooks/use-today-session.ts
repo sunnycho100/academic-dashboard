@@ -25,6 +25,12 @@ export function logicalToday(now = new Date()): { date: string; startHour: numbe
   return { date, startHour, endHour }
 }
 
+/** Hour the day rolls over: midnight, or the day-end hour when the day runs past midnight. */
+export function rolloverHour(): number {
+  const { endHour } = logicalToday()
+  return endHour > 24 ? endHour - 24 : 0
+}
+
 /**
  * Timers for Today's plan plus today's recorded study time. Shared by the Today
  * group in the task list (play and pause per row) and the Today panel (focus timer).

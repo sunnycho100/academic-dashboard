@@ -42,13 +42,13 @@ export function courseSummary(tasks: { dueAt: string | null }[], now = new Date(
 }
 
 /**
- * Start of the current day for "done today": the latest day-start hour that has
- * already passed. Before the start hour (e.g. 2 AM with a 6 AM start) that is
- * yesterday's start, so late-night work still counts toward the day it belongs to.
+ * When the current day began: the latest rollover hour that has already passed.
+ * The rollover is midnight, or the next morning when the day runs past midnight
+ * (a 2 AM day end rolls over at 2 AM, so 1 AM still belongs to yesterday).
  */
-export function currentDayStart(now: Date, startHour: number): Date {
+export function currentDayStart(now: Date, rolloverHour: number): Date {
   const start = new Date(now)
-  start.setHours(startHour, 0, 0, 0)
+  start.setHours(rolloverHour, 0, 0, 0)
   if (start > now) start.setDate(start.getDate() - 1)
   return start
 }
