@@ -25,16 +25,18 @@ test('today holds the planned tasks in plan order, even if overdue', () => {
   assert.deepEqual(ids(groups.upcoming), ['c'])
 })
 
-test('overdue is anything due before today; due today and undated are upcoming', () => {
+test('overdue is before today, due today is its own group, the rest is upcoming', () => {
   const tasks = [
     task('late', '2026-09-27T23:59:00'),
     task('dueToday', '2026-09-28T08:00:00'),
+    task('dueTonight', '2026-09-28T23:59:00'),
     task('later', '2026-10-02T12:00:00'),
     task('undated', null),
   ]
   const groups = groupTasksByTime(tasks, [], now)
   assert.deepEqual(ids(groups.overdue), ['late'])
-  assert.deepEqual(ids(groups.upcoming), ['dueToday', 'later', 'undated'])
+  assert.deepEqual(ids(groups.dueToday), ['dueToday', 'dueTonight'])
+  assert.deepEqual(ids(groups.upcoming), ['later', 'undated'])
 })
 
 test('today ids that are filtered out of the task list are skipped', () => {

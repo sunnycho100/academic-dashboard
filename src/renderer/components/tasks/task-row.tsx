@@ -19,6 +19,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { motion } from 'framer-motion'
 import { childSpring } from '@/lib/liquidTransitions'
+import { dueLabel } from '@/lib/task-format'
 import { InlineEdit } from '@/components/tasks/inline-edit'
 import { TaskMetadata } from '@/components/tasks/task-metadata'
 
@@ -59,6 +60,8 @@ export function TaskRow({
     transition,
     isDragging,
   } = useSortable({ id: task.id })
+
+  const due = dueLabel(task.dueAt)
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -132,6 +135,18 @@ export function TaskRow({
           weeklyDayLabels={weeklyDayLabels}
         />
       </div>
+
+      {/* Due date as plain text at the row's edge, like the Today rows: weight and color carry urgency */}
+      {due && (
+        <span
+          className={cn(
+            'flex-shrink-0 text-xs tabular-nums',
+            due.late ? 'text-coral' : due.text === 'Today' ? 'font-medium text-foreground' : 'text-muted-foreground',
+          )}
+        >
+          {due.text}
+        </span>
+      )}
 
       {/* Toggle Today's Plan button */}
       {onAddToToday && (
