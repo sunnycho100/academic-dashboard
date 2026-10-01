@@ -66,8 +66,8 @@ export function TodayTaskRow({ task, category, session, onToggleTask, onRemoveFr
           {hasStarted ? (
             <span
               className={cn(
-                'text-xs tabular-nums rounded-full px-2.5 py-0.5',
-                isRunning ? 'bg-coral/15 text-destructive' : 'bg-secondary text-muted-foreground',
+                'text-xs tabular-nums',
+                isRunning ? 'text-coral' : 'text-muted-foreground',
               )}
             >
               {isRunning ? 'running ' : 'paused '}
@@ -75,12 +75,21 @@ export function TodayTaskRow({ task, category, session, onToggleTask, onRemoveFr
             </span>
           ) : (
             task.estimatedDuration ? (
-              <span className="text-xs tabular-nums rounded-full px-2.5 py-0.5 bg-secondary text-muted-foreground">
+              <span className="text-xs tabular-nums text-muted-foreground">
                 {formatMinutes(task.estimatedDuration)}
               </span>
             ) : null
           )}
-          {due && <span className={cn('text-xs whitespace-nowrap', due.late ? 'text-destructive' : 'text-muted-foreground')}>{due.text}</span>}
+          {due && (
+            <span
+              className={cn(
+                'text-xs whitespace-nowrap tabular-nums',
+                due.late ? 'text-coral' : due.text === 'Today' ? 'font-medium text-foreground' : 'text-muted-foreground',
+              )}
+            >
+              {due.text}
+            </span>
+          )}
           <button
             onClick={() => (isRunning ? pauseTimer(task.id) : isPaused ? resumeTimer(task.id) : startTimer(task.id))}
             className={cn(

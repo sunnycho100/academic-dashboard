@@ -46,7 +46,7 @@ function GroupHeading({ title, count }: { title: string; count: number }) {
 /** The main task column: Today (the plan, with timers), then Overdue and Upcoming, or course groups. */
 export function TaskBoard(props: TaskBoardProps) {
   const { tasks, allTaskIds, categories, todayTaskIds, groupByCategory, session, isDragging } = props
-  const { today, overdue, upcoming } = groupTasksByTime(tasks, todayTaskIds)
+  const { today, overdue, dueToday, upcoming } = groupTasksByTime(tasks, todayTaskIds)
   const fresh = useFreshTaskIds(allTaskIds)
   const { isOver, setNodeRef } = useDroppable({ id: 'today-drop-zone' })
   const categoryOf = (id: string) => categories.find((c) => c.id === id)
@@ -81,7 +81,7 @@ export function TaskBoard(props: TaskBoardProps) {
     </SortableContext>
   )
 
-  const rest = [...overdue, ...upcoming]
+  const rest = [...overdue, ...dueToday, ...upcoming]
   const courseGroups = categories
     .map((category) => ({ category, list: rest.filter((t) => t.categoryId === category.id) }))
     .filter((g) => g.list.length > 0)
@@ -140,6 +140,12 @@ export function TaskBoard(props: TaskBoardProps) {
               <section aria-label="Overdue">
                 <GroupHeading title="Overdue" count={overdue.length} />
                 {renderRows(overdue)}
+              </section>
+            )}
+            {dueToday.length > 0 && (
+              <section aria-label="Due today">
+                <GroupHeading title="Due today" count={dueToday.length} />
+                {renderRows(dueToday)}
               </section>
             )}
             {upcoming.length > 0 && (

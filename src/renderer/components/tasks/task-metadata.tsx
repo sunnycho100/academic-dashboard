@@ -12,42 +12,6 @@ export interface TaskMetadataProps {
 }
 
 export function TaskMetadata({ task, category, onSave, weeklyDayLabels }: TaskMetadataProps) {
-  const dueDate = task.dueAt ? new Date(task.dueAt) : null
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  let dueDateLabel = ''
-  let dueDateVariant: 'default' | 'secondary' | 'destructive' | 'outline' = 'secondary'
-  let dueDateClassName = ''
-
-  if (dueDate) {
-    const dueDateOnly = new Date(dueDate)
-    dueDateOnly.setHours(0, 0, 0, 0)
-
-    const daysDiff = Math.floor(
-      (dueDateOnly.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-    )
-
-    if (daysDiff < 0) {
-      const daysOverdue = Math.abs(daysDiff)
-      dueDateLabel = `Overdue ${daysOverdue}d`
-      dueDateVariant = 'destructive'
-    } else if (daysDiff === 0) {
-      dueDateLabel = 'Due today'
-      dueDateVariant = 'default'
-      dueDateClassName = 'bg-red-500/20 text-red-500 dark:text-red-400 border-red-500/40 hover:bg-red-500/30 font-medium'
-    } else if (daysDiff === 1) {
-      dueDateLabel = 'Due tomorrow'
-      dueDateVariant = 'default'
-    } else {
-      dueDateLabel = `Due in ${daysDiff}d`
-      dueDateVariant = 'secondary'
-    }
-  } else {
-    dueDateLabel = 'No due date'
-    dueDateVariant = 'outline'
-  }
-
   return (
     <div className="flex items-center gap-1.5">
       {/* The course color lives on the ring; the name stays plain */}
@@ -69,13 +33,6 @@ export function TaskMetadata({ task, category, onSave, weeklyDayLabels }: TaskMe
             : null
         )}
       </span>
-      <span className="text-muted-foreground/40 text-xs flex-shrink-0">·</span>
-      <Badge
-        variant={dueDateVariant}
-        className={cn('text-xs font-normal flex-shrink-0', dueDateClassName)}
-      >
-        {dueDateLabel}
-      </Badge>
       {/* Weekly day labels */}
       {weeklyDayLabels && weeklyDayLabels.length > 0 && (
         <>
