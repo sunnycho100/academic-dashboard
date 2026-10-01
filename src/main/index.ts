@@ -49,7 +49,7 @@ function createWindow() {
     backgroundColor: '#f7f5ef',
     // Native traffic lights inset into the sidebar; the header row is the drag area.
     titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 20, y: 28 }, // vertically centred in the 72px title-bar row
+    trafficLightPosition: { x: 18, y: 18 }, // vertically centred in the 52px title-bar row
     show: false,
     // A hidden window must keep rendering at full speed for tests to drive it.
     webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: !hidden },

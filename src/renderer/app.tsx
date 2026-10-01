@@ -534,10 +534,10 @@ export default function Home() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Header */}
-        <header className="app-drag border-b border-border bg-background px-7 h-[72px] flex-shrink-0 flex items-center sticky top-0 z-30">
+        <header className="app-drag border-b border-border bg-background px-7 h-[52px] flex-shrink-0 flex items-center sticky top-0 z-30">
           <div className="flex flex-1 items-center justify-between gap-4">
             <div className="flex items-center gap-5 min-w-0">
-              <h1 className="font-serif text-[2rem] leading-none tracking-tight">Class Catch-up</h1>
+              <h1 className="font-serif text-[1.625rem] leading-none tracking-tight">Class Catch-up</h1>
               {/* Segmented control: Weekly plan is the task view with the week grid shown */}
               <div className="flex items-center rounded-full border border-border bg-card p-1" role="tablist">
                 {([

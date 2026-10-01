@@ -77,9 +77,9 @@ export function CategorySidebar({
 
   return (
     <div className="w-64 border-r border-border bg-sidebar flex flex-col h-full">
-      {/* Title-bar row for the macOS traffic lights; same height as the main header so the borders line up */}
-      <div className="app-drag h-[72px] flex-shrink-0 border-b border-border" />
-      <div className="px-4 pt-4 pb-4 border-b border-border">
+      {/* Compact title-bar row for the macOS traffic lights, like Claude and Chrome */}
+      <div className="app-drag h-[52px] flex-shrink-0" />
+      <div className="px-4 pt-1 pb-4 border-b border-border">
         <h2 className="font-medium text-xs mb-3 text-muted-foreground uppercase tracking-widest">
           Courses
         </h2>
