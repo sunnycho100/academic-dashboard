@@ -55,4 +55,7 @@ export interface CompletedTask {
   taskType: string
   completedAt: string
   actualTimeSpent?: number | null
+  dueAt?: string | null
+  estimatedDuration?: number | null
+  notes?: string | null
 }

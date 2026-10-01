@@ -38,6 +38,7 @@ export interface CatchupContentProps {
   onAddCategoryOpen: () => void
   onAddTask: () => void
   onToggleTask: (id: string, timeSpentSeconds?: number) => void
+  onUndoComplete: (item: CompletedTask) => void
   onEditTask: (task: Task) => void
   onSaveTask: (task: Task) => void
   onDuplicateTask: (task: Task) => void
@@ -70,6 +71,7 @@ export function CatchupContent({
   onAddCategoryOpen,
   onAddTask,
   onToggleTask,
+  onUndoComplete,
   onEditTask,
   onSaveTask,
   onDuplicateTask,
@@ -156,7 +158,7 @@ export function CatchupContent({
           onAddToToday={onAddToToday}
           onRemoveFromToday={onRemoveFromToday}
         >
-          <DoneToday items={completedToday} />
+          <DoneToday items={completedToday} categories={categories} onUndo={onUndoComplete} />
         </TaskBoard>
       </div>
 

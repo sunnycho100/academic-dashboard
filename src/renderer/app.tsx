@@ -135,6 +135,7 @@ export default function Home() {
   // Task & Category mutation hooks
   const {
     handleAddTask,
+    handleUndoComplete,
     handleToggleTask,
     handleSaveTask,
     handleDuplicateTask,
@@ -636,6 +637,7 @@ export default function Home() {
               onAddCategoryOpen={() => setAddCategoryOpen(true)}
               onAddTask={() => setAddTaskOpen(true)}
               onToggleTask={handleToggleTask}
+              onUndoComplete={handleUndoComplete}
               onEditTask={handleEditTask}
               onSaveTask={handleSaveTask}
               onDuplicateTask={handleDuplicateTask}
