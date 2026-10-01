@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
-import { Task, Category, SortOption } from '@/lib/types'
+import { Task, Category, SortOption, CompletedTask } from '@/lib/types'
 import { TaskBoard } from '@/components/tasks/task-board'
+import { DoneToday } from '@/components/tasks/done-today'
 import { TodayPanel } from '@/components/today/today-panel'
 import { DayTimeline } from '@/components/today/day-timeline'
 import { Stats } from '@/components/layout/stats'
@@ -24,7 +25,7 @@ export interface CatchupContentProps {
   sortedTasks: Task[]
   todayTaskIds: string[]
   activeDragId: string | null
-  completedTodayCount: number
+  completedToday: CompletedTask[]
   sortOption: SortOption
   setSortOption: (option: SortOption) => void
   groupByCategory: boolean
@@ -37,6 +38,7 @@ export interface CatchupContentProps {
   onAddCategoryOpen: () => void
   onAddTask: () => void
   onToggleTask: (id: string, timeSpentSeconds?: number) => void
+  onUndoComplete: (item: CompletedTask) => void
   onEditTask: (task: Task) => void
   onSaveTask: (task: Task) => void
   onDuplicateTask: (task: Task) => void
@@ -56,7 +58,7 @@ export function CatchupContent({
   sortedTasks,
   todayTaskIds,
   activeDragId,
-  completedTodayCount,
+  completedToday,
   sortOption,
   setSortOption,
   groupByCategory,
@@ -69,6 +71,7 @@ export function CatchupContent({
   onAddCategoryOpen,
   onAddTask,
   onToggleTask,
+  onUndoComplete,
   onEditTask,
   onSaveTask,
   onDuplicateTask,
@@ -97,7 +100,7 @@ export function CatchupContent({
       {/* Main column */}
       <div className="flex flex-col min-h-0 min-w-0">
         <div className="flex items-end justify-between gap-4">
-          <Stats tasks={tasks} completedTodayCount={completedTodayCount} />
+          <Stats tasks={tasks} completedTodayCount={completedToday.length} />
           <div className="flex items-center gap-4 pb-5 flex-shrink-0">
             <div className="flex items-center space-x-2">
               <Checkbox
@@ -154,7 +157,9 @@ export function CatchupContent({
           onDeleteTask={onDeleteTask}
           onAddToToday={onAddToToday}
           onRemoveFromToday={onRemoveFromToday}
-        />
+        >
+          <DoneToday items={completedToday} categories={categories} onUndo={onUndoComplete} />
+        </TaskBoard>
       </div>
 
       {/* Today panel */}

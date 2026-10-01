@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { Task, Category, SortOption } from '@/lib/types'
+import { Task, Category, SortOption, CompletedTask } from '@/lib/types'
+import { currentDayStart } from '@/lib/task-format'
 import { CategorySidebar } from '@/components/categories/category-sidebar'
 import { AddCategoryDialog } from '@/components/categories/add-category-dialog'
 import { AddTaskDialog } from '@/components/tasks/add-task-sheet'
@@ -117,7 +118,7 @@ export default function Home() {
   const [mounted, setMounted] = useState(false)
   const [todayTaskIds, setTodayTaskIds] = useState<string[]>([])
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
-  const [completedTodayCount, setCompletedTodayCount] = useState(0)
+  const [completedToday, setCompletedToday] = useState<CompletedTask[]>([])
   const [activeMainTab, setActiveMainTab] = useState<'catchup' | 'timetable'>('catchup')
   const [deleteAllOpen, setDeleteAllOpen] = useState(false)
   const [editPersonalInfoOpen, setEditPersonalInfoOpen] = useState(false)
@@ -135,6 +136,7 @@ export default function Home() {
   // Task & Category mutation hooks
   const {
     handleAddTask,
+    handleUndoComplete,
     handleToggleTask,
     handleSaveTask,
     handleDuplicateTask,
@@ -144,7 +146,7 @@ export default function Home() {
     tasks,
     setTasks,
     setTodayTaskIds,
-    setCompletedTodayCount,
+    setCompletedToday,
     categories,
     completingRef,
   })
@@ -194,31 +196,20 @@ export default function Home() {
 
           if (!Array.isArray(completedAll)) throw new Error('Expected array from /api/completed-tasks')
 
-          // Read day boundaries from localStorage
+          // Day boundaries from the Time Records settings
           let dayStartHour = 6
-          let dayEndHour = 24
           try {
             const saved = localStorage.getItem('timeRecords-dayBoundaries')
             if (saved) {
-              const { start, end } = JSON.parse(saved)
+              const { start } = JSON.parse(saved)
               if (typeof start === 'number') dayStartHour = start
-              if (typeof end === 'number') dayEndHour = end
             }
           } catch {}
+          const todayStart = currentDayStart(new Date(), dayStartHour)
 
-          // Compute effective "today start" respecting day boundaries
-          const now = new Date()
-          const todayStart = new Date(now)
-          if (dayEndHour > 24 && now.getHours() < dayEndHour - 24) {
-            // Past midnight but before end-hour: still in yesterday's day
-            todayStart.setDate(todayStart.getDate() - 1)
-          }
-          todayStart.setHours(dayStartHour, 0, 0, 0)
-
-          const todayCount = completedAll.filter(
-            (ct: { completedAt: string }) => new Date(ct.completedAt) >= todayStart
-          ).length
-          setCompletedTodayCount(todayCount)
+          setCompletedToday(
+            completedAll.filter((ct: CompletedTask) => new Date(ct.completedAt) >= todayStart),
+          )
         } catch (err) {
           console.error('Failed to fetch completed tasks count:', err)
         }
@@ -624,7 +615,7 @@ export default function Home() {
               sortedTasks={sortedTasks}
               todayTaskIds={todayTaskIds}
               activeDragId={activeDragId}
-              completedTodayCount={completedTodayCount}
+              completedToday={completedToday}
               sortOption={sortOption}
               setSortOption={setSortOption}
               groupByCategory={groupByCategory}
@@ -637,6 +628,7 @@ export default function Home() {
               onAddCategoryOpen={() => setAddCategoryOpen(true)}
               onAddTask={() => setAddTaskOpen(true)}
               onToggleTask={handleToggleTask}
+              onUndoComplete={handleUndoComplete}
               onEditTask={handleEditTask}
               onSaveTask={handleSaveTask}
               onDuplicateTask={handleDuplicateTask}

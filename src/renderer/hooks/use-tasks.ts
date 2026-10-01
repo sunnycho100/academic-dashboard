@@ -1,11 +1,11 @@
 import { useCallback } from 'react'
-import { Task, TaskType } from '@/lib/types'
+import { Task, TaskType, CompletedTask } from '@/lib/types'
 
 interface UseTasksOptions {
   tasks: Task[]
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>
   setTodayTaskIds: React.Dispatch<React.SetStateAction<string[]>>
-  setCompletedTodayCount: React.Dispatch<React.SetStateAction<number>>
+  setCompletedToday: React.Dispatch<React.SetStateAction<CompletedTask[]>>
   categories: { id: string; name?: string; color?: string }[]
   completingRef: React.MutableRefObject<Set<string>>
 }
@@ -14,7 +14,7 @@ export function useTasks({
   tasks,
   setTasks,
   setTodayTaskIds,
-  setCompletedTodayCount,
+  setCompletedToday,
   categories,
   completingRef,
 }: UseTasksOptions) {
@@ -60,25 +60,31 @@ export function useTasks({
       // Optimistic: remove from UI immediately
       setTasks((prev) => prev.filter((t) => t.id !== id))
       setTodayTaskIds((prev) => prev.filter((tid) => tid !== id))
-      setCompletedTodayCount((prev) => prev + 1)
-
       // Archive to CompletedTask table
       const category = categories.find((c) => c.id === task.categoryId)
+      const archived = {
+        taskTitle: task.title,
+        categoryName: category?.name ?? 'Unknown',
+        categoryColor: category?.color ?? '#888',
+        taskType: task.type,
+        dueAt: task.dueAt,
+        actualTimeSpent: actualMinutes ?? task.actualTimeSpent ?? null,
+        estimatedDuration: task.estimatedDuration ?? null,
+        notes: task.notes ?? null,
+      }
+      // Optimistic entry; swapped for the saved record (real id) once the POST returns
+      const localId = `local-${id}`
+      setCompletedToday((prev) => [...prev, { id: localId, completedAt: new Date().toISOString(), ...archived }])
       try {
-        await fetch('/api/completed-tasks', {
+        const res = await fetch('/api/completed-tasks', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            taskTitle: task.title,
-            categoryName: category?.name ?? 'Unknown',
-            categoryColor: category?.color ?? '#888',
-            taskType: task.type,
-            dueAt: task.dueAt,
-            actualTimeSpent: actualMinutes ?? task.actualTimeSpent ?? null,
-            estimatedDuration: task.estimatedDuration ?? null,
-            notes: task.notes ?? null,
-          }),
+          body: JSON.stringify(archived),
         })
+        if (res.ok) {
+          const saved: CompletedTask = await res.json()
+          setCompletedToday((prev) => prev.map((c) => (c.id === localId ? saved : c)))
+        }
       } catch (err) {
         console.error('Failed to archive completed task:', err)
       }
@@ -104,7 +110,7 @@ export function useTasks({
         body: JSON.stringify({ status: 'todo' }),
       }).catch((err) => console.error('Failed to update task status:', err))
     }
-  }, [tasks, categories, setTasks, setTodayTaskIds, setCompletedTodayCount, completingRef])
+  }, [tasks, categories, setTasks, setTodayTaskIds, setCompletedToday, completingRef])
 
   const handleSaveTask = useCallback((updatedTask: Task) => {
     // Optimistic update
@@ -172,7 +178,29 @@ export function useTasks({
     }
   }, [setTasks, setTodayTaskIds])
 
+  /** Undo a completion: the main process recreates the task and drops the record in one transaction */
+  const handleUndoComplete = useCallback(async (item: CompletedTask) => {
+    const category = categories.find((c) => c.name === item.categoryName)
+    if (!category || item.id.startsWith('local-')) return
+    setCompletedToday((prev) => prev.filter((c) => c.id !== item.id))
+    try {
+      const res = await fetch(`/api/completed-tasks/${item.id}/restore`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categoryId: category.id, priorityOrder: tasks.length }),
+      })
+      if (!res.ok) throw new Error(`Restore failed: ${res.status}`)
+      const restored: Task = await res.json()
+      setTasks((prev) => [...prev, restored])
+    } catch (err) {
+      console.error('Failed to undo completion:', err)
+      // Put it back so the list matches what is saved
+      setCompletedToday((prev) => [...prev, item])
+    }
+  }, [categories, tasks.length, setTasks, setCompletedToday])
+
   return {
+    handleUndoComplete,
     handleAddTask,
     handleToggleTask,
     handleSaveTask,
