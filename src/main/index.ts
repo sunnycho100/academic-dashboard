@@ -1,4 +1,4 @@
-import { app, BrowserWindow, net, protocol, shell } from 'electron'
+import { app, BrowserWindow, net, powerMonitor, protocol, shell } from 'electron'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 
@@ -84,6 +84,15 @@ if (!app.requestSingleInstanceLock()) {
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })
+    // Timers in a sleeping Mac don't fire on time, so on wake or unlock ask the page to
+    // run its day check now (it listens for focus and reloads if the day has changed).
+    const checkDay = () => {
+      for (const win of BrowserWindow.getAllWindows()) {
+        win.webContents.executeJavaScript("window.dispatchEvent(new Event('focus'))").catch(() => {})
+      }
+    }
+    powerMonitor.on('resume', checkDay)
+    powerMonitor.on('unlock-screen', checkDay)
   })
 
   // Standard macOS behavior: closing the window keeps the app in the Dock.
