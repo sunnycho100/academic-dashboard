@@ -20,3 +20,24 @@ test('a window left open past midnight reloads into the new day', async ({ page,
   await reloaded
   expect(await page.evaluate(() => (window as { stale?: boolean }).stale)).toBeUndefined()
 })
+
+test('waking the Mac on a new day reloads right away', async ({ page, api, electronApp }) => {
+  await seedCategory(api)
+  const evening = new Date()
+  evening.setHours(22, 0, 0, 0)
+  await page.clock.install({ time: evening })
+  await page.goto(APP_URL)
+  await expect(page.getByRole('complementary', { name: 'Today panel' })).toBeVisible()
+  await page.evaluate(() => ((window as { stale?: boolean }).stale = true))
+
+  // Asleep overnight: the clock jumps but no timer has fired yet
+  const morning = new Date(evening)
+  morning.setDate(morning.getDate() + 1)
+  morning.setHours(8)
+  await page.clock.setSystemTime(morning)
+
+  const reloaded = page.waitForEvent('load')
+  await electronApp.evaluate(({ powerMonitor }) => powerMonitor.emit('resume'))
+  await reloaded
+  expect(await page.evaluate(() => (window as { stale?: boolean }).stale)).toBeUndefined()
+})
