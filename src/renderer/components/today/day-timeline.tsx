@@ -65,7 +65,12 @@ export function DayTimeline({ tasks, categories, session, onOpenTimetable }: Day
     }
     load()
     const poll = setInterval(load, 30_000)
-    return () => clearInterval(poll)
+    // Saved segments (task timers, Personal dev) show up immediately
+    window.addEventListener('time-records-changed', load)
+    return () => {
+      clearInterval(poll)
+      window.removeEventListener('time-records-changed', load)
+    }
   }, [tasks])
 
   // Minutes are measured from midnight of the logical day, so a day that runs past

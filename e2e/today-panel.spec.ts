@@ -66,3 +66,24 @@ test.describe('day timeline', () => {
     await expect(panel.locator('[data-lane="planned"]')).toHaveCount(0)
   })
 })
+
+test('a saved time record shows on the timeline right away', async ({ page, api }) => {
+  await seedCategory(api)
+  await page.goto(APP_URL)
+  const panel = page.getByRole('complementary', { name: 'Today panel' })
+  await expect(panel).toBeVisible()
+
+  // Same request the Personal dev and task timers make when they stop
+  await page.evaluate(async () => {
+    const end = new Date()
+    const start = new Date(end.getTime() - 20 * 60_000)
+    await fetch('/api/time-records', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ taskTitle: 'Reading', categoryName: 'Personal', categoryColor: '#c58b2b', taskType: 'Reading', startTime: start.toISOString(), endTime: end.toISOString(), duration: 1200 }),
+    })
+  })
+  // Well inside the 30s poll, so this only passes if the save triggers a refresh
+  await expect(panel.locator('[data-lane="actual"]', { hasText: 'Reading' })).toBeVisible({ timeout: 3000 })
+})
+
