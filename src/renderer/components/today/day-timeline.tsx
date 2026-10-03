@@ -10,6 +10,13 @@ const LANES_KEY = 'timeline-lanes'
 const HOUR_PX = 64
 const RULER_PX = 44
 
+/** Minutes from the day's midnight as "4:56 PM" (wraps past midnight) */
+const clock = (min: number) => {
+  const m = ((Math.round(min) % 1440) + 1440) % 1440
+  const h = Math.floor(m / 60)
+  return `${h % 12 || 12}:${String(m % 60).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`
+}
+
 function loadLanes(): Lanes {
   try {
     const v = localStorage.getItem(LANES_KEY)
@@ -149,7 +156,7 @@ export function DayTimeline({ tasks, categories, session, onOpenTimetable }: Day
                 onClick={onOpenTimetable}
                 title="Open in Timetable"
                 data-lane="planned"
-                className="absolute flex flex-col justify-start rounded-lg border border-dashed border-today-muted/70 px-2 py-1 text-left text-xs leading-tight text-today-foreground overflow-hidden hover:bg-white/[0.04]"
+                className="absolute flex flex-col justify-start rounded-md border border-dashed border-today-muted/70 px-2 py-1 text-left text-[12px] leading-tight text-today-foreground overflow-hidden hover:bg-white/[0.04]"
                 style={{ ...laneStyle('planned'), top: top(b.startMin) + 1, height: Math.max(18, top(b.endMin) - top(b.startMin) - 2) }}
               >
                 {b.label || 'Untitled'}
@@ -162,19 +169,42 @@ export function DayTimeline({ tasks, categories, session, onOpenTimetable }: Day
                 key={b.id}
                 data-lane="actual"
                 className={cn(
-                  'absolute rounded-lg px-2 py-1 text-xs leading-tight overflow-hidden flex items-start gap-1.5',
-                  b.live ? 'bg-coral text-white' : 'bg-today-foreground text-today',
+                  'absolute rounded-md px-2 py-1 leading-tight overflow-hidden text-white',
+                  b.live && 'bg-coral',
                 )}
-                style={{ ...laneStyle('actual'), top: top(b.startMin) + 1, height: Math.max(18, top(b.endMin) - top(b.startMin) - 2) }}
+                // Calendar-style block: the course color as a tint with a hairline of itself, no dot
+                style={{
+                  ...laneStyle('actual'),
+                  top: top(b.startMin) + 1,
+                  height: Math.max(18, top(b.endMin) - top(b.startMin) - 2),
+                  ...(!b.live && b.color
+                    ? {
+                        backgroundColor: `color-mix(in srgb, ${b.color} 45%, transparent)`,
+                        boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${b.color} 70%, transparent)`,
+                      }
+                    : !b.live
+                      ? { backgroundColor: 'rgba(255,255,255,0.14)' }
+                      : {}),
+                }}
               >
-                {b.color && !b.live && <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ backgroundColor: b.color }} />}
-                <span className="truncate">{b.live ? `${b.label} · running` : b.label}</span>
+                <p className="truncate text-[12px] font-medium">{b.live ? `${b.label} · running` : b.label}</p>
+                {top(b.endMin) - top(b.startMin) >= 36 && (
+                  <p className="truncate text-[11px] text-white/70 tabular-nums">
+                    {clock(b.startMin)} to {clock(b.endMin)}
+                  </p>
+                )}
               </div>
             ))}
 
           {/* Now */}
-          <div className="absolute right-0 border-t-2 border-coral pointer-events-none" style={{ left: RULER_PX - 6, top: top(nowMin) }} aria-label="Now">
-            <span className="absolute -left-1 -top-[5px] h-2 w-2 rounded-full bg-coral" />
+          {/* Dot and line share one centre line, starting where the blocks start */}
+          <div
+            className="absolute right-0 flex -translate-y-1/2 items-center pointer-events-none"
+            style={{ left: RULER_PX - 4, top: top(nowMin) }}
+            aria-label="Now"
+          >
+            <span className="h-2 w-2 flex-shrink-0 rounded-full bg-coral" />
+            <span className="h-0.5 flex-1 bg-coral" />
           </div>
         </div>
       </div>
