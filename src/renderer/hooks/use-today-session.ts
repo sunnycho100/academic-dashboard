@@ -69,7 +69,11 @@ export function useTodaySession(todayTasks: Task[], categories: Category[], user
     }
     fetchStudyTime()
     const poll = setInterval(fetchStudyTime, 30000)
-    return () => clearInterval(poll)
+    window.addEventListener('time-records-changed', fetchStudyTime)
+    return () => {
+      clearInterval(poll)
+      window.removeEventListener('time-records-changed', fetchStudyTime)
+    }
   }, [todayTasks]) // re-fetch when today's tasks change (e.g. after completing one)
 
   return { ...timers, totalStudySeconds: dbStudySeconds + getTotalStudyTime() }
