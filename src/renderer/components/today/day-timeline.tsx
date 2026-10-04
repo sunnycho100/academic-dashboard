@@ -174,27 +174,22 @@ export function DayTimeline({ tasks, categories, session, onOpenTimetable }: Day
                 key={b.id}
                 data-lane="actual"
                 className={cn(
-                  'absolute rounded-md px-2 py-1 leading-tight overflow-hidden text-white',
-                  b.live && 'bg-coral',
+                  'absolute rounded-md px-2 py-1 leading-tight overflow-hidden',
+                  b.live ? 'bg-coral text-white' : 'bg-today-foreground text-today',
                 )}
-                // Calendar-style block: the course color as a tint with a hairline of itself, no dot
+                // A pale block washed with the course color, so it stays light against the green
                 style={{
                   ...laneStyle('actual'),
                   top: top(b.startMin) + 1,
                   height: Math.max(18, top(b.endMin) - top(b.startMin) - 2),
                   ...(!b.live && b.color
-                    ? {
-                        backgroundColor: `color-mix(in srgb, ${b.color} 45%, transparent)`,
-                        boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${b.color} 70%, transparent)`,
-                      }
-                    : !b.live
-                      ? { backgroundColor: 'rgba(255,255,255,0.14)' }
-                      : {}),
+                    ? { backgroundColor: `color-mix(in srgb, ${b.color} 22%, hsl(var(--today-foreground)))` }
+                    : {}),
                 }}
               >
                 <p className="truncate text-[12px] font-medium">{b.live ? `${b.label} · running` : b.label}</p>
                 {top(b.endMin) - top(b.startMin) >= 36 && (
-                  <p className="truncate text-[11px] text-white/70 tabular-nums">
+                  <p className={cn('truncate text-[11px] tabular-nums', b.live ? 'text-white/80' : 'text-today/70')}>
                     {clock(b.startMin)} to {clock(b.endMin)}
                   </p>
                 )}
