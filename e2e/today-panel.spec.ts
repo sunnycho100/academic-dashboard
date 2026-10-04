@@ -108,8 +108,8 @@ test('the timeline scrolls back through the day and jumps back to now', async ({
   await expect(panel.getByLabel('Now', { exact: true })).toBeInViewport()
   await expect(block).not.toBeInViewport()
 
-  // Scroll up to the morning
-  await scroller.evaluate((el) => el.scrollTo({ top: 0 }))
+  // Scroll up twelve hours (64px each) from 8 PM to the morning, whatever the window height
+  await scroller.evaluate((el) => el.scrollBy({ top: -12 * 64 }))
   await expect(block).toBeInViewport()
 
   // Jump back: now is in view again and the morning has scrolled away
