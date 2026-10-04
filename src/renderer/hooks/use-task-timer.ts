@@ -332,12 +332,15 @@ async function saveTimeRecord(
       const state = prev[taskId]
       if (!state || !state.isPaused) return prev
 
+      // lastTickAt restarts too: otherwise the first tick adds the whole paused gap
+      const now = new Date().toISOString()
       return {
         ...prev,
         [taskId]: {
           ...state,
           isPaused: false,
-          segmentStartedAt: new Date().toISOString(),
+          segmentStartedAt: now,
+          lastTickAt: now,
         },
       }
     })
@@ -372,11 +375,19 @@ async function saveTimeRecord(
     })
   }, [])
 
+  /**
+   * Seconds in running segments not yet saved as time records. Finished and paused
+   * segments are already in the database, so counting elapsedSeconds here would add
+   * them to today's total twice.
+   */
   const getTotalStudyTime = useCallback((): number => {
+    const now = Date.now()
     return taskIds.reduce((total, taskId) => {
-      return total + getElapsedSeconds(taskId)
+      const state = timerStates[taskId]
+      if (!state?.isRunning || state.isPaused || !state.segmentStartedAt) return total
+      return total + Math.max(0, Math.floor((now - new Date(state.segmentStartedAt).getTime()) / 1000))
     }, 0)
-  }, [taskIds, getElapsedSeconds])
+  }, [taskIds, timerStates])
 
   return {
     timerStates,
