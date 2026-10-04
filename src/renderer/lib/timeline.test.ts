@@ -27,9 +27,11 @@ test('actualBlocks measures minutes from the local midnight of the day', () => {
   assert.deepEqual(blocks.map((b) => [b.startMin, b.endMin, b.color]), [[840, 882, '#d9822b']])
 })
 
-test('timelineRange covers blocks and now, whole hours, at least 4 hours', () => {
+test('timelineRange is the whole day, scrollable, and runs past midnight when needed', () => {
   const b = (startMin: number, endMin: number) => ({ id: 'x', label: '', startMin, endMin })
-  assert.deepEqual(timelineRange([b(780, 825), b(840, 915)], 870), { startHour: 13, endHour: 17 })
-  assert.deepEqual(timelineRange([], 9 * 60 + 10), { startHour: 8, endHour: 12 })
-  assert.deepEqual(timelineRange([b(1410, 1470)], 1400), { startHour: 22, endHour: 26 })
+  assert.deepEqual(timelineRange([b(780, 825), b(840, 915)], 870), { startHour: 0, endHour: 24 })
+  assert.deepEqual(timelineRange([], 9 * 60 + 10), { startHour: 0, endHour: 24 })
+  // A block or "now" past midnight extends the day
+  assert.deepEqual(timelineRange([b(1410, 1530)], 1400), { startHour: 0, endHour: 26 })
+  assert.deepEqual(timelineRange([], 25 * 60 + 30), { startHour: 0, endHour: 27 })
 })

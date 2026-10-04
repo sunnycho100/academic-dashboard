@@ -44,13 +44,10 @@ export function actualBlocks(
 }
 
 /**
- * Hours to draw: from one hour before now (or the first block) to two hours after
- * now (or the last block), in whole hours, never shorter than 4 hours.
+ * Hours the timeline draws: the whole day from midnight, so you can scroll back to
+ * earlier work, extended past midnight when a block or "now" runs later.
  */
 export function timelineRange(blocks: Pick<TimelineBlock, 'startMin' | 'endMin'>[], nowMin: number) {
-  const nowHour = Math.floor(nowMin / 60)
-  const startHour = Math.min(nowHour - 1, ...blocks.map((b) => Math.floor(b.startMin / 60)))
-  let endHour = Math.max(nowHour + 2, ...blocks.map((b) => Math.ceil(b.endMin / 60)))
-  if (endHour - startHour < 4) endHour = startHour + 4
-  return { startHour: Math.max(0, startHour), endHour }
+  const endHour = Math.max(24, Math.floor(nowMin / 60) + 2, ...blocks.map((b) => Math.ceil(b.endMin / 60)))
+  return { startHour: 0, endHour }
 }
