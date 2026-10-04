@@ -75,8 +75,10 @@ test('a saved time record shows on the timeline right away', async ({ page, api 
 
   // Same request the Personal dev and task timers make when they stop
   await page.evaluate(async () => {
-    const end = new Date()
-    const start = new Date(end.getTime() - 20 * 60_000)
+    // Fixed daytime hours inside the default 6 AM day start, whatever time CI runs
+    const start = new Date()
+    start.setHours(14, 0, 0, 0)
+    const end = new Date(start.getTime() + 20 * 60_000)
     await fetch('/api/time-records', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
