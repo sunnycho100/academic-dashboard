@@ -89,3 +89,31 @@ test('a saved time record shows on the timeline right away', async ({ page, api 
   await expect(panel.locator('[data-lane="actual"]', { hasText: 'Reading' })).toBeVisible({ timeout: 3000 })
 })
 
+
+test('the timeline scrolls back through the day and jumps back to now', async ({ page, api }) => {
+  await seedCategory(api)
+  const evening = new Date()
+  evening.setHours(20, 0, 0, 0)
+  const morning = new Date(evening)
+  morning.setHours(8, 0, 0, 0)
+  await api.post('/api/time-records', {
+    data: { taskTitle: 'Morning lab', categoryName: 'X', categoryColor: '#3f7d5c', taskType: 'Lab', startTime: morning.toISOString(), endTime: new Date(morning.getTime() + 45 * 60_000).toISOString(), duration: 2700 },
+  })
+  await page.clock.install({ time: evening })
+  await page.goto(APP_URL)
+
+  const panel = page.getByRole('complementary', { name: 'Today panel' })
+  const scroller = panel.locator('[data-timeline-scroll]')
+  const block = panel.locator('[data-lane="actual"]', { hasText: 'Morning lab' })
+  await expect(panel.getByLabel('Now', { exact: true })).toBeInViewport()
+  await expect(block).not.toBeInViewport()
+
+  // Scroll up to the morning
+  await scroller.evaluate((el) => el.scrollTo({ top: 0 }))
+  await expect(block).toBeInViewport()
+
+  // Jump back: now is in view again and the morning has scrolled away
+  await panel.getByRole('button', { name: 'Jump to now' }).click()
+  await expect(panel.getByLabel('Now', { exact: true })).toBeInViewport()
+  await expect(block).not.toBeInViewport()
+})

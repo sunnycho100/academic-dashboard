@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Task, Category } from '@/lib/types'
 import type { TodaySession } from '@/hooks/use-today-session'
 import { logicalToday } from '@/hooks/use-today-session'
+import { LocateFixed } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { plannedBlocks, actualBlocks, timelineRange, type TimelineBlock } from '@/lib/timeline'
 
@@ -92,11 +93,15 @@ export function DayTimeline({ tasks, categories, session, onOpenTimetable }: Day
   const { startHour, endHour } = timelineRange(shown, nowMin)
   const top = (min: number) => ((min - startHour * 60) / 60) * HOUR_PX
 
-  // Bring "now" into view once, about a third from the top
-  useEffect(() => {
+  // The resting position: "now" about a third from the top, so recent work sits above it
+  const scrollToNow = (behavior: ScrollBehavior) => {
     const el = scrollRef.current
-    if (!el || scrolledRef.current) return
-    el.scrollTop = Math.max(0, top(nowMin) - el.clientHeight / 3)
+    if (el) el.scrollTo({ top: Math.max(0, top(nowMin) - el.clientHeight / 3), behavior })
+  }
+  // Start there once; after that the whole day scrolls freely
+  useEffect(() => {
+    if (scrolledRef.current || !scrollRef.current) return
+    scrollToNow('auto')
     scrolledRef.current = true
   })
 
@@ -119,7 +124,16 @@ export function DayTimeline({ tasks, categories, session, onOpenTimetable }: Day
     <div className="h-full flex flex-col">
       <div className="px-6 pt-4 pb-2 flex items-center gap-2">
         <span className="text-xs uppercase tracking-wider text-today-muted">Timeline</span>
-        <div className="ml-auto flex rounded-full bg-white/[0.06] p-0.5" role="radiogroup" aria-label="Timeline lanes">
+        <button
+          type="button"
+          onClick={() => scrollToNow('smooth')}
+          aria-label="Jump to now"
+          title="Jump to now"
+          className="ml-auto rounded-full p-1.5 text-today-muted hover:bg-white/[0.06] hover:text-white"
+        >
+          <LocateFixed className="h-3.5 w-3.5" />
+        </button>
+        <div className="flex rounded-full bg-white/[0.06] p-0.5" role="radiogroup" aria-label="Timeline lanes">
           {(['both', 'planned', 'actual'] as const).map((key) => (
             <button
               key={key}
@@ -143,7 +157,7 @@ export function DayTimeline({ tasks, categories, session, onOpenTimetable }: Day
           <span className="flex-1 pl-2">Actual</span>
         </div>
       )}
-      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-6 pt-2 pb-4">
+      <div ref={scrollRef} data-timeline-scroll className="flex-1 min-h-0 overflow-y-auto px-6 pt-2 pb-4">
         <div className="relative" style={{ height: (endHour - startHour) * HOUR_PX }}>
           {/* Hour ruler */}
           {Array.from({ length: endHour - startHour + 1 }, (_, i) => (
