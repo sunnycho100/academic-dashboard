@@ -37,8 +37,10 @@ export function rolloverHour(): number {
  */
 export function useTodaySession(todayTasks: Task[], categories: Category[], userId?: string) {
   const timers = useTaskTimers(todayTasks.map((t) => t.id), userId)
-  const { registerTaskMeta, getTotalStudyTime } = timers
+  const { registerTaskMeta, getTotalStudyTime, timerStates } = timers
   const [dbStudySeconds, setDbStudySeconds] = useState(0)
+  // Seconds already saved today per task, so the timer display matches the database
+  const [savedByTask, setSavedByTask] = useState<Record<string, number>>({})
 
   // Register task metadata so time records include category info
   useEffect(() => {
@@ -62,8 +64,12 @@ export function useTodaySession(todayTasks: Task[], categories: Category[], user
       const endHourParam = endHour > 24 ? endHour - 24 : 0
       fetch(`/api/time-records?date=${date}&tz=${tz}&startHour=${startHour}&endHour=${endHourParam}`)
         .then((res) => res.json())
-        .then((records: Array<{ duration: number }>) => {
-          if (Array.isArray(records)) setDbStudySeconds(records.reduce((sum, r) => sum + r.duration, 0))
+        .then((records: Array<{ duration: number; taskId?: string | null }>) => {
+          if (!Array.isArray(records)) return
+          setDbStudySeconds(records.reduce((sum, r) => sum + r.duration, 0))
+          const byTask: Record<string, number> = {}
+          for (const r of records) if (r.taskId) byTask[r.taskId] = (byTask[r.taskId] ?? 0) + r.duration
+          setSavedByTask(byTask)
         })
         .catch(() => {})
     }
@@ -76,7 +82,20 @@ export function useTodaySession(todayTasks: Task[], categories: Category[], user
     }
   }, [todayTasks]) // re-fetch when today's tasks change (e.g. after completing one)
 
-  return { ...timers, totalStudySeconds: dbStudySeconds + getTotalStudyTime() }
+  /**
+   * A task's time today: its saved segments plus the one running now. Derived from the
+   * records rather than a separate counter, so a bad count can never stick around.
+   */
+  const getElapsedSeconds = (taskId: string): number => {
+    const state = timerStates[taskId]
+    const live =
+      state?.isRunning && !state.isPaused && state.segmentStartedAt
+        ? Math.max(0, Math.floor((Date.now() - new Date(state.segmentStartedAt).getTime()) / 1000))
+        : 0
+    return (savedByTask[taskId] ?? 0) + live
+  }
+
+  return { ...timers, getElapsedSeconds, totalStudySeconds: dbStudySeconds + getTotalStudyTime() }
 }
 
 export type TodaySession = ReturnType<typeof useTodaySession>
