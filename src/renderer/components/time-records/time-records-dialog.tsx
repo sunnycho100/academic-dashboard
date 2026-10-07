@@ -367,7 +367,8 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
     if (isPersonalDev && isToday && duration > 0) {
       const PERSONAL_DEV_KEYS: Record<string, string> = {
         'Reading': 'reading',
-        'Project': 'project',
+        'Research': 'project',
+        'Project': 'project', // records saved before the rename
         'Job App': 'job-application',
       }
       const activityKey = PERSONAL_DEV_KEYS[newForm.taskTitle]

@@ -31,7 +31,7 @@ export function TimeRecordForm({
           const pdColors = loadPersonalDevColors()
           return [
             { label: 'Reading', key: 'reading' },
-            { label: 'Project', key: 'project' },
+            { label: 'Research', key: 'project' },
             { label: 'Job App', key: 'job-application' },
           ].map((preset) => {
             const color = pdColors[preset.key]

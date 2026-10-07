@@ -14,7 +14,7 @@ interface Activity {
 
 const ACTIVITY_DEFS: Activity[] = [
   { key: 'reading', label: 'Reading', icon: BookOpen },
-  { key: 'project', label: 'Project', icon: FolderGit2 },
+  { key: 'project', label: 'Research', icon: FolderGit2 },
   { key: 'job-application', label: 'Job App', icon: Briefcase },
 ]
 
@@ -141,7 +141,9 @@ export function PersonalDevTracker() {
         const totals: DbTotals = {}
         for (const rec of records) {
           if (rec.categoryName !== 'Personal Dev') continue
-          const actKey = ACTIVITY_DEFS.find((a) => a.label === rec.taskTitle)?.key
+          // "Project" is the old name of Research; its earlier records still count there
+          const title = rec.taskTitle === 'Project' ? 'Research' : rec.taskTitle
+          const actKey = ACTIVITY_DEFS.find((a) => a.label === title)?.key
           if (actKey) {
             totals[actKey] = (totals[actKey] || 0) + rec.duration
           }
@@ -271,52 +273,30 @@ export function PersonalDevTracker() {
                 whileTap={{ scale: 0.97 }}
                 onClick={() => toggle(activity)}
                 className={cn(
-                  'flex items-center gap-2 rounded-xl px-2.5 py-2.5 transition-all',
+                  'flex min-w-0 flex-col items-start gap-1 rounded-xl px-3 py-2.5 transition-all',
                   'border border-white/10 hover:border-white/25',
                   running ? 'bg-white/[0.08]' : 'bg-white/[0.03]',
                 )}
               >
-                {/* Icon + Play/Pause overlay */}
-                <div className="relative flex-shrink-0">
-                  <div
-                    className="h-8 w-8 rounded-lg flex items-center justify-center transition-colors"
-                    style={{ backgroundColor: running ? color + '33' : undefined }}
-                  >
-                    <Icon
-                      className={cn('h-4 w-4', !running && 'text-today-muted')}
-                      style={running ? { color } : undefined}
-                    />
-                  </div>
-                  {/* Play / Pause badge */}
-                  <div
-                    className={cn(
-                      'absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full flex items-center justify-center border border-today',
-                      running
-                        ? 'bg-coral text-white'
-                        : 'bg-today-muted/40 text-today-foreground',
-                    )}
-                  >
-                    {running ? (
-                      <Pause className="h-2 w-2 fill-current" />
-                    ) : (
-                      <Play className="h-2 w-2 ml-[0.5px]" />
-                    )}
-                  </div>
-                </div>
-
-                {/* Label + Timer stacked */}
-                <div className="flex flex-col items-start min-w-0 flex-1">
+                {/* Icon and name on one line, time under it, so nothing wraps in a narrow panel */}
+                <span className="flex w-full min-w-0 items-center gap-1.5">
+                  <Icon
+                    className={cn('h-3.5 w-3.5 flex-shrink-0', !running && 'text-today-muted')}
+                    style={running ? { color } : undefined}
+                  />
                   <span
                     className={cn(
-                      'text-[11px] font-medium leading-tight',
+                      'truncate whitespace-nowrap text-[12px] font-medium leading-tight',
                       running ? 'text-white' : 'text-today-muted',
                     )}
                   >
                     {activity.label}
                   </span>
+                </span>
+                <span className="flex w-full items-center justify-between gap-1">
                   <span
                     className={cn(
-                      'text-sm font-medium font-mono tabular-nums leading-tight',
+                      'text-[13px] font-medium font-mono tabular-nums leading-tight',
                       running
                         ? 'text-white'
                         : elapsed > 0
@@ -326,7 +306,12 @@ export function PersonalDevTracker() {
                   >
                     {fmt(elapsed)}
                   </span>
-                </div>
+                  {running ? (
+                    <Pause className="h-3 w-3 flex-shrink-0 fill-current text-coral" aria-hidden />
+                  ) : (
+                    <Play className="h-3 w-3 flex-shrink-0 text-today-muted" aria-hidden />
+                  )}
+                </span>
               </motion.button>
             )
           })}
