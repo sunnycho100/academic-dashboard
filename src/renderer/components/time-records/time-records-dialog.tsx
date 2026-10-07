@@ -91,23 +91,37 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
       .catch(() => {})
   }, [open])
 
-  // Fetch records when dialog opens or date/boundaries change
+  // Fetch records when dialog opens or date/boundaries change. Only the first load
+  // shows the spinner; stepping between days keeps the current day on screen until
+  // the next one arrives, so the timeline is not torn down and rebuilt each time.
+  const loadedOnceRef = useRef(false)
   useEffect(() => {
-    if (!open) return
-    setLoading(true)
+    if (!open) {
+      loadedOnceRef.current = false
+      return
+    }
+    if (!loadedOnceRef.current) setLoading(true)
+    let stale = false
     const dateStr = format(selectedDate, 'yyyy-MM-dd')
     const tzOffset = new Date().getTimezoneOffset()
     const endHourParam = timelineEndHour > 24 ? timelineEndHour - 24 : 0
     fetch(`/api/time-records?date=${dateStr}&tz=${tzOffset}&startHour=${timelineStartHour}&endHour=${endHourParam}`)
       .then((res) => res.json())
       .then((data) => {
+        // A quicker click may have moved on already; ignore the older day's answer
+        if (stale) return
         setRecords(Array.isArray(data) ? data : [])
+        loadedOnceRef.current = true
         setLoading(false)
       })
       .catch(() => {
+        if (stale) return
         setRecords([])
         setLoading(false)
       })
+    return () => {
+      stale = true
+    }
   }, [open, selectedDate, timelineStartHour, timelineEndHour])
 
   // Reset initial-scroll flag when dialog reopens
@@ -240,20 +254,13 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
 
   // Refetch helper
   const refetch = () => {
-    setLoading(true)
     const dateStr = format(selectedDate, 'yyyy-MM-dd')
     const tzOffset = new Date().getTimezoneOffset()
     const endHourParam = timelineEndHour > 24 ? timelineEndHour - 24 : 0
     fetch(`/api/time-records?date=${dateStr}&tz=${tzOffset}&startHour=${timelineStartHour}&endHour=${endHourParam}`)
       .then((res) => res.json())
-      .then((data) => {
-        setRecords(Array.isArray(data) ? data : [])
-        setLoading(false)
-      })
-      .catch(() => {
-        setRecords([])
-        setLoading(false)
-      })
+      .then((data) => setRecords(Array.isArray(data) ? data : []))
+      .catch(() => {})
   }
 
   // ── Edit handlers ──
