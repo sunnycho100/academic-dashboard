@@ -41,8 +41,9 @@ async function registerAppProtocol() {
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 1440,
-    height: 900,
+    // Opens at the minimum size; the layout wraps to fit, and the window can grow from there
+    width: 1024,
+    height: 680,
     minWidth: 1024,
     minHeight: 680,
     title: 'Academic Dashboard',
