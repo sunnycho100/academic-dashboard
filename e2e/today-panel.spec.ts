@@ -117,3 +117,28 @@ test('the timeline scrolls back through the day and jumps back to now', async ({
   await expect(panel.getByLabel('Now', { exact: true })).toBeInViewport()
   await expect(block).not.toBeInViewport()
 })
+
+test('the timeline steps back to yesterday and returns to today', async ({ page, api }) => {
+  await seedCategory(api)
+  const yesterday = new Date()
+  yesterday.setDate(yesterday.getDate() - 1)
+  yesterday.setHours(14, 0, 0, 0)
+  await api.post('/api/time-records', {
+    data: { taskTitle: 'Yesterday essay', categoryName: 'X', categoryColor: '#3f7d5c', taskType: 'Assignment', startTime: yesterday.toISOString(), endTime: new Date(yesterday.getTime() + 30 * 60_000).toISOString(), duration: 1800 },
+  })
+  await page.goto(APP_URL)
+  const panel = page.getByRole('complementary', { name: 'Today panel' })
+  const block = panel.locator('[data-lane="actual"]', { hasText: 'Yesterday essay' })
+  await expect(block).toHaveCount(0)
+
+  await panel.getByRole('button', { name: 'Previous day' }).click()
+  const label = yesterday.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+  const day = panel.locator('[data-timeline-day]')
+  await expect(day).toHaveText(label)
+  await expect(block).toBeVisible()
+  await expect(panel.getByLabel('Now', { exact: true })).toHaveCount(0)
+
+  await panel.getByRole('button', { name: 'Back to today' }).click()
+  await expect(day).toHaveText('Today')
+  await expect(block).toHaveCount(0)
+})

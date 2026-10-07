@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Task, Category } from '@/lib/types'
 import type { TodaySession } from '@/hooks/use-today-session'
 import { logicalToday } from '@/hooks/use-today-session'
-import { LocateFixed } from 'lucide-react'
+import { ChevronLeft, ChevronRight, LocateFixed } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { plannedBlocks, actualBlocks, timelineRange, type TimelineBlock } from '@/lib/timeline'
 
@@ -10,6 +10,7 @@ type Lanes = 'both' | 'planned' | 'actual'
 const LANES_KEY = 'timeline-lanes'
 const HOUR_PX = 64
 const RULER_PX = 44
+const DAY_LABEL = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
 
 /** Minutes from the day's midnight as "4:56 PM" (wraps past midnight) */
 const clock = (min: number) => {
@@ -44,13 +45,23 @@ export function DayTimeline({ tasks, categories, session, onOpenTimetable }: Day
   const [planned, setPlanned] = useState<TimelineBlock[]>([])
   const [actual, setActual] = useState<TimelineBlock[]>([])
   const [now, setNow] = useState(() => new Date())
+  // 0 is today, -1 yesterday; the arrows in the header move it
+  const [dayOffset, setDayOffset] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
   const scrolledRef = useRef(false)
+
+  // The day being shown, as yyyy-mm-dd
+  const shownDate = (() => {
+    const [y, m, d] = logicalToday(now).date.split('-').map(Number)
+    const day = new Date(y, m - 1, d + dayOffset)
+    return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`
+  })()
 
   // Fetch both lanes; poll so edits in other tabs and finished segments show up
   useEffect(() => {
     const load = () => {
-      const { date, startHour, endHour } = logicalToday()
+      const { startHour, endHour } = logicalToday()
+      const date = shownDate
       const tz = new Date().getTimezoneOffset()
       const endHourParam = endHour > 24 ? endHour - 24 : 0
       const [y, m, d] = date.split('-').map(Number)
@@ -72,15 +83,16 @@ export function DayTimeline({ tasks, categories, session, onOpenTimetable }: Day
       clearInterval(poll)
       window.removeEventListener('time-records-changed', load)
     }
-  }, [tasks])
+  }, [tasks, shownDate])
 
   // Minutes are measured from midnight of the logical day, so a day that runs past
   // midnight (Time Records day boundaries) keeps counting up past 24:00.
-  const [ly, lm, ld] = logicalToday(now).date.split('-').map(Number)
+  const [ly, lm, ld] = shownDate.split('-').map(Number)
   const midnight = new Date(ly, lm - 1, ld).getTime()
+  const isToday = dayOffset === 0
   // The running segment is drawn live from the timer state
   const nowMin = Math.round((now.getTime() - midnight) / 60_000)
-  const live: TimelineBlock[] = tasks.flatMap((task) => {
+  const live: TimelineBlock[] = !isToday ? [] : tasks.flatMap((task) => {
     const state = session.timerStates[task.id]
     if (!state?.isRunning || state.isPaused || !state.segmentStartedAt) return []
     const startMin = Math.round((new Date(state.segmentStartedAt).getTime() - midnight) / 60_000)
@@ -90,15 +102,20 @@ export function DayTimeline({ tasks, categories, session, onOpenTimetable }: Day
   const actualAll = [...actual, ...live]
 
   const shown = [...(lanes !== 'actual' ? planned : []), ...(lanes !== 'planned' ? actualAll : [])]
-  const { startHour, endHour } = timelineRange(shown, nowMin)
+  // Another day has no "now"; aim at 9 AM, or its first block if earlier
+  const focusMin = isToday ? nowMin : Math.min(9 * 60, ...shown.map((b) => b.startMin))
+  const { startHour, endHour } = timelineRange(shown, isToday ? nowMin : 0)
   const top = (min: number) => ((min - startHour * 60) / 60) * HOUR_PX
 
   // The resting position: "now" about a third from the top, so recent work sits above it
   const scrollToNow = (behavior: ScrollBehavior) => {
     const el = scrollRef.current
-    if (el) el.scrollTo({ top: Math.max(0, top(nowMin) - el.clientHeight / 3), behavior })
+    if (el) el.scrollTo({ top: Math.max(0, top(focusMin) - el.clientHeight / 3), behavior })
   }
-  // Start there once; after that the whole day scrolls freely
+  // Start there once per day shown; after that the whole day scrolls freely
+  useEffect(() => {
+    scrolledRef.current = false
+  }, [shownDate])
   useEffect(() => {
     if (scrolledRef.current || !scrollRef.current) return
     scrollToNow('auto')
@@ -123,12 +140,32 @@ export function DayTimeline({ tasks, categories, session, onOpenTimetable }: Day
   return (
     <div className="h-full flex flex-col">
       <div className="px-6 pt-4 pb-2 flex items-center gap-2">
-        <span className="text-xs uppercase tracking-wider text-today-muted">Timeline</span>
+        <div className="flex items-center gap-1 text-xs uppercase tracking-wider text-today-muted">
+          <button
+            type="button"
+            aria-label="Previous day"
+            onClick={() => setDayOffset((o) => o - 1)}
+            className="rounded p-0.5 hover:bg-white/[0.06] hover:text-white"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+          <span data-timeline-day className="min-w-[5.5rem] text-center tabular-nums" aria-live="polite">
+            {isToday ? 'Today' : DAY_LABEL.format(new Date(ly, lm - 1, ld))}
+          </span>
+          <button
+            type="button"
+            aria-label="Next day"
+            onClick={() => setDayOffset((o) => o + 1)}
+            className="rounded p-0.5 hover:bg-white/[0.06] hover:text-white"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
         <button
           type="button"
-          onClick={() => scrollToNow('smooth')}
-          aria-label="Jump to now"
-          title="Jump to now"
+          onClick={() => (isToday ? scrollToNow('smooth') : setDayOffset(0))}
+          aria-label={isToday ? 'Jump to now' : 'Back to today'}
+          title={isToday ? 'Jump to now' : 'Back to today'}
           className="ml-auto rounded-full p-1.5 text-today-muted hover:bg-white/[0.06] hover:text-white"
         >
           <LocateFixed className="h-3.5 w-3.5" />
@@ -212,14 +249,16 @@ export function DayTimeline({ tasks, categories, session, onOpenTimetable }: Day
 
           {/* Now */}
           {/* Dot and line share one centre line, starting where the blocks start */}
-          <div
-            className="absolute right-0 flex -translate-y-1/2 items-center pointer-events-none"
-            style={{ left: RULER_PX - 4, top: top(nowMin) }}
-            aria-label="Now"
-          >
-            <span className="h-2 w-2 flex-shrink-0 rounded-full bg-coral" />
-            <span className="h-0.5 flex-1 bg-coral" />
-          </div>
+          {isToday && (
+            <div
+              className="absolute right-0 flex -translate-y-1/2 items-center pointer-events-none"
+              style={{ left: RULER_PX - 4, top: top(nowMin) }}
+              aria-label="Now"
+            >
+              <span className="h-2 w-2 flex-shrink-0 rounded-full bg-coral" />
+              <span className="h-0.5 flex-1 bg-coral" />
+            </div>
+          )}
         </div>
       </div>
     </div>
