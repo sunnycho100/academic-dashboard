@@ -31,7 +31,7 @@ export function savePersonalDevColors(colors: Record<string, string>) {
 
 const PERSONAL_DEV_ACTIVITIES = [
   { key: 'reading', label: 'Reading' },
-  { key: 'project', label: 'Project' },
+  { key: 'project', label: 'Research' },
   { key: 'job-application', label: 'Job App' },
 ]
 

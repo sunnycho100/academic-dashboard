@@ -39,7 +39,7 @@ function getRunningTimers(userId?: string): RunningTimer[] {
       const data = JSON.parse(raw)
       const labels: Record<string, string> = {
         reading: 'Reading',
-        project: 'Project',
+        project: 'Research',
         'job-application': 'Job App',
       }
       for (const [key, state] of Object.entries(data) as [string, any][]) {
