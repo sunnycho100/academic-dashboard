@@ -56,7 +56,7 @@ export function Stats({ tasks, completedTodayCount }: StatsProps) {
           <span className={`font-serif text-[2.5rem] leading-none ${stat.urgent ? 'text-destructive' : ''}`}>
             <AnimatedCounter value={stat.value} />
           </span>
-          <span className="text-xs uppercase tracking-wider text-muted-foreground">{stat.label}</span>
+          <span className="text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{stat.label}</span>
         </div>
       ))}
     </div>
