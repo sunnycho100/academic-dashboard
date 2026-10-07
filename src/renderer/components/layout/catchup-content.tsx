@@ -96,12 +96,13 @@ export function CatchupContent({
   }
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_380px] gap-7 h-full min-h-0">
+    <div className="grid grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_380px] gap-6 xl:gap-7 h-full min-h-0">
       {/* Main column */}
       <div className="flex flex-col min-h-0 min-w-0">
-        <div className="flex items-end justify-between gap-4">
+        {/* In a narrow window the controls wrap onto their own line instead of slipping under the Today panel */}
+        <div className="flex flex-wrap items-end justify-between gap-x-4">
           <Stats tasks={tasks} completedTodayCount={completedToday.length} />
-          <div className="flex items-center gap-4 pb-5 flex-shrink-0">
+          <div className="ml-auto flex items-center gap-4 pb-5 flex-shrink-0">
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="group-by-category"
