@@ -107,50 +107,59 @@ export function PersonalDevTracker() {
       }
     }
     setTimers(cleaned)
+  }, [])
 
-    // Fetch today's Personal Dev records from DB to compute total elapsed
-    const now = new Date()
-    const tzOffset = now.getTimezoneOffset()
-    // Use day boundaries from localStorage
-    let startHour = 6
-    let endHour = 24
-    try {
-      const saved = localStorage.getItem('timeRecords-dayBoundaries')
-      if (saved) {
-        const { start, end } = JSON.parse(saved)
-        if (typeof start === 'number') startHour = start
-        if (typeof end === 'number') endHour = end
-      }
-    } catch {}
-    // If day extends past midnight (e.g. 10 AM–3 AM) and current time
-    // is before the end-hour boundary, we're still in "yesterday's" logical day.
-    let effectiveDate = now
-    if (endHour > 24) {
-      const pastMidnightEnd = endHour - 24
-      if (now.getHours() < pastMidnightEnd) {
-        effectiveDate = new Date(now)
-        effectiveDate.setDate(effectiveDate.getDate() - 1)
-      }
-    }
-    const dateStr = `${effectiveDate.getFullYear()}-${String(effectiveDate.getMonth() + 1).padStart(2, '0')}-${String(effectiveDate.getDate()).padStart(2, '0')}`
-    const endHourParam = endHour > 24 ? endHour - 24 : 0
-    fetch(`/api/time-records?date=${dateStr}&tz=${tzOffset}&startHour=${startHour}&endHour=${endHourParam}`)
-      .then((r) => r.json())
-      .then((records: Array<{ taskTitle: string; categoryName: string; duration: number }>) => {
-        if (!Array.isArray(records)) return
-        const totals: DbTotals = {}
-        for (const rec of records) {
-          if (rec.categoryName !== 'Personal Dev') continue
-          // "Project" is the old name of Research; its earlier records still count there
-          const title = rec.taskTitle === 'Project' ? 'Research' : rec.taskTitle
-          const actKey = ACTIVITY_DEFS.find((a) => a.label === title)?.key
-          if (actKey) {
-            totals[actKey] = (totals[actKey] || 0) + rec.duration
-          }
+  // Today's saved totals per activity. Re-read whenever a time record is added, edited
+  // or deleted (timers here, or edits in Time records), so the tiles match the records.
+  useEffect(() => {
+    const loadTotals = () => {
+      // Fetch today's Personal Dev records from DB to compute total elapsed
+      const now = new Date()
+      const tzOffset = now.getTimezoneOffset()
+      // Use day boundaries from localStorage
+      let startHour = 6
+      let endHour = 24
+      try {
+        const saved = localStorage.getItem('timeRecords-dayBoundaries')
+        if (saved) {
+          const { start, end } = JSON.parse(saved)
+          if (typeof start === 'number') startHour = start
+          if (typeof end === 'number') endHour = end
         }
-        setDbTotals(totals)
-      })
-      .catch(() => {})
+      } catch {}
+      // If day extends past midnight (e.g. 10 AM–3 AM) and current time
+      // is before the end-hour boundary, we're still in "yesterday's" logical day.
+      let effectiveDate = now
+      if (endHour > 24) {
+        const pastMidnightEnd = endHour - 24
+        if (now.getHours() < pastMidnightEnd) {
+          effectiveDate = new Date(now)
+          effectiveDate.setDate(effectiveDate.getDate() - 1)
+        }
+      }
+      const dateStr = `${effectiveDate.getFullYear()}-${String(effectiveDate.getMonth() + 1).padStart(2, '0')}-${String(effectiveDate.getDate()).padStart(2, '0')}`
+      const endHourParam = endHour > 24 ? endHour - 24 : 0
+      fetch(`/api/time-records?date=${dateStr}&tz=${tzOffset}&startHour=${startHour}&endHour=${endHourParam}`)
+        .then((r) => r.json())
+        .then((records: Array<{ taskTitle: string; categoryName: string; duration: number }>) => {
+          if (!Array.isArray(records)) return
+          const totals: DbTotals = {}
+          for (const rec of records) {
+            if (rec.categoryName !== 'Personal Dev') continue
+            // "Project" is the old name of Research; its earlier records still count there
+            const title = rec.taskTitle === 'Project' ? 'Research' : rec.taskTitle
+            const actKey = ACTIVITY_DEFS.find((a) => a.label === title)?.key
+            if (actKey) {
+              totals[actKey] = (totals[actKey] || 0) + rec.duration
+            }
+          }
+          setDbTotals(totals)
+        })
+        .catch(() => {})
+    }
+    loadTotals()
+    window.addEventListener('time-records-changed', loadTotals)
+    return () => window.removeEventListener('time-records-changed', loadTotals)
   }, [])
 
   // Persist running state on change
