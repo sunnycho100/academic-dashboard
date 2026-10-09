@@ -64,9 +64,18 @@ export function useTodaySession(todayTasks: Task[], categories: Category[], user
       const endHourParam = endHour > 24 ? endHour - 24 : 0
       fetch(`/api/time-records?date=${date}&tz=${tz}&startHour=${startHour}&endHour=${endHourParam}`)
         .then((res) => res.json())
-        .then((records: Array<{ duration: number; taskId?: string | null }>) => {
+        .then((records: Array<{ duration: number }>) => {
+          if (Array.isArray(records)) setDbStudySeconds(records.reduce((sum, r) => sum + r.duration, 0))
+        })
+        .catch(() => {})
+      // Each planned task's saved time on any day, so a session that crosses midnight
+      // keeps its count and finishing the task records all of it
+      const ids = todayTasks.map((t) => t.id).join(',')
+      if (!ids) return setSavedByTask({})
+      fetch(`/api/time-records?taskIds=${ids}`)
+        .then((res) => res.json())
+        .then((records: Array<{ duration: number; taskId: string | null }>) => {
           if (!Array.isArray(records)) return
-          setDbStudySeconds(records.reduce((sum, r) => sum + r.duration, 0))
           const byTask: Record<string, number> = {}
           for (const r of records) if (r.taskId) byTask[r.taskId] = (byTask[r.taskId] ?? 0) + r.duration
           setSavedByTask(byTask)
@@ -83,7 +92,7 @@ export function useTodaySession(todayTasks: Task[], categories: Category[], user
   }, [todayTasks]) // re-fetch when today's tasks change (e.g. after completing one)
 
   /**
-   * A task's time today: its saved segments plus the one running now. Derived from the
+   * A task's time: its saved segments (any day) plus the one running now. Derived from the
    * records rather than a separate counter, so a bad count can never stick around.
    */
   const getElapsedSeconds = (taskId: string): number => {

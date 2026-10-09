@@ -18,6 +18,8 @@ const QueryParamsSchema = z.object({
   tz: z.coerce.number().int().min(-720).max(720).optional(),
   startHour: z.coerce.number().int().min(0).max(23).optional(),
   endHour: z.coerce.number().int().min(0).max(23).optional(),
+  /** Comma-separated task ids: every record for those tasks, on any day */
+  taskIds: z.string().max(5000).optional(),
 })
 
 export async function GET(request: Request) {
@@ -29,9 +31,18 @@ export async function GET(request: Request) {
       tz: searchParams.get('tz') ?? undefined,
       startHour: searchParams.get('startHour') ?? undefined,
       endHour: searchParams.get('endHour') ?? undefined,
+      taskIds: searchParams.get('taskIds') ?? undefined,
     })
     if (!paramsParsed.success) {
       return Response.json({ error: paramsParsed.error.flatten() }, { status: 400 })
+    }
+    if (paramsParsed.data.taskIds !== undefined) {
+      const ids = paramsParsed.data.taskIds.split(',').filter(Boolean)
+      const records = await prisma.timeRecord.findMany({
+        where: { userId, taskId: { in: ids } },
+        orderBy: { startTime: 'asc' },
+      })
+      return Response.json(records)
     }
     const dateParam = paramsParsed.data.date ?? null
     const tzOffset = paramsParsed.data.tz ?? new Date().getTimezoneOffset()
@@ -106,6 +117,20 @@ export async function POST(request: Request) {
     const endTime = new Date(body.endTime)
     if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
       return Response.json({ error: 'Invalid date format' }, { status: 400 })
+    }
+
+    // A segment is identified by what it timed and when it started. Saving it again
+    // (e.g. flushed when the app reloads at midnight, then saved on pause) extends the
+    // same record instead of storing the overlapping time twice.
+    const existing = await prisma.timeRecord.findFirst({
+      where: { userId, startTime, taskTitle: body.taskTitle, categoryName: body.categoryName },
+    })
+    if (existing) {
+      const record =
+        endTime > existing.endTime
+          ? await prisma.timeRecord.update({ where: { id: existing.id }, data: { endTime, duration: body.duration } })
+          : existing
+      return Response.json(record, { status: 200 })
     }
 
     const record = await prisma.timeRecord.create({
