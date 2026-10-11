@@ -83,3 +83,25 @@ test('daily backup keeps one copy per day and only the last 7', async () => {
   assert.equal(files[6], 'academic-dashboard-2026-10-09.db')
   assert.equal(count(path.join(dir, files[6]), 'Task'), 1)
 })
+
+test('the app migrations merge duplicate time records and then forbid them', () => {
+  const dir = path.resolve(import.meta.dirname, '../../../prisma/migrations')
+  const all = fs.readdirSync(dir).filter((d) => fs.existsSync(path.join(dir, d, 'migration.sql'))).sort()
+  const sql = all.map((d) => fs.readFileSync(path.join(dir, d, 'migration.sql'), 'utf8'))
+  const file = tmpDb()
+  migrate(file, sql.slice(0, 1))
+  const row = (id: string, title: string, end: string, duration: number) =>
+    `INSERT INTO "TimeRecord" ("id", "userId", "taskTitle", "categoryName", "categoryColor", "taskType", "startTime", "endTime", "duration")
+     VALUES ('${id}', 'local', '${title}', 'ECE 555', '#000', 'Lecture', '2026-10-09T02:55:50.333+00:00', '${end}', ${duration});`
+  const db = new Database(file)
+  db.exec(row('short', 'S4', '2026-10-09T05:00:43.742+00:00', 7493))
+  db.exec(row('long', 'S4', '2026-10-09T05:11:34.912+00:00', 8145))
+  db.exec(row('other', 'S5', '2026-10-09T05:11:34.912+00:00', 1))
+  db.close()
+
+  migrate(file, sql)
+  const after = new Database(file)
+  assert.deepEqual(after.prepare(`SELECT "id" FROM "TimeRecord" ORDER BY "id"`).pluck().all(), ['long', 'other'])
+  assert.throws(() => after.exec(row('again', 'S4', '2026-10-09T05:20:00.000+00:00', 1)), /UNIQUE/)
+  after.close()
+})
