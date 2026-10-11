@@ -60,10 +60,13 @@ test('a session running past midnight is kept once and keeps its count', async (
   await page.locator('.group').filter({ hasText: 'S4' }).getByTitle("Add to Today's Plan").click()
   await page.getByTitle('Start timer').first().click()
 
-  // Past midnight the app reloads into the new day while the timer runs
+  // Past midnight the app reloads into the new day while the timer runs. Fake time is
+  // advanced in two steps so it doesn't jump minutes ahead while the page reloads (a gap
+  // that long now reads as the app having been closed).
   const reloaded = page.waitForEvent('load')
-  await page.clock.runFor(15 * 60_000)
+  await page.clock.runFor(11 * 60_000)
   await reloaded
+  await page.clock.runFor(4 * 60_000)
   await page.getByTitle('Pause timer').first().click()
 
   const panel = page.getByRole('complementary', { name: 'Today panel' })
@@ -93,4 +96,53 @@ test('saving the same segment twice extends it instead of duplicating it', async
   const records = await (await api.get('/api/time-records?taskIds=task-1')).json()
   expect(records).toHaveLength(1)
   expect(records[0].duration).toBe(136 * 60)
+})
+
+test('a timer left running while the app was closed stops at its last tick', async ({ page, api }) => {
+  const cat = await seedCategory(api)
+  const task = await seedTask(api, cat.id, { title: 'Closed-app review' })
+  const now = new Date()
+  now.setHours(14, 0, 0, 0)
+  await page.clock.install({ time: now })
+
+  // Started at 12:50, last ticked at 13:00, then the app was gone for an hour
+  const startedAt = new Date(now.getTime() - 70 * 60_000).toISOString()
+  const lastTickAt = new Date(now.getTime() - 60 * 60_000).toISOString()
+  await page.addInitScript(({ id, startedAt, lastTickAt }) => {
+    localStorage.setItem('class-catchup-today-local', JSON.stringify([id]))
+    localStorage.setItem('class-catchup-today-date-local', new Date().toDateString())
+    localStorage.setItem('class-catchup-timers-local', JSON.stringify({
+      [id]: { isRunning: true, isPaused: false, elapsedSeconds: 600, segmentStartedAt: startedAt, lastTickAt },
+    }))
+  }, { id: task.id, startedAt, lastTickAt })
+  await page.goto(APP_URL)
+
+  const panel = page.getByRole('complementary', { name: 'Today panel' })
+  await expect(panel.getByTitle('Resume timer')).toBeVisible()
+  await expect(panel.getByLabel('Active timer')).toHaveText('0:10:00')
+  await expect.poll(async () => (await (await api.get(`/api/time-records?taskIds=${task.id}`)).json())
+    .map((r: { startTime: string; endTime: string; duration: number }) => ({ startTime: r.startTime, endTime: r.endTime, duration: r.duration })))
+    .toEqual([{ startTime: startedAt, endTime: lastTickAt, duration: 600 }])
+})
+
+test('a Personal dev timer left running while the app was closed stops at its last tick', async ({ page, api }) => {
+  await seedCategory(api)
+  const now = new Date()
+  now.setHours(14, 0, 0, 0)
+  await page.clock.install({ time: now })
+  const startedAt = new Date(now.getTime() - 70 * 60_000).toISOString()
+  const lastTickAt = new Date(now.getTime() - 60 * 60_000).toISOString()
+  await page.addInitScript(({ startedAt, lastTickAt }) => {
+    localStorage.setItem('personal-dev-timers', JSON.stringify({ project: { isRunning: true, segmentStartedAt: startedAt } }))
+    localStorage.setItem('personal-dev-last-tick', lastTickAt)
+  }, { startedAt, lastTickAt })
+  await page.goto(APP_URL)
+
+  const tile = page.getByRole('complementary', { name: 'Today panel' }).getByRole('button', { name: /Research/ })
+  await expect(tile).toContainText('00:10')
+  await page.clock.runFor(5 * 60_000)
+  await expect(tile).toContainText('00:10')
+  await expect.poll(async () => (await (await api.get('/api/bulk')).json()).timeRecords
+    .map((r: { taskTitle: string; startTime: string; endTime: string; duration: number }) => ({ taskTitle: r.taskTitle, startTime: r.startTime, endTime: r.endTime, duration: r.duration })))
+    .toEqual([{ taskTitle: 'Research', startTime: startedAt, endTime: lastTickAt, duration: 600 }])
 })
