@@ -67,6 +67,28 @@ test.describe('task lifecycle', () => {
     await expect(page.getByRole('region', { name: 'Done today' }).getByText('Submit assignment')).toBeVisible()
   })
 
+  test('completing a task stores the time from its saved records', async ({ page, api }) => {
+    const cat = await seedCategory(api)
+    const task = await seedTask(api, cat.id, { title: 'Timed reading' })
+    const start = new Date()
+    start.setHours(9, 0, 0, 0)
+    for (const [offset, minutes] of [[0, 10], [60, 15]]) {
+      const s = new Date(start.getTime() + offset * 60_000)
+      await api.post('/api/time-records', {
+        data: { taskId: task.id, taskTitle: task.title, categoryName: cat.name, categoryColor: cat.color, taskType: 'lecture', startTime: s.toISOString(), endTime: new Date(s.getTime() + minutes * 60_000).toISOString(), duration: minutes * 60 },
+      })
+    }
+
+    await page.goto(APP_URL)
+    await page.locator('.group').filter({ hasText: 'Timed reading' }).getByRole('checkbox').click()
+    await expect(page.getByRole('region', { name: 'Done today' }).getByText('Timed reading')).toBeVisible()
+
+    await expect.poll(async () => (await (await api.get('/api/completed-tasks')).json())
+      .map((c: { taskTitle: string; actualTimeSpent: number | null }) => ({ taskTitle: c.taskTitle, actualTimeSpent: c.actualTimeSpent })))
+      .toEqual([{ taskTitle: 'Timed reading', actualTimeSpent: 25 }])
+    expect(await (await api.get('/api/tasks')).json()).toEqual([])
+  })
+
   test('undo from Done today puts the task back', async ({ page, api }) => {
     const cat = await seedCategory(api)
     await seedTask(api, cat.id, { title: 'Problem set 2' })

@@ -161,3 +161,21 @@ test('the same segment saved twice at once is stored once', async ({ page, api }
   expect(records).toHaveLength(1)
   expect(records[0].duration).toBe(136 * 60)
 })
+
+test('completing a task with its timer running counts the running segment', async ({ page, api }) => {
+  const cat = await seedCategory(api)
+  await seedTask(api, cat.id, { title: 'Finish while timing' })
+  const afternoon = new Date()
+  afternoon.setHours(14, 0, 0, 0)
+  await page.clock.install({ time: afternoon })
+  await page.goto(APP_URL)
+
+  await page.locator('.group').filter({ hasText: 'Finish while timing' }).getByTitle("Add to Today's Plan").click()
+  await page.getByTitle('Start timer').first().click()
+  await page.clock.runFor(12 * 60_000)
+  await page.locator('.group').filter({ hasText: 'Finish while timing' }).getByRole('checkbox').first().click()
+
+  await expect.poll(async () => (await (await api.get('/api/completed-tasks')).json())
+    .map((c: { actualTimeSpent: number | null }) => c.actualTimeSpent))
+    .toEqual([12])
+})
