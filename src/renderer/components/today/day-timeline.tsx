@@ -4,6 +4,8 @@ import type { TodaySession } from '@/hooks/use-today-session'
 import { logicalToday } from '@/hooks/use-today-session'
 import { ChevronLeft, ChevronRight, LocateFixed } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { runningPersonalDev } from '@/components/today/personal-dev-tracker'
+import { loadPersonalDevColors } from '@/components/settings/color-scheme-dialog'
 import { plannedBlocks, actualBlocks, timelineRange, type TimelineBlock } from '@/lib/timeline'
 
 type Lanes = 'both' | 'planned' | 'actual'
@@ -11,6 +13,12 @@ const LANES_KEY = 'timeline-lanes'
 const HOUR_PX = 64
 const RULER_PX = 44
 const DAY_LABEL = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+
+/** "1:00 to 2:15 PM", keeping both AM and PM only when they differ */
+const clockRange = (start: number, end: number) => {
+  const [a, b] = [clock(start), clock(end)]
+  return a.slice(-2) === b.slice(-2) ? `${a.slice(0, -3)} to ${b}` : `${a} to ${b}`
+}
 
 /** Minutes from the day's midnight as "4:56 PM" (wraps past midnight) */
 const clock = (min: number) => {
@@ -45,6 +53,18 @@ export function DayTimeline({ tasks, categories, session, onOpenTimetable }: Day
   const [planned, setPlanned] = useState<TimelineBlock[]>([])
   const [actual, setActual] = useState<TimelineBlock[]>([])
   const [now, setNow] = useState(() => new Date())
+  // Running Personal dev timers (Reading, Research, Job App), drawn live like task timers
+  const [devRunning, setDevRunning] = useState(runningPersonalDev)
+  useEffect(() => {
+    const refresh = () => setDevRunning(runningPersonalDev())
+    window.addEventListener('personal-dev-changed', refresh)
+    return () => window.removeEventListener('personal-dev-changed', refresh)
+  }, [])
+  // Keep the clock moving so live blocks grow and the now line advances between polls
+  useEffect(() => {
+    const tick = setInterval(() => setNow(new Date()), 15_000)
+    return () => clearInterval(tick)
+  }, [])
   // 0 is today, -1 yesterday; the arrows in the header move it
   const [dayOffset, setDayOffset] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -99,7 +119,14 @@ export function DayTimeline({ tasks, categories, session, onOpenTimetable }: Day
     const color = categories.find((c) => c.id === task.categoryId)?.color
     return [{ id: `live-${task.id}`, label: task.title, startMin, endMin: Math.max(nowMin, startMin + 1), color, live: true }]
   })
-  const actualAll = [...actual, ...live]
+  const devColors = loadPersonalDevColors()
+  const devLive: TimelineBlock[] = !isToday
+    ? []
+    : devRunning.map((d) => {
+        const startMin = Math.round((new Date(d.segmentStartedAt).getTime() - midnight) / 60_000)
+        return { id: `live-${d.key}`, label: d.label, startMin, endMin: Math.max(nowMin, startMin + 1), color: devColors[d.key], live: true }
+      })
+  const actualAll = [...actual, ...live, ...devLive]
 
   const shown = [...(lanes !== 'actual' ? planned : []), ...(lanes !== 'planned' ? actualAll : [])]
   // Another day has no "now"; aim at 9 AM, or its first block if earlier
@@ -224,6 +251,7 @@ export function DayTimeline({ tasks, categories, session, onOpenTimetable }: Day
               <div
                 key={b.id}
                 data-lane="actual"
+                data-live={b.live || undefined}
                 className={cn(
                   'absolute rounded-md px-2 py-1 leading-tight overflow-hidden',
                   b.live ? 'bg-coral text-white' : 'bg-today-foreground text-today',
@@ -238,10 +266,11 @@ export function DayTimeline({ tasks, categories, session, onOpenTimetable }: Day
                     : {}),
                 }}
               >
-                <p className="truncate text-[12px] font-medium">{b.live ? `${b.label} · running` : b.label}</p>
+                <p className="truncate text-[12px] font-medium">{b.label}</p>
                 {top(b.endMin) - top(b.startMin) >= 36 && (
                   <p className={cn('truncate text-[11px] tabular-nums', b.live ? 'text-white/80' : 'text-today/70')}>
-                    {clock(b.startMin)} to {clock(b.endMin)}
+                    {/* Coral already says it is running; "since" says it is still open */}
+                    {b.live ? `since ${clock(b.startMin)}` : clockRange(b.startMin, b.endMin)}
                   </p>
                 )}
               </div>

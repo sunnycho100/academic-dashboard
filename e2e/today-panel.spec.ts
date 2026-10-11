@@ -142,3 +142,21 @@ test('the timeline steps back to yesterday and returns to today', async ({ page,
   await expect(day).toHaveText('Today')
   await expect(block).toHaveCount(0)
 })
+
+test('a running Personal dev timer grows as a live block on the timeline', async ({ page, api }) => {
+  await seedCategory(api)
+  const afternoon = new Date()
+  afternoon.setHours(15, 0, 0, 0)
+  await page.clock.install({ time: afternoon })
+  await page.goto(APP_URL)
+  const panel = page.getByRole('complementary', { name: 'Today panel' })
+
+  await panel.getByRole('button', { name: /Research/ }).click()
+  const live = panel.locator('[data-lane="actual"][data-live]', { hasText: 'Research' })
+  await expect(live).toBeVisible()
+  const before = (await live.boundingBox())!.height
+
+  // An hour later the block spans about an hour (64px)
+  await page.clock.runFor(60 * 60_000)
+  await expect.poll(async () => (await live.boundingBox())!.height).toBeGreaterThan(before + 30)
+})

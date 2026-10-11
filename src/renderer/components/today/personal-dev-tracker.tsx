@@ -43,6 +43,15 @@ function load(): ActivityTimerData {
   }
 }
 
+/** Personal dev timers running now, for the timeline's live blocks */
+export function runningPersonalDev(): { key: string; label: string; segmentStartedAt: string }[] {
+  const data = load()
+  return ACTIVITY_DEFS.flatMap((a) => {
+    const t = data[a.key]
+    return t?.isRunning && t.segmentStartedAt ? [{ key: a.key, label: a.label, segmentStartedAt: t.segmentStartedAt }] : []
+  })
+}
+
 function save(data: ActivityTimerData) {
   if (typeof window === 'undefined') return
   try {
@@ -163,7 +172,11 @@ export function PersonalDevTracker() {
   }, [])
 
   // Persist running state on change
-  useEffect(() => { save(timers) }, [timers])
+  useEffect(() => {
+    save(timers)
+    // Lets the timeline draw (or stop drawing) a live block for a running activity
+    window.dispatchEvent(new Event('personal-dev-changed'))
+  }, [timers])
 
   // Tick every second when any timer is running (to update displayed live elapsed)
   useEffect(() => {
