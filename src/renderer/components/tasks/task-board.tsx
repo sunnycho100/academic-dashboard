@@ -57,7 +57,7 @@ export function TaskBoard(props: TaskBoardProps) {
 
   const renderRows = (list: Task[]) => (
     <SortableContext items={list.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-      <div className="space-y-1.5">
+      <div className="border-t border-border">
         {list.map((task) => {
           const category = categoryOf(task.categoryId)
           if (!category) return null
