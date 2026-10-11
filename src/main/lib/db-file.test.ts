@@ -5,7 +5,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import Database from 'better-sqlite3'
-import { migrate } from './db-file.ts'
+import { dailyBackup, migrate } from './db-file.ts'
 
 const tmpDb = () => path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'ad-db-test-')), 'academic-dashboard.db')
 
@@ -68,4 +68,18 @@ test('pending migrations first copy the database next to it', () => {
   const copy = path.join(path.dirname(file), 'academic-dashboard.pre-migrate-1.db')
   assert.equal(count(copy, 'Task'), 1)
   assert.equal(count(copy, 'Category'), 1)
+})
+
+test('daily backup keeps one copy per day and only the last 7', async () => {
+  const file = tmpDb()
+  migrate(file, [init])
+  seed(file)
+  const dir = path.join(path.dirname(file), 'backups')
+  for (let day = 1; day <= 9; day++) await dailyBackup(file, dir, new Date(2026, 9, day, 12))
+  await dailyBackup(file, dir, new Date(2026, 9, 9, 18))
+  const files = fs.readdirSync(dir).sort()
+  assert.equal(files.length, 7)
+  assert.equal(files[0], 'academic-dashboard-2026-10-03.db')
+  assert.equal(files[6], 'academic-dashboard-2026-10-09.db')
+  assert.equal(count(path.join(dir, files[6]), 'Task'), 1)
 })
