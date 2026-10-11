@@ -119,35 +119,37 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Invalid date format' }, { status: 400 })
     }
 
-    // A segment is identified by what it timed and when it started. Saving it again
-    // (e.g. flushed when the app reloads at midnight, then saved on pause) extends the
-    // same record instead of storing the overlapping time twice.
-    const existing = await prisma.timeRecord.findFirst({
-      where: { userId, startTime, taskTitle: body.taskTitle, categoryName: body.categoryName },
-    })
-    if (existing) {
-      const record =
-        endTime > existing.endTime
-          ? await prisma.timeRecord.update({ where: { id: existing.id }, data: { endTime, duration: body.duration } })
-          : existing
-      return Response.json(record, { status: 200 })
+    // A segment is identified by what it timed and when it started, enforced by a unique
+    // index. Saving it again (e.g. flushed when the app reloads at midnight, then saved on
+    // pause) extends the same record instead of storing the overlapping time twice.
+    try {
+      const record = await prisma.timeRecord.create({
+        data: {
+          userId,
+          taskId: body.taskId ?? null,
+          taskTitle: body.taskTitle,
+          categoryName: body.categoryName,
+          categoryColor: body.categoryColor,
+          taskType: body.taskType,
+          startTime,
+          endTime,
+          duration: body.duration,
+        },
+      })
+      return Response.json(record, { status: 201 })
+    } catch (error) {
+      if ((error as { code?: string }).code !== 'P2002') throw error
     }
-
-    const record = await prisma.timeRecord.create({
-      data: {
-        userId,
-        taskId: body.taskId ?? null,
-        taskTitle: body.taskTitle,
-        categoryName: body.categoryName,
-        categoryColor: body.categoryColor,
-        taskType: body.taskType,
-        startTime,
-        endTime,
-        duration: body.duration,
+    const existing = await prisma.timeRecord.findUniqueOrThrow({
+      where: {
+        userId_startTime_taskTitle_categoryName: { userId, startTime, taskTitle: body.taskTitle, categoryName: body.categoryName },
       },
     })
-
-    return Response.json(record, { status: 201 })
+    const record =
+      endTime > existing.endTime
+        ? await prisma.timeRecord.update({ where: { id: existing.id }, data: { endTime, duration: body.duration } })
+        : existing
+    return Response.json(record, { status: 200 })
   } catch (error) {
     if (error instanceof Response) return error
     console.error('Failed to create time record:', error)

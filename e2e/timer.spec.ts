@@ -146,3 +146,18 @@ test('a Personal dev timer left running while the app was closed stops at its la
     .map((r: { taskTitle: string; startTime: string; endTime: string; duration: number }) => ({ taskTitle: r.taskTitle, startTime: r.startTime, endTime: r.endTime, duration: r.duration })))
     .toEqual([{ taskTitle: 'Research', startTime: startedAt, endTime: lastTickAt, duration: 600 }])
 })
+
+test('the same segment saved twice at once is stored once', async ({ page, api }) => {
+  await seedCategory(api)
+  const start = new Date()
+  start.setHours(21, 55, 0, 0)
+  const seg = (minutes: number) => ({ taskId: 'task-1', taskTitle: 'S4', categoryName: 'X', categoryColor: '#3b2fd6', taskType: 'Lecture', startTime: start.toISOString(), endTime: new Date(start.getTime() + minutes * 60_000).toISOString(), duration: minutes * 60 })
+  // e.g. the unload flush and a retry landing together
+  const statuses = await page.evaluate((bodies) => Promise.all(bodies.map((b) =>
+    fetch('/api/time-records', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then((r) => r.status),
+  )), [seg(125), seg(136), seg(130)])
+  expect(statuses.every((s) => s < 300)).toBe(true)
+  const records = await (await api.get('/api/time-records?taskIds=task-1')).json()
+  expect(records).toHaveLength(1)
+  expect(records[0].duration).toBe(136 * 60)
+})

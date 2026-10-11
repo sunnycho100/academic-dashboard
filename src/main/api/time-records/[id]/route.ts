@@ -65,6 +65,9 @@ export async function PATCH(
     return Response.json(record)
   } catch (error) {
     if (error instanceof Response) return error
+    if ((error as { code?: string }).code === 'P2002') {
+      return Response.json({ error: 'Another record for this task already starts at that time' }, { status: 409 })
+    }
     console.error('Failed to update time record:', error)
     return Response.json(
       { error: 'Failed to update time record' },
