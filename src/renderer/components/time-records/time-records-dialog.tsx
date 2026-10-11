@@ -21,10 +21,9 @@ import {
   formatHourLabel,
   formatHourOption,
   getCurrentTimePosition,
-  getLogicalToday,
-  isLogicalToday,
   buildDateFromLogicalDay,
 } from '@/components/time-records'
+import { DAY_BOUNDARIES_KEY, dayBoundaries, isLogicalToday, logicalDate } from '@/lib/day'
 
 interface TimeRecordsDialogProps {
   open: boolean
@@ -56,30 +55,23 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
 
   // Persist day boundary preferences & set logical today on mount
   useEffect(() => {
-    const saved = localStorage.getItem('timeRecords-dayBoundaries')
-    if (saved) {
-      try {
-        const { start, end } = JSON.parse(saved)
-        if (typeof start === 'number') setTimelineStartHour(start)
-        if (typeof end === 'number') {
-          setTimelineEndHour(end)
-          // Adjust initial selected date to logical today
-          setSelectedDate(getLogicalToday(start, end))
-        }
-      } catch {}
-    }
+    const { startHour, endHour } = dayBoundaries()
+    setTimelineStartHour(startHour)
+    setTimelineEndHour(endHour)
+    // Adjust initial selected date to logical today
+    setSelectedDate(logicalDate(new Date(), endHour))
   }, [])
 
   const handleStartHourChange = (val: number) => {
     setTimelineStartHour(val)
     const newEnd = timelineEndHour <= val ? val + 18 : timelineEndHour
-    localStorage.setItem('timeRecords-dayBoundaries', JSON.stringify({ start: val, end: newEnd }))
+    localStorage.setItem(DAY_BOUNDARIES_KEY, JSON.stringify({ start: val, end: newEnd }))
     if (newEnd !== timelineEndHour) setTimelineEndHour(newEnd)
   }
 
   const handleEndHourChange = (val: number) => {
     setTimelineEndHour(val)
-    localStorage.setItem('timeRecords-dayBoundaries', JSON.stringify({ start: timelineStartHour, end: val }))
+    localStorage.setItem(DAY_BOUNDARIES_KEY, JSON.stringify({ start: timelineStartHour, end: val }))
   }
 
   // Fetch categories when the dialog opens
@@ -171,7 +163,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
     const longestSeconds = Math.max(...records.map((r) => r.duration))
 
     const now = new Date()
-    const isTodayDate = isLogicalToday(selectedDate, timelineStartHour, timelineEndHour)
+    const isTodayDate = isLogicalToday(selectedDate, timelineEndHour)
 
     const dayStart = new Date(selectedDate)
     dayStart.setHours(timelineStartHour % 24, 0, 0, 0)
@@ -202,8 +194,8 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
   }, [records, selectedDate, timelineStartHour, timelineEndHour])
 
   const logicalToday = useMemo(
-    () => getLogicalToday(timelineStartHour, timelineEndHour),
-    [timelineStartHour, timelineEndHour]
+    () => logicalDate(new Date(), timelineEndHour),
+    [timelineEndHour]
   )
   const isToday = selectedDate.toDateString() === logicalToday.toDateString()
 
@@ -214,7 +206,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
       setSelectedDate(tomorrow)
     }
   }
-  const handleToday = () => setSelectedDate(getLogicalToday(timelineStartHour, timelineEndHour))
+  const handleToday = () => setSelectedDate(logicalDate(new Date(), timelineEndHour))
 
   const handleOpenChange = (next: boolean) => {
     if (!next) {
@@ -363,7 +355,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
 
     // If this is a Personal Dev activity added for today, update the localStorage timer
     const isPersonalDev = newForm.categoryName === 'Personal Dev'
-    const isToday = isLogicalToday(selectedDate, timelineStartHour, timelineEndHour)
+    const isToday = isLogicalToday(selectedDate, timelineEndHour)
     if (isPersonalDev && isToday && duration > 0) {
       const PERSONAL_DEV_KEYS: Record<string, string> = {
         'Reading': 'reading',

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Task, Category } from '@/lib/types'
 import type { TodaySession } from '@/hooks/use-today-session'
-import { logicalToday } from '@/hooks/use-today-session'
+import { logicalToday, timeRecordsDayQuery } from '@/lib/day'
 import { ChevronLeft, ChevronRight, LocateFixed } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { runningPersonalDev } from '@/components/today/personal-dev-tracker'
@@ -82,14 +82,12 @@ export function DayTimeline({ tasks, categories, session, onOpenTimetable }: Day
     const load = () => {
       const { startHour, endHour } = logicalToday()
       const date = shownDate
-      const tz = new Date().getTimezoneOffset()
-      const endHourParam = endHour > 24 ? endHour - 24 : 0
       const [y, m, d] = date.split('-').map(Number)
       fetch(`/api/timetable?date=${date}`)
         .then((r) => r.json())
         .then((rows) => Array.isArray(rows) && setPlanned(plannedBlocks(rows)))
         .catch(() => {})
-      fetch(`/api/time-records?date=${date}&tz=${tz}&startHour=${startHour}&endHour=${endHourParam}`)
+      fetch(`/api/time-records?${timeRecordsDayQuery(date, startHour, endHour)}`)
         .then((r) => r.json())
         .then((rows) => Array.isArray(rows) && setActual(actualBlocks(rows, new Date(y, m - 1, d))))
         .catch(() => {})

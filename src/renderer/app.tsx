@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Task, Category, SortOption, CompletedTask } from '@/lib/types'
-import { currentDayStart } from '@/lib/task-format'
-import { rolloverHour } from '@/hooks/use-today-session'
+import { currentDayStart, rolloverHour } from '@/lib/day'
 import { CategorySidebar } from '@/components/categories/category-sidebar'
 import { AddCategoryDialog } from '@/components/categories/add-category-dialog'
 import { AddTaskDialog } from '@/components/tasks/add-task-sheet'
