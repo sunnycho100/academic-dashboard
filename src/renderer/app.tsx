@@ -8,7 +8,7 @@ import { AddTaskDialog } from '@/components/tasks/add-task-sheet'
 import { EditTaskSheet } from '@/components/tasks/edit-task-sheet'
 import { ThemeToggle } from '@/components/theme/theme-toggle'
 import { ClearDataDialog } from '@/components/settings/clear-data-dialog'
-import { ImportDataDialog } from '@/components/settings/import-data-dialog'
+import { ImportDataDialog, type AppState } from '@/components/settings/import-data-dialog'
 import { TimeRecordsDialog } from '@/components/time-records/time-records-dialog'
 import { ColorSchemeDialog } from '@/components/settings/color-scheme-dialog'
 import { SettingsDialog } from '@/components/settings/settings-dialog'
@@ -414,9 +414,13 @@ export default function Home() {
 
   const activeDragTask = activeDragId ? tasks.find((t) => t.id === activeDragId) : null
 
-  const handleExportData = () => {
-    const data = { categories, tasks }
-    const blob = new Blob([JSON.stringify(data, null, 2)], {
+  const handleExportData = async () => {
+    const res = await fetch('/api/bulk')
+    if (!res.ok) {
+      alert('Export failed. Nothing was saved.')
+      return
+    }
+    const blob = new Blob([JSON.stringify(await res.json(), null, 2)], {
       type: 'application/json',
     })
     const url = URL.createObjectURL(blob)
@@ -444,31 +448,18 @@ export default function Home() {
     }).catch((err) => console.error('Failed to clear DB:', err))
   }
 
-  const handleImportData = async (data: { categories: Category[]; tasks: Task[] }) => {
-    try {
-      const res = await fetch('/api/bulk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'import',
-          categories: data.categories,
-          tasks: data.tasks,
-        }),
-      })
-      const result = await res.json()
-      if (result.categories && result.tasks) {
-        setCategories(result.categories)
-        setTasks(result.tasks)
-      } else {
-        // Fallback to provided data
-        setCategories(data.categories)
-        setTasks(data.tasks)
-      }
-    } catch (err) {
-      console.error('Failed to import:', err)
-      setCategories(data.categories)
-      setTasks(data.tasks)
+  const handleImportData = async (data: AppState) => {
+    const res = await fetch('/api/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...data, action: 'import' }),
+    }).catch(() => null)
+    if (!res?.ok) {
+      alert('Import failed. Your data was not changed.')
+      return
     }
+    // Every table may have changed; reload so each view fetches fresh data.
+    window.location.reload()
   }
 
   // Filter by the selected course; grouping into Today / Overdue / Upcoming happens in TaskBoard
