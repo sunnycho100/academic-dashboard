@@ -24,9 +24,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec prisma generate
       - run: pnpm typecheck
-      - run: pnpm test
       # Fetch the Electron binary once, so parallel workers don't race to download it.
+      # Unit tests also run under Electron's Node, since better-sqlite3 is built for Electron.
       - run: node node_modules/electron/install.js
+      - run: pnpm test
       # Electron needs a display; xvfb provides a virtual one on Linux.
       - run: xvfb-run --auto-servernum pnpm test:e2e
       - uses: actions/upload-artifact@v4

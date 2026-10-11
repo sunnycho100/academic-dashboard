@@ -1,0 +1,71 @@
+// Runs under Electron's Node (see the `test` script): better-sqlite3 is built for Electron.
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+import Database from 'better-sqlite3'
+import { migrate } from './db-file.ts'
+
+const tmpDb = () => path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'ad-db-test-')), 'academic-dashboard.db')
+
+const init = `
+CREATE TABLE "Category" ("id" TEXT NOT NULL PRIMARY KEY, "name" TEXT NOT NULL);
+CREATE TABLE "Task" ("id" TEXT NOT NULL PRIMARY KEY, "categoryId" TEXT NOT NULL,
+  CONSTRAINT "Task_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category" ("id") ON DELETE CASCADE ON UPDATE CASCADE);
+`
+// What `prisma migrate dev` generates when a column changes on a parent table.
+const rebuildCategory = `
+PRAGMA defer_foreign_keys=ON;
+PRAGMA foreign_keys=OFF;
+CREATE TABLE "new_Category" ("id" TEXT NOT NULL PRIMARY KEY, "name" TEXT NOT NULL, "color" TEXT NOT NULL DEFAULT '');
+INSERT INTO "new_Category" ("id", "name") SELECT "id", "name" FROM "Category";
+DROP TABLE "Category";
+ALTER TABLE "new_Category" RENAME TO "Category";
+PRAGMA foreign_keys=ON;
+PRAGMA defer_foreign_keys=OFF;
+`
+const seed = (file: string) => {
+  const db = new Database(file)
+  db.exec(`INSERT INTO "Category" VALUES ('c1', 'CS'); INSERT INTO "Task" VALUES ('t1', 'c1');`)
+  db.close()
+}
+const count = (file: string, table: string) => {
+  const db = new Database(file, { readonly: true })
+  try {
+    return (db.prepare(`SELECT COUNT(*) AS n FROM "${table}"`).get() as { n: number }).n
+  } finally {
+    db.close()
+  }
+}
+
+test('a table-rebuild migration keeps the child rows', () => {
+  const file = tmpDb()
+  migrate(file, [init])
+  seed(file)
+  migrate(file, [init, rebuildCategory])
+  assert.equal(count(file, 'Task'), 1)
+  assert.equal(count(file, 'Category'), 1)
+})
+
+test('a migration that leaves foreign key violations is rolled back', () => {
+  const file = tmpDb()
+  migrate(file, [init])
+  seed(file)
+  const orphan = `INSERT INTO "Task" VALUES ('t2', 'missing');`
+  assert.throws(() => migrate(file, [init, orphan]), /foreign key/i)
+  assert.equal(count(file, 'Task'), 1)
+  const db = new Database(file, { readonly: true })
+  assert.equal(db.pragma('user_version', { simple: true }), 1)
+  db.close()
+})
+
+test('pending migrations first copy the database next to it', () => {
+  const file = tmpDb()
+  migrate(file, [init])
+  seed(file)
+  migrate(file, [init, rebuildCategory])
+  const copy = path.join(path.dirname(file), 'academic-dashboard.pre-migrate-1.db')
+  assert.equal(count(copy, 'Task'), 1)
+  assert.equal(count(copy, 'Category'), 1)
+})
