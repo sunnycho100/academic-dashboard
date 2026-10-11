@@ -3,6 +3,8 @@ import { Play, Pause, BookOpen, FolderGit2, Briefcase } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
 import { loadPersonalDevColors, DEFAULT_PERSONAL_DEV_COLORS } from '@/components/settings/color-scheme-dialog'
+import { saveTimeRecord as postTimeRecord, STALE_TICK_MS } from '@/lib/save-time-record'
+import { logicalToday, timeRecordsDayQuery } from '@/lib/day'
 
 // ── Activity definitions ──────────────────────────────────────────
 
@@ -32,6 +34,14 @@ type ActivityTimerData = Record<string, ActivityTimer>
 type DbTotals = Record<string, number>
 
 const STORAGE_KEY = 'personal-dev-timers'
+/** ISO time of the last one-second tick while any activity ran */
+const TICK_KEY = 'personal-dev-last-tick'
+
+function markTick() {
+  try {
+    localStorage.setItem(TICK_KEY, new Date().toISOString())
+  } catch {}
+}
 
 function load(): ActivityTimerData {
   if (typeof window === 'undefined') return {}
@@ -60,32 +70,23 @@ function save(data: ActivityTimerData) {
 }
 
 /** POST a time-record so it shows up in the Time Records dialog */
-async function saveTimeRecord(
-  activityKey: string,
+function saveTimeRecord(
   activityLabel: string,
   activityColor: string,
   startTime: string,
   endTime: string,
   durationSeconds: number,
 ) {
-  try {
-    await fetch('/api/time-records', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        taskId: null,
-        taskTitle: activityLabel,
-        categoryName: 'Personal Dev',
-        categoryColor: activityColor,
-        taskType: activityLabel,
-        startTime,
-        endTime,
-        duration: durationSeconds,
-      }),
-    })
-  } catch (err) {
-    console.error('Failed to save personal-dev time record:', err)
-  }
+  return postTimeRecord({
+    taskId: null,
+    taskTitle: activityLabel,
+    categoryName: 'Personal Dev',
+    categoryColor: activityColor,
+    taskType: activityLabel,
+    startTime,
+    endTime,
+    duration: durationSeconds,
+  })
 }
 
 // ── Formatting helper ─────────────────────────────────────────────
@@ -107,12 +108,27 @@ export function PersonalDevTracker() {
   // Load running state from localStorage & fetch DB totals for today
   useEffect(() => {
     const local = load()
+    const lastTick = localStorage.getItem(TICK_KEY)
+    // The app was closed (or crashed) while an activity ran: end it at the last tick, not now
+    const closedAt = lastTick && Date.now() - new Date(lastTick).getTime() > STALE_TICK_MS ? lastTick : null
+    const colors = loadPersonalDevColors()
     // Only preserve running state, not elapsedSeconds
     const cleaned: ActivityTimerData = {}
     for (const key of Object.keys(local)) {
+      const startedAt = local[key]?.segmentStartedAt ?? null
+      if (closedAt && local[key]?.isRunning && startedAt) {
+        const activity = ACTIVITY_DEFS.find((a) => a.key === key)
+        const dur = Math.round((new Date(closedAt).getTime() - new Date(startedAt).getTime()) / 1000)
+        if (activity && dur > 0) {
+          const color = colors[key] || DEFAULT_PERSONAL_DEV_COLORS[key]
+          saveTimeRecord(activity.label, color, startedAt, closedAt, dur)
+        }
+        cleaned[key] = { isRunning: false, segmentStartedAt: null }
+        continue
+      }
       cleaned[key] = {
         isRunning: local[key]?.isRunning ?? false,
-        segmentStartedAt: local[key]?.segmentStartedAt ?? null,
+        segmentStartedAt: startedAt,
       }
     }
     setTimers(cleaned)
@@ -122,33 +138,9 @@ export function PersonalDevTracker() {
   // or deleted (timers here, or edits in Time records), so the tiles match the records.
   useEffect(() => {
     const loadTotals = () => {
-      // Fetch today's Personal Dev records from DB to compute total elapsed
-      const now = new Date()
-      const tzOffset = now.getTimezoneOffset()
-      // Use day boundaries from localStorage
-      let startHour = 6
-      let endHour = 24
-      try {
-        const saved = localStorage.getItem('timeRecords-dayBoundaries')
-        if (saved) {
-          const { start, end } = JSON.parse(saved)
-          if (typeof start === 'number') startHour = start
-          if (typeof end === 'number') endHour = end
-        }
-      } catch {}
-      // If day extends past midnight (e.g. 10 AM–3 AM) and current time
-      // is before the end-hour boundary, we're still in "yesterday's" logical day.
-      let effectiveDate = now
-      if (endHour > 24) {
-        const pastMidnightEnd = endHour - 24
-        if (now.getHours() < pastMidnightEnd) {
-          effectiveDate = new Date(now)
-          effectiveDate.setDate(effectiveDate.getDate() - 1)
-        }
-      }
-      const dateStr = `${effectiveDate.getFullYear()}-${String(effectiveDate.getMonth() + 1).padStart(2, '0')}-${String(effectiveDate.getDate()).padStart(2, '0')}`
-      const endHourParam = endHour > 24 ? endHour - 24 : 0
-      fetch(`/api/time-records?date=${dateStr}&tz=${tzOffset}&startHour=${startHour}&endHour=${endHourParam}`)
+      // Today's Personal Dev records, within the Time records day boundaries
+      const { date, startHour, endHour } = logicalToday()
+      fetch(`/api/time-records?${timeRecordsDayQuery(date, startHour, endHour)}`)
         .then((r) => r.json())
         .then((records: Array<{ taskTitle: string; categoryName: string; duration: number }>) => {
           if (!Array.isArray(records)) return
@@ -182,7 +174,11 @@ export function PersonalDevTracker() {
   useEffect(() => {
     const hasRunning = Object.values(timers).some((t) => t.isRunning)
     if (hasRunning) {
-      intervalRef.current = setInterval(() => setTick((t) => t + 1), 1000)
+      markTick()
+      intervalRef.current = setInterval(() => {
+        setTick((t) => t + 1)
+        markTick()
+      }, 1000)
     } else if (intervalRef.current) {
       clearInterval(intervalRef.current)
       intervalRef.current = null
@@ -223,7 +219,6 @@ export function PersonalDevTracker() {
         )
         if (dur > 0) {
           saveTimeRecord(
-            activity.key,
             activity.label,
             actColor,
             current.segmentStartedAt,

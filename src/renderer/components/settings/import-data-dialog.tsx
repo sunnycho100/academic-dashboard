@@ -11,9 +11,11 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Category, Task } from '@/lib/types'
 
+/** An export file: categories and tasks, plus every other table in newer exports. */
 export interface AppState {
   categories: Category[]
   tasks: Task[]
+  [table: string]: unknown
 }
 
 interface ImportDataDialogProps {
@@ -76,8 +78,8 @@ export function ImportDataDialog({
           <AlertDialogHeader>
             <AlertDialogTitle className="font-serif text-2xl font-normal">Import data</AlertDialogTitle>
             <AlertDialogDescription>
-              Your current courses and tasks are replaced by the ones in the file. Export first if
-              you want to keep them.
+              Your current data is replaced by the data in the file. Export first if you want to
+              keep it.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2 sm:space-x-0">

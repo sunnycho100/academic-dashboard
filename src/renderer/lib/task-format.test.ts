@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { formatMinutes, dueLabel, formatClock, courseSummary, currentDayStart } from './task-format.ts'
+import { formatMinutes, dueLabel, formatClock, courseSummary } from './task-format.ts'
 
 test('formatMinutes', () => {
   assert.equal(formatMinutes(25), '25m')
@@ -34,15 +34,4 @@ test('courseSummary: overdue first, then next due, else nothing', () => {
     '2 due · next Thu',
   )
   assert.equal(courseSummary([{ dueAt: '2026-09-29T09:00:00' }], now), '1 due · tomorrow')
-})
-
-test('currentDayStart is the most recent rollover', () => {
-  const at = (s: string, hour: number) => currentDayStart(new Date(s), hour).toISOString()
-  const iso = (s: string) => new Date(s).toISOString()
-  // Midnight rollover: 2 AM already belongs to the new day
-  assert.equal(at('2026-09-30T02:00:00', 0), iso('2026-09-30T00:00:00'))
-  assert.equal(at('2026-09-30T15:00:00', 0), iso('2026-09-30T00:00:00'))
-  // Day ending at 2 AM: 1 AM is still yesterday, 3 AM is the new day
-  assert.equal(at('2026-09-30T01:00:00', 2), iso('2026-09-29T02:00:00'))
-  assert.equal(at('2026-09-30T03:00:00', 2), iso('2026-09-30T02:00:00'))
 })

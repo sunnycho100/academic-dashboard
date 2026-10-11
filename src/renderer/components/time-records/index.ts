@@ -15,7 +15,5 @@ export {
   formatHourOption,
   getBlockPosition,
   getCurrentTimePosition,
-  getLogicalToday,
-  isLogicalToday,
   buildDateFromLogicalDay,
 } from './helpers'

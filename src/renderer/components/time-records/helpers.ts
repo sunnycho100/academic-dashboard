@@ -1,4 +1,4 @@
-import { format, subDays } from 'date-fns'
+import { format } from 'date-fns'
 
 // ── Types ──
 
@@ -25,8 +25,7 @@ export interface NewRecordForm {
 
 // ── Constants ──
 
-export const DEFAULT_START_HOUR = 6 // 6 AM
-export const DEFAULT_END_HOUR = 24 // midnight
+export { DEFAULT_START_HOUR, DEFAULT_END_HOUR } from '@/lib/day'
 export const HOUR_HEIGHT = 80 // px per hour
 export const QUARTER_HEIGHT = HOUR_HEIGHT / 4
 
@@ -80,36 +79,6 @@ export function getCurrentTimePosition(timelineStartHour: number, timelineEndHou
   if (currentHour < timelineStartHour) currentHour += 24
   if (currentHour < timelineStartHour || currentHour > timelineEndHour) return null
   return (currentHour - timelineStartHour) * HOUR_HEIGHT + 16 // 16px top padding
-}
-
-/**
- * Return the "logical today" date given day boundaries.
- * If timelineEndHour > 24 (e.g. 27 = 3 AM next day) and the current wall-clock
- * time is past midnight but before the extension hour, we are still in the
- * previous calendar day's logical window.
- */
-export function getLogicalToday(timelineStartHour: number, timelineEndHour: number): Date {
-  const now = new Date()
-  const currentHour = now.getHours()
-  // Extension hours past midnight (e.g. endHour 27 → extensionHour 3)
-  const extensionHour = timelineEndHour > 24 ? timelineEndHour - 24 : 0
-  // If it's between midnight and the extension hour, we're still in yesterday's logical day
-  if (extensionHour > 0 && currentHour < extensionHour) {
-    return subDays(now, 1)
-  }
-  // Also if it's before the day-start hour (e.g. 10 AM) and there IS an extension,
-  // the previous day's window has already ended — this is a new day not yet started.
-  // In that case we still show "today" as the current calendar date.
-  return now
-}
-
-export function isLogicalToday(
-  date: Date,
-  timelineStartHour: number,
-  timelineEndHour: number
-): boolean {
-  const logicalToday = getLogicalToday(timelineStartHour, timelineEndHour)
-  return date.toDateString() === logicalToday.toDateString()
 }
 
 /**

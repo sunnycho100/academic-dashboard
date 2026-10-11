@@ -1,35 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Task, Category } from '@/lib/types'
 import { useTaskTimers } from '@/hooks/use-task-timer'
-
-/** Local YYYY-MM-DD of the current "logical" day, honoring the Time Records day boundaries. */
-export function logicalToday(now = new Date()): { date: string; startHour: number; endHour: number } {
-  let startHour = 6
-  let endHour = 24
-  try {
-    const saved = localStorage.getItem('timeRecords-dayBoundaries')
-    if (saved) {
-      const { start, end } = JSON.parse(saved)
-      if (typeof start === 'number') startHour = start
-      if (typeof end === 'number') endHour = end
-    }
-  } catch {}
-  // If the day extends past midnight (e.g. 10 AM to 3 AM) and it is before the end
-  // boundary, we are still in yesterday's day.
-  let effective = now
-  if (endHour > 24 && now.getHours() < endHour - 24) {
-    effective = new Date(now)
-    effective.setDate(effective.getDate() - 1)
-  }
-  const date = `${effective.getFullYear()}-${String(effective.getMonth() + 1).padStart(2, '0')}-${String(effective.getDate()).padStart(2, '0')}`
-  return { date, startHour, endHour }
-}
-
-/** Hour the day rolls over: midnight, or the day-end hour when the day runs past midnight. */
-export function rolloverHour(): number {
-  const { endHour } = logicalToday()
-  return endHour > 24 ? endHour - 24 : 0
-}
+import { logicalToday, timeRecordsDayQuery } from '@/lib/day'
 
 /**
  * Timers for Today's plan plus today's recorded study time. Shared by the Today
@@ -60,9 +32,7 @@ export function useTodaySession(todayTasks: Task[], categories: Category[], user
   useEffect(() => {
     const fetchStudyTime = () => {
       const { date, startHour, endHour } = logicalToday()
-      const tz = new Date().getTimezoneOffset()
-      const endHourParam = endHour > 24 ? endHour - 24 : 0
-      fetch(`/api/time-records?date=${date}&tz=${tz}&startHour=${startHour}&endHour=${endHourParam}`)
+      fetch(`/api/time-records?${timeRecordsDayQuery(date, startHour, endHour)}`)
         .then((res) => res.json())
         .then((records: Array<{ duration: number }>) => {
           if (Array.isArray(records)) setDbStudySeconds(records.reduce((sum, r) => sum + r.duration, 0))

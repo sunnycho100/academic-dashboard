@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { format, parseISO, startOfDay, addHours, subHours, isSameDay } from 'date-fns'
+import { DEFAULT_START_HOUR, dayBoundaries } from '@/lib/day'
 
 interface CompletedTaskRecord {
   id: string
@@ -44,8 +45,6 @@ function formatTimeSpent(minutes: number): string {
   
   return `${hours}h ${mins > 0 ? `${mins}m` : ''}`
 }
-
-const DEFAULT_DAY_START_HOUR = 6 // 6 AM
 
 function formatTimeDiff(diff: number): { text: string; color: string } {
   const absDiff = Math.abs(diff)
@@ -213,17 +212,11 @@ export function ActivitySummaryDialog({
     notes: '',
   })
   const [saving, setSaving] = useState(false)
-  const [dayStartHour, setDayStartHour] = useState(DEFAULT_DAY_START_HOUR)
+  const [dayStartHour, setDayStartHour] = useState(DEFAULT_START_HOUR)
 
   // Load day boundary settings from localStorage (synced with time-records)
   useEffect(() => {
-    const saved = localStorage.getItem('timeRecords-dayBoundaries')
-    if (saved) {
-      try {
-        const { start } = JSON.parse(saved)
-        if (typeof start === 'number') setDayStartHour(start)
-      } catch {}
-    }
+    setDayStartHour(dayBoundaries().startHour)
   }, [])
 
   const loadRecords = () => {

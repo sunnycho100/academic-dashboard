@@ -4,10 +4,6 @@
 
 /* Editorial theme: warm ivory canvas, serif display type, hairline borders.
    Spec: docs/superpowers/specs/2026-09-28-mac-redesign-design.md */
-:root {
-  --font-cursive: 'Great Vibes';
-}
-
 html {
   font-size: 75%;
 }

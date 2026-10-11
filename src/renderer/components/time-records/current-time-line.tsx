@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
-import { isLogicalToday, getCurrentTimePosition } from './helpers'
+import { getCurrentTimePosition } from './helpers'
+import { isLogicalToday } from '@/lib/day'
 
 export interface CurrentTimeLineProps {
   date: Date
@@ -12,7 +13,7 @@ export function CurrentTimeLine({ date, timelineStartHour, timelineEndHour }: Cu
   const [position, setPosition] = useState<number | null>(null)
 
   useEffect(() => {
-    const isToday = isLogicalToday(date, timelineStartHour, timelineEndHour)
+    const isToday = isLogicalToday(date, timelineEndHour)
     if (!isToday) {
       setPosition(null)
       return
