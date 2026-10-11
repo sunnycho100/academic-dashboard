@@ -65,7 +65,7 @@ In dev, non-API paths are proxied to the Vite dev server.
 ## Running
 ```bash
 pnpm dev          # hot reload
-pnpm app          # build + package + install to /Applications
+pnpm app          # build + package + install to /Applications, restarting the app if it runs
 pnpm typecheck    # tsc
 pnpm test         # unit tests (node --test under Electron, for better-sqlite3)
 pnpm test:e2e     # build, then Playwright against the Electron app
