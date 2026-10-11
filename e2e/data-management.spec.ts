@@ -30,4 +30,17 @@ test.describe('data management', () => {
     expect(name).toMatch(/academic-dashboard-.*\.json/)
     expect(body).toContain('Exportable task')
   })
+
+  test('the app keeps a daily backup of the database', async ({ page, electronApp }) => {
+    await page.goto(APP_URL)
+    await expect
+      .poll(() =>
+        electronApp.evaluate(({ app }) => {
+          const dir = process.getBuiltinModule('node:path').join(app.getPath('userData'), 'backups')
+          const fs = process.getBuiltinModule('node:fs')
+          return fs.existsSync(dir) ? fs.readdirSync(dir) : []
+        }),
+      )
+      .toEqual([expect.stringMatching(/^academic-dashboard-dev-\d{4}-\d{2}-\d{2}\.db$/)])
+  })
 })

@@ -46,6 +46,7 @@ In dev, non-API paths are proxied to the Vite dev server.
   `PRAGMA user_version`, with foreign keys off and a `foreign_key_check` before each commit.
   Pending migrations first copy the DB to `academic-dashboard.pre-migrate-<version>.db`.
   Never edit an applied migration; run `pnpm db:migrate` to add one.
+- Backups: on start, a daily copy goes to `backups/` in the same folder (last 7 kept).
 - All models keep a `userId` column (always `'local'`); handlers still scope by it.
 - CompletedTask and TimeRecord are intentionally denormalized so history survives deletion. Do not normalize.
 

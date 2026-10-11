@@ -2,7 +2,7 @@ import { app } from 'electron'
 import path from 'node:path'
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
 import { PrismaClient } from './generated/prisma/client'
-import { migrate } from './db-file'
+import { dailyBackup, migrate } from './db-file'
 
 // Migration SQL is bundled at build time, in folder-name (timestamp) order.
 const migrations = Object.entries(
@@ -20,6 +20,8 @@ export const dbPath = path.join(
 )
 
 migrate(dbPath, migrations.map(([, sql]) => sql))
+// Runs in the background; a failed backup must never stop the app from opening.
+dailyBackup(dbPath, path.join(app.getPath('userData'), 'backups')).catch((error) => console.error('[backup]', error))
 
 export const prisma = new PrismaClient({
   adapter: new PrismaBetterSqlite3({ url: `file:${dbPath}` }),
