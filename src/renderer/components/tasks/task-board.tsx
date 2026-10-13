@@ -118,6 +118,10 @@ export function TaskBoard(props: TaskBoardProps) {
                     drawIndex={drawIndex(task.id)}
                     onToggleTask={props.onToggleTask}
                     onRemoveFromToday={props.onRemoveFromToday}
+                    onEdit={props.onEditTask}
+                    onSave={props.onSaveTask}
+                    onDuplicate={props.onDuplicateTask}
+                    onDelete={props.onDeleteTask}
                   />
                 ))}
               </div>
