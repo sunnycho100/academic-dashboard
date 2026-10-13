@@ -12,6 +12,7 @@ import { ImportDataDialog } from '@/components/settings/import-data-dialog'
 import { TimeRecordsDialog } from '@/components/time-records/time-records-dialog'
 import { ColorSchemeDialog } from '@/components/settings/color-scheme-dialog'
 import { SettingsDialog } from '@/components/settings/settings-dialog'
+import { DisplayBar } from '@/components/settings/display-bar'
 import { type WeeklyPlanEntry, DAY_LABELS } from '@/components/weekly-plan/weekly-plan'
 import { CatchupContent } from '@/components/layout/catchup-content'
 import { TimetableContent } from '@/components/timetable/timetable-content'
@@ -113,6 +114,7 @@ export default function Home() {
   const [timeRecordsOpen, setTimeRecordsOpen] = useState(false)
   const [colorSchemeOpen, setColorSchemeOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [displayOpen, setDisplayOpen] = useState(false)
   const [weeklyPlanOpen, setWeeklyPlanOpen] = useState(false)
   const [weeklyEntries, setWeeklyEntries] = useState<WeeklyPlanEntry[]>([])
   const [weeklyRefreshKey, setWeeklyRefreshKey] = useState(0)
@@ -585,8 +587,11 @@ export default function Home() {
                   <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
                     Settings
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setDisplayOpen(true)}>
+                    Edit display
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setColorSchemeOpen(true)}>
-                    Colors
+                    Course colors
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleExportData}>
@@ -615,6 +620,8 @@ export default function Home() {
             </div>
           </div>
         </header>
+
+        {displayOpen && <DisplayBar onClose={() => setDisplayOpen(false)} />}
 
         {/* Content Area */}
         <div className="flex-1 flex flex-col overflow-hidden px-7 py-5">
@@ -724,6 +731,10 @@ export default function Home() {
       <SettingsDialog
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
+        onEditDisplay={() => {
+          setSettingsOpen(false)
+          setDisplayOpen(true)
+        }}
       />
       <ImportDataDialog
         open={importDataOpen}

@@ -743,3 +743,291 @@ body {
     stroke-dashoffset: 0;
   }
 }
+
+/* ── Color themes ──────────────────────────────────────────────────
+   Picked in Settings > Display (lib/themes.ts). Each remaps the tokens above;
+   html[data-palette] outranks :root and .dark, so a theme sets the whole look. */
+
+/* Railway: Widget A: Swiss railway clock and Braun */
+html[data-palette='railway'] {
+  --background: 43 23% 94%;
+  --foreground: 60 2% 8%;
+  --card: 45 29% 97%;
+  --card-foreground: 60 2% 8%;
+  --popover: 45 29% 97%;
+  --popover-foreground: 60 2% 8%;
+  --primary: 60 2% 8%;
+  --primary-foreground: 45 29% 97%;
+  --secondary: 42 19% 89%;
+  --secondary-foreground: 60 2% 8%;
+  --muted: 42 19% 89%;
+  --muted-foreground: 42 5% 41%;
+  --accent: 42 19% 89%;
+  --accent-foreground: 60 2% 8%;
+  --border: 44 15% 86%;
+  --input: 44 15% 86%;
+  --ring: 60 2% 8%;
+  --sidebar: 42 21% 91%;
+  --today: 60 2% 8%;
+  --today-foreground: 43 18% 92%;
+  --today-muted: 40 4% 54%;
+  --coral: 44 81% 51%;
+  --ring-track: 43 16% 82%;
+}
+html[data-palette='railway'] .text-coral:not(aside[aria-label='Today panel'] .text-coral) {
+  color: #9a6b00;
+}
+
+/* Railway Night: Widget A in dark mode */
+html[data-palette='railway-night'] {
+  color-scheme: dark;
+  --background: 60 3% 7%;
+  --foreground: 43 18% 92%;
+  --card: 60 2% 10%;
+  --card-foreground: 43 18% 92%;
+  --popover: 60 2% 10%;
+  --popover-foreground: 43 18% 92%;
+  --primary: 43 18% 92%;
+  --primary-foreground: 60 2% 10%;
+  --secondary: 60 3% 14%;
+  --secondary-foreground: 43 18% 92%;
+  --muted: 60 3% 14%;
+  --muted-foreground: 44 5% 58%;
+  --accent: 60 3% 14%;
+  --accent-foreground: 43 18% 92%;
+  --border: 60 4% 16%;
+  --input: 60 4% 16%;
+  --ring: 48 6% 17%;
+  --sidebar: 60 2% 8%;
+  --today: 48 6% 17%;
+  --today-foreground: 43 18% 92%;
+  --today-muted: 44 5% 58%;
+  --coral: 44 81% 51%;
+  --ring-track: 50 5% 22%;
+}
+
+/* Taximeter: Widget B: taxi meters */
+html[data-palette='taximeter'] {
+  --background: 42 19% 89%;
+  --foreground: 60 4% 11%;
+  --card: 43 21% 94%;
+  --card-foreground: 60 4% 11%;
+  --popover: 43 21% 94%;
+  --popover-foreground: 60 4% 11%;
+  --primary: 60 4% 11%;
+  --primary-foreground: 43 21% 94%;
+  --secondary: 42 16% 85%;
+  --secondary-foreground: 60 4% 11%;
+  --muted: 42 16% 85%;
+  --muted-foreground: 40 4% 40%;
+  --accent: 42 16% 85%;
+  --accent-foreground: 60 4% 11%;
+  --border: 43 15% 81%;
+  --input: 43 15% 81%;
+  --ring: 60 4% 11%;
+  --sidebar: 42 18% 86%;
+  --today: 60 4% 11%;
+  --today-foreground: 45 27% 94%;
+  --today-muted: 40 4% 54%;
+  --coral: 8 69% 51%;
+  --ring-track: 42 15% 78%;
+}
+
+/* Ambient: Widget C: the app's own green, deepened */
+html[data-palette='ambient'] {
+  --background: 120 10% 94%;
+  --foreground: 162 25% 10%;
+  --card: 120 14% 97%;
+  --card-foreground: 162 25% 10%;
+  --popover: 120 14% 97%;
+  --popover-foreground: 162 25% 10%;
+  --primary: 162 25% 10%;
+  --primary-foreground: 120 14% 97%;
+  --secondary: 130 12% 90%;
+  --secondary-foreground: 162 25% 10%;
+  --muted: 130 12% 90%;
+  --muted-foreground: 157 7% 36%;
+  --accent: 130 12% 90%;
+  --accent-foreground: 162 25% 10%;
+  --border: 142 11% 86%;
+  --input: 142 11% 86%;
+  --ring: 167 37% 7%;
+  --sidebar: 132 12% 92%;
+  --today: 167 37% 7%;
+  --today-foreground: 153 22% 92%;
+  --today-muted: 162 17% 63%;
+  --coral: 11 100% 67%;
+  --ring-track: 147 12% 83%;
+}
+
+/* Signal: Swiss railway signage: the red panel with white type */
+html[data-palette='sbb'] {
+  --background: 0 0% 96%;
+  --foreground: 0 0% 7%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 7%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 7%;
+  --primary: 0 0% 7%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 93%;
+  --secondary-foreground: 0 0% 7%;
+  --muted: 0 0% 93%;
+  --muted-foreground: 0 0% 36%;
+  --accent: 0 0% 93%;
+  --accent-foreground: 0 0% 7%;
+  --border: 0 0% 89%;
+  --input: 0 0% 89%;
+  --ring: 350 85% 42%;
+  --sidebar: 0 0% 94%;
+  --today: 350 85% 42%;
+  --today-foreground: 0 0% 100%;
+  --today-muted: 351 74% 84%;
+  --coral: 0 0% 7%;
+  --ring-track: 0 0% 84%;
+}
+
+/* ET66: Braun ET66 calculator: black body, brown keys, yellow equals */
+html[data-palette='et66'] {
+  color-scheme: dark;
+  --background: 30 5% 16%;
+  --foreground: 40 24% 90%;
+  --card: 30 6% 19%;
+  --card-foreground: 40 24% 90%;
+  --popover: 30 6% 19%;
+  --popover-foreground: 40 24% 90%;
+  --primary: 40 24% 90%;
+  --primary-foreground: 30 6% 19%;
+  --secondary: 30 7% 22%;
+  --secondary-foreground: 40 24% 90%;
+  --muted: 30 7% 22%;
+  --muted-foreground: 37 9% 62%;
+  --accent: 30 7% 22%;
+  --accent-foreground: 40 24% 90%;
+  --border: 33 7% 25%;
+  --input: 33 7% 25%;
+  --ring: 30 25% 23%;
+  --sidebar: 36 7% 13%;
+  --today: 30 25% 23%;
+  --today-foreground: 39 41% 92%;
+  --today-muted: 35 24% 69%;
+  --coral: 45 96% 48%;
+  --ring-track: 32 9% 29%;
+}
+
+/* Kraft: Muji notebooks: kraft paper, ash, rust */
+html[data-palette='kraft'] {
+  --background: 38 35% 86%;
+  --foreground: 33 12% 15%;
+  --card: 39 42% 91%;
+  --card-foreground: 33 12% 15%;
+  --popover: 39 42% 91%;
+  --popover-foreground: 33 12% 15%;
+  --primary: 33 12% 15%;
+  --primary-foreground: 39 42% 91%;
+  --secondary: 38 31% 81%;
+  --secondary-foreground: 33 12% 15%;
+  --muted: 38 31% 81%;
+  --muted-foreground: 34 11% 36%;
+  --accent: 38 31% 81%;
+  --accent-foreground: 33 12% 15%;
+  --border: 38 27% 76%;
+  --input: 38 27% 76%;
+  --ring: 36 7% 27%;
+  --sidebar: 39 33% 83%;
+  --today: 36 7% 27%;
+  --today-foreground: 39 33% 92%;
+  --today-muted: 37 13% 66%;
+  --coral: 8 59% 40%;
+  --ring-track: 38 28% 73%;
+}
+
+/* Ledger: Accounting paper, for the earnings: green rules, navy ink, red total */
+html[data-palette='ledger'] {
+  --background: 84 28% 93%;
+  --foreground: 211 36% 17%;
+  --card: 80 30% 96%;
+  --card-foreground: 211 36% 17%;
+  --popover: 80 30% 96%;
+  --popover-foreground: 211 36% 17%;
+  --primary: 211 36% 17%;
+  --primary-foreground: 80 30% 96%;
+  --secondary: 88 25% 88%;
+  --secondary-foreground: 211 36% 17%;
+  --muted: 88 25% 88%;
+  --muted-foreground: 140 8% 35%;
+  --accent: 88 25% 88%;
+  --accent-foreground: 211 36% 17%;
+  --border: 93 26% 82%;
+  --input: 93 26% 82%;
+  --ring: 211 36% 17%;
+  --sidebar: 88 25% 90%;
+  --today: 211 36% 17%;
+  --today-foreground: 210 29% 93%;
+  --today-muted: 211 20% 67%;
+  --coral: 1 62% 48%;
+  --ring-track: 94 22% 79%;
+}
+
+/* Index Card: Study index cards: cream, blue lines, red margin */
+html[data-palette='index-card'] {
+  --background: 45 60% 96%;
+  --foreground: 222 22% 15%;
+  --card: 47 100% 98%;
+  --card-foreground: 222 22% 15%;
+  --popover: 47 100% 98%;
+  --popover-foreground: 222 22% 15%;
+  --primary: 222 22% 15%;
+  --primary-foreground: 47 100% 98%;
+  --secondary: 45 40% 90%;
+  --secondary-foreground: 222 22% 15%;
+  --muted: 45 40% 90%;
+  --muted-foreground: 227 9% 39%;
+  --accent: 45 40% 90%;
+  --accent-foreground: 222 22% 15%;
+  --border: 217 43% 87%;
+  --input: 217 43% 87%;
+  --ring: 47 100% 98%;
+  --sidebar: 46 44% 92%;
+  --today: 47 100% 98%;
+  --today-foreground: 222 22% 15%;
+  --today-muted: 227 9% 39%;
+  --coral: 2 64% 58%;
+  --ring-track: 217 41% 90%;
+}
+html[data-palette='index-card'] aside[aria-label='Today panel'] { border: 1px solid #cfdaec; }
+html[data-palette='index-card'] aside[aria-label='Today panel'] > div.flex-1 { background-image: linear-gradient(90deg, transparent 15px, #e8a3a1 15px 16px, transparent 16px), repeating-linear-gradient(transparent 0 27px, #dfe7f3 27px 28px); }
+html[data-palette='index-card'] aside[aria-label='Today panel'] .text-white { color: #1f2430; }
+html[data-palette='index-card'] aside[aria-label='Today panel'] [class*="border-white"] { border-color: #cfdaec; }
+html[data-palette='index-card'] aside[aria-label='Today panel'] [class*="bg-white/"] { background-color: rgba(35,58,107,0.06); }
+
+/* Highlighter: Graphite pencil and a pink highlighter */
+html[data-palette='highlighter'] {
+  --background: 60 13% 95%;
+  --foreground: 240 4% 10%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 4% 10%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 4% 10%;
+  --primary: 240 4% 10%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 60 11% 91%;
+  --secondary-foreground: 240 4% 10%;
+  --muted: 60 11% 91%;
+  --muted-foreground: 240 2% 36%;
+  --accent: 60 11% 91%;
+  --accent-foreground: 240 4% 10%;
+  --border: 60 8% 87%;
+  --input: 60 8% 87%;
+  --ring: 240 3% 17%;
+  --sidebar: 60 11% 93%;
+  --today: 240 3% 17%;
+  --today-foreground: 60 7% 95%;
+  --today-muted: 240 3% 62%;
+  --coral: 338 79% 58%;
+  --ring-track: 60 8% 85%;
+}
+html[data-palette='highlighter'] .text-coral:not(aside[aria-label='Today panel'] .text-coral) {
+  color: #b8195a;
+}
+

@@ -3,14 +3,20 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
-import { hourlyRate, setPref, showSeconds } from '@/lib/prefs'
+import { emptyPanel, hourlyRate, palette, setPref, showSeconds } from '@/lib/prefs'
+import { THEMES } from '@/lib/themes'
+import { Button } from '@/components/ui/button'
 
 interface SettingsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** Close Settings and open the Edit display bar over the real screen */
+  onEditDisplay: () => void
 }
 
-export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
+const EMPTY_LABEL = { now: 'Big 0:00', today: 'Today so far', week: 'Last 7 days' }
+
+export function SettingsDialog({ open, onOpenChange, onEditDisplay }: SettingsDialogProps) {
   const [powerSaveEnabled, setPowerSaveEnabled] = useState(false)
   const [widgetOpen, setWidgetOpen] = useState(false)
   const [seconds, setSeconds] = useState(true)
@@ -59,6 +65,21 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
       <DialogContent className="max-w-[425px] gap-0 p-0" aria-describedby={undefined}>
         <div className="px-6 pt-6">
           <DialogTitle className="font-serif text-2xl font-normal">Settings</DialogTitle>
+        </div>
+
+        <div className="px-6 pt-5">
+          <h3 className="text-xs uppercase tracking-wider text-muted-foreground">Display</h3>
+          <div className="mt-3 flex items-center justify-between gap-6">
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+              <dt className="text-muted-foreground">Colors</dt>
+              <dd>{THEMES.find((t) => t.id === palette())?.name ?? 'Classic'}</dd>
+              <dt className="text-muted-foreground">Nothing planned</dt>
+              <dd>{EMPTY_LABEL[emptyPanel()]}</dd>
+            </dl>
+            <Button variant="outline" size="sm" onClick={onEditDisplay}>
+              Edit display
+            </Button>
+          </div>
         </div>
 
         <div className="px-6 pt-5">
