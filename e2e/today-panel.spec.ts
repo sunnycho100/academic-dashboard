@@ -156,7 +156,8 @@ test('a running Personal dev timer grows as a live block on the timeline', async
   await expect(live).toBeVisible()
   const before = (await live.boundingBox())!.height
 
-  // An hour later the block spans about an hour (64px)
-  await page.clock.runFor(60 * 60_000)
+  // An hour later the block spans about an hour (64px). fastForward jumps the hour instead
+  // of replaying every one-second tick, which would take longer than the test allows.
+  await page.clock.fastForward(60 * 60_000)
   await expect.poll(async () => (await live.boundingBox())!.height).toBeGreaterThan(before + 30)
 })

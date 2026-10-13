@@ -1,6 +1,12 @@
 import { test, expect, APP_URL } from './support/app'
 import { seedCategory, seedTask } from './support/api'
 
+
+// These tests check the timer to the second, so turn seconds on (they are off by default)
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('show-seconds', 'true'))
+})
+
 test('a paused gap is not counted when the timer resumes', async ({ page, api }) => {
   const cat = await seedCategory(api)
   await seedTask(api, cat.id, { title: 'Single-cycle review' })
