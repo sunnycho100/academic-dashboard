@@ -38,10 +38,23 @@ test('dragging a Today task onto the Planned lane plans it, and × removes it', 
   // Dragging the planned block down one hour moves it by an hour
   const startOf = async () => (await (await api.get(`/api/timetable?date=${date}`)).json())[0]?.plannedStart as string
   const before = await startOf()
+  // Wait until the block stops moving (the timeline reloads after planning)
+  let last = ''
+  await expect.poll(async () => {
+    const now = JSON.stringify(await block.boundingBox())
+    const settled = now === last
+    last = now
+    return settled
+  }, { intervals: [200] }).toBe(true)
   const b = (await block.boundingBox())!
-  await page.mouse.move(b.x + b.width / 2, b.y + 8)
+  const x = b.x + b.width / 2
+  await page.mouse.move(x, b.y + 8)
   await page.mouse.down()
-  await page.mouse.move(b.x + b.width / 2, b.y + 8 + 64, { steps: 10 })
+  // A short move first starts the drag (it needs 8px), then the hour's worth
+  await page.mouse.move(x, b.y + 20, { steps: 4 })
+  await page.waitForTimeout(100)
+  await page.mouse.move(x, b.y + 8 + 64, { steps: 10 })
+  await page.waitForTimeout(100)
   await page.mouse.up()
   const hourLater = (t: string) => { const [h, m] = t.split(':').map(Number); return `${String((h + 1) % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}` }
   await expect.poll(startOf).toBe(hourLater(before))
