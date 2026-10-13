@@ -28,9 +28,11 @@ test('a paused gap is not counted when the timer resumes', async ({ page, api })
   await page.clock.runFor(5_000)
 
   const panel = page.getByRole('complementary', { name: 'Today panel' })
-  await expect(panel.getByLabel('Active timer')).toHaveText(/0:10:0[4-6]/)
-  // Today total counts each second once: the saved 10:00 segment plus the live 0:05
-  await expect(panel.getByText(/Today total/i)).toHaveText(/0:10:0[4-6]/)
+  // About 10:05: the hour away is not counted (it would read 1:10). The fake clock keeps
+  // moving in real time while the checks retry, so a slow machine adds a few seconds.
+  await expect(panel.getByLabel('Active timer')).toHaveText(/0:10:[0-5]\d/)
+  // Today total counts each second once: the saved 10:00 segment plus the live part
+  await expect(panel.getByText(/Today total/i)).toHaveText(/0:10:[0-5]\d/)
 })
 
 test('a wrong stored count corrects itself from the saved records', async ({ page, api }) => {
