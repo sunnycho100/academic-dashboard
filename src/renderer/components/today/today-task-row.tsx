@@ -1,10 +1,13 @@
 import type { Task, Category } from '@/lib/types'
 import type { TodaySession } from '@/hooks/use-today-session'
-import { GripVertical, Play, Pause, ChevronLeft } from 'lucide-react'
+import { GripVertical, Play, Pause, ChevronLeft, MoreVertical, Pencil, Copy, Trash2 } from 'lucide-react'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { InlineEdit } from '@/components/tasks/inline-edit'
+import { InlineDurationEdit } from '@/components/tasks/inline-duration-edit'
 import { cn } from '@/lib/utils'
 import { CourseRing } from '@/components/tasks/course-ring'
 import { SortableTodayItem } from '@/components/today/sortable-today-item'
-import { formatMinutes, dueLabel } from '@/lib/task-format'
+import { dueLabel } from '@/lib/task-format'
 
 interface TodayTaskRowProps {
   task: Task
@@ -12,11 +15,15 @@ interface TodayTaskRowProps {
   session: TodaySession
   onToggleTask: (id: string, timeSpentSeconds?: number) => void
   onRemoveFromToday: (id: string) => void
+  onEdit: (task: Task) => void
+  onSave: (task: Task) => void
+  onDuplicate: (task: Task) => void
+  onDelete: (id: string) => void
   drawIndex?: number | null
 }
 
 /** A task in the Today group: sortable within Today, with its own timer controls. */
-export function TodayTaskRow({ task, category, session, onToggleTask, onRemoveFromToday, drawIndex = null }: TodayTaskRowProps) {
+export function TodayTaskRow({ task, category, session, onToggleTask, onRemoveFromToday, onEdit, onSave, onDuplicate, onDelete, drawIndex = null }: TodayTaskRowProps) {
   const { timerStates, getElapsedSeconds, formatTime, startTimer, pauseTimer, resumeTimer, stopTimer } = session
   const state = timerStates[task.id]
   const hasStarted = !!state?.isRunning
@@ -56,9 +63,11 @@ export function TodayTaskRow({ task, category, session, onToggleTask, onRemoveFr
             label={`Complete ${task.title}`}
           />
           <div className="flex-1 min-w-0">
-            <p className={cn('text-sm leading-snug truncate', task.status === 'done' && 'line-through text-muted-foreground')}>
-              {task.title}
-            </p>
+            {task.status === 'done' ? (
+              <p className="text-sm leading-snug truncate line-through text-muted-foreground">{task.title}</p>
+            ) : (
+              <InlineEdit value={task.title} onSave={(title) => onSave({ ...task, title })} className="block w-fit max-w-full text-sm leading-snug truncate" />
+            )}
             <p className="text-xs text-muted-foreground mt-0.5 truncate">
               {category?.name ?? 'Unknown'} · {task.type}
             </p>
@@ -74,11 +83,9 @@ export function TodayTaskRow({ task, category, session, onToggleTask, onRemoveFr
               {formatTime(getElapsedSeconds(task.id))}
             </span>
           ) : (
-            task.estimatedDuration ? (
-              <span className="text-xs tabular-nums text-muted-foreground">
-                {formatMinutes(task.estimatedDuration)}
-              </span>
-            ) : null
+            <span className="text-xs tabular-nums text-muted-foreground">
+              <InlineDurationEdit minutes={task.estimatedDuration} onSave={(estimatedDuration) => onSave({ ...task, estimatedDuration })} />
+            </span>
           )}
           {due && (
             <span
@@ -110,6 +117,36 @@ export function TodayTaskRow({ task, category, session, onToggleTask, onRemoveFr
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="flex-shrink-0 -ml-2 h-8 w-6 rounded-lg flex items-center justify-center text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 hover:text-foreground transition-opacity"
+                aria-label={`More actions for ${task.title}`}
+              >
+                <MoreVertical className="h-4 w-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onEdit(task)}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onDuplicate(task)}>
+                <Copy className="h-4 w-4 mr-2" />
+                Duplicate
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  if (hasStarted) stopTimer(task.id) // save the running time before the task goes
+                  onDelete(task.id)
+                }}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       )}
     </SortableTodayItem>
