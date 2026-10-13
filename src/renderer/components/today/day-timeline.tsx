@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
+import { useDndMonitor, useDraggable, useDroppable } from '@dnd-kit/core'
+import { dropStart, removePlanned, HOUR_PX } from '@/lib/plan'
 import type { Task, Category } from '@/lib/types'
 import type { TodaySession } from '@/hooks/use-today-session'
 import { logicalToday } from '@/hooks/use-today-session'
-import { ChevronLeft, ChevronRight, LocateFixed } from 'lucide-react'
+import { ChevronLeft, ChevronRight, LocateFixed, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { runningPersonalDev } from '@/components/today/personal-dev-tracker'
 import { loadPersonalDevColors } from '@/components/settings/color-scheme-dialog'
@@ -10,7 +12,6 @@ import { plannedBlocks, actualBlocks, timelineRange, type TimelineBlock } from '
 
 type Lanes = 'both' | 'planned' | 'actual'
 const LANES_KEY = 'timeline-lanes'
-const HOUR_PX = 64
 const RULER_PX = 44
 const DAY_LABEL = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
 
@@ -45,10 +46,53 @@ interface DayTimelineProps {
   categories: Category[]
   session: TodaySession
   onOpenTimetable: () => void
+  /** Minutes a dragged task would take on the plan (its estimate, or an hour) */
+  taskMinutes: (activeId: string) => number
+  taskTitle: (activeId: string) => string
+}
+
+/** A planned Timetable entry on the lane: drag to move, × to remove, click to open the Timetable. */
+function PlannedBlock({ block, date, style, onOpen }: { block: TimelineBlock; date: string; style: React.CSSProperties; onOpen: () => void }) {
+  const { setNodeRef, listeners, attributes, isDragging } = useDraggable({
+    id: `planned-${block.id}`,
+    data: { startMin: block.startMin, minutes: block.endMin - block.startMin, title: block.label },
+  })
+  return (
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      onClick={onOpen}
+      title="Drag to move, click to open in Timetable"
+      data-lane="planned"
+      className={cn(
+        'group absolute flex cursor-grab flex-col justify-start rounded-md border border-dashed border-today-muted/70 px-2 py-1 text-left text-[12px] leading-tight text-today-foreground overflow-hidden hover:bg-white/[0.04] active:cursor-grabbing',
+        isDragging && 'opacity-40',
+      )}
+      style={style}
+    >
+      <span className="truncate pr-4">{block.label || 'Untitled'}</span>
+      {block.endMin - block.startMin >= 34 && (
+        <span className="truncate text-[11px] tabular-nums text-today-muted">{clockRange(block.startMin, block.endMin)}</span>
+      )}
+      <button
+        type="button"
+        aria-label={`Remove ${block.label || 'entry'} from the plan`}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation()
+          removePlanned(date, block.id)
+        }}
+        className="absolute right-1 top-1 rounded p-0.5 text-today-muted opacity-0 hover:text-white group-hover:opacity-100 focus-visible:opacity-100"
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </div>
+  )
 }
 
 /** Today's hour ruler: planned Timetable entries next to actually tracked time, with a coral "now" line. */
-export function DayTimeline({ tasks, categories, session, onOpenTimetable }: DayTimelineProps) {
+export function DayTimeline({ tasks, categories, session, onOpenTimetable, taskMinutes, taskTitle }: DayTimelineProps) {
   const [lanes, setLanes] = useState<Lanes>(loadLanes)
   const [planned, setPlanned] = useState<TimelineBlock[]>([])
   const [actual, setActual] = useState<TimelineBlock[]>([])
@@ -99,9 +143,11 @@ export function DayTimeline({ tasks, categories, session, onOpenTimetable }: Day
     const poll = setInterval(load, 30_000)
     // Saved segments (task timers, Personal dev) show up immediately
     window.addEventListener('time-records-changed', load)
+    window.addEventListener('timetable-changed', load) // planned by dragging onto the lane
     return () => {
       clearInterval(poll)
       window.removeEventListener('time-records-changed', load)
+      window.removeEventListener('timetable-changed', load)
     }
   }, [tasks, shownDate])
 
@@ -133,6 +179,22 @@ export function DayTimeline({ tasks, categories, session, onOpenTimetable }: Day
   const focusMin = isToday ? nowMin : Math.min(9 * 60, ...shown.map((b) => b.startMin))
   const { startHour, endHour } = timelineRange(shown, isToday ? nowMin : 0)
   const top = (min: number) => ((min - startHour * 60) / 60) * HOUR_PX
+
+  // Dragging a task (or a planned block) over the Planned lane shows where it will land
+  const { setNodeRef: setLaneRef, isOver } = useDroppable({ id: 'planned-lane', data: { startHour, date: shownDate }, disabled: lanes === 'actual' })
+  const laneRef = useRef<HTMLDivElement | null>(null)
+  const [ghost, setGhost] = useState<{ startMin: number; minutes: number; title: string } | null>(null)
+  useDndMonitor({
+    onDragMove(e) {
+      if (e.over?.id !== 'planned-lane' || !laneRef.current) return setGhost(null)
+      const id = String(e.active.id)
+      const minutes = (e.active.data.current?.minutes as number | undefined) ?? taskMinutes(id)
+      const title = (e.active.data.current?.title as string | undefined) ?? taskTitle(id)
+      setGhost({ startMin: dropStart(e, startHour, laneRef.current.getBoundingClientRect().top), minutes, title })
+    },
+    onDragEnd: () => setGhost(null),
+    onDragCancel: () => setGhost(null),
+  })
 
   // The resting position: "now" about a third from the top, so recent work sits above it
   const scrollToNow = (behavior: ScrollBehavior) => {
@@ -222,7 +284,15 @@ export function DayTimeline({ tasks, categories, session, onOpenTimetable }: Day
         </div>
       )}
       <div ref={scrollRef} data-timeline-scroll className="flex-1 min-h-0 overflow-y-auto px-6 pt-2 pb-4">
-        <div className="relative" style={{ height: (endHour - startHour) * HOUR_PX }}>
+        <div
+          ref={(el) => {
+            laneRef.current = el
+            setLaneRef(el)
+          }}
+          data-planned-drop
+          className="relative"
+          style={{ height: (endHour - startHour) * HOUR_PX }}
+        >
           {/* Hour ruler */}
           {Array.from({ length: endHour - startHour + 1 }, (_, i) => (
             <div key={i} className="absolute left-0 right-0 border-t border-dashed border-white/10" style={{ top: i * HOUR_PX }}>
@@ -234,17 +304,26 @@ export function DayTimeline({ tasks, categories, session, onOpenTimetable }: Day
 
           {lanes !== 'actual' &&
             planned.map((b) => (
-              <button
+              <PlannedBlock
                 key={b.id}
-                onClick={onOpenTimetable}
-                title="Open in Timetable"
-                data-lane="planned"
-                className="absolute flex flex-col justify-start rounded-md border border-dashed border-today-muted/70 px-2 py-1 text-left text-[12px] leading-tight text-today-foreground overflow-hidden hover:bg-white/[0.04]"
+                block={b}
+                date={shownDate}
+                onOpen={onOpenTimetable}
                 style={{ ...laneStyle('planned'), top: top(b.startMin) + 1, height: Math.max(18, top(b.endMin) - top(b.startMin) - 2) }}
-              >
-                {b.label || 'Untitled'}
-              </button>
+              />
             ))}
+
+          {/* Where the dragged task will land, with its time */}
+          {isOver && ghost && (
+            <div
+              aria-hidden
+              className="absolute overflow-hidden rounded-md border border-today-foreground bg-white/[0.08] px-2 py-1 leading-tight text-white pointer-events-none"
+              style={{ ...laneStyle('planned'), top: top(ghost.startMin) + 1, height: Math.max(18, (ghost.minutes / 60) * HOUR_PX - 2) }}
+            >
+              <p className="truncate text-[12px] font-medium">{ghost.title}</p>
+              <p className="truncate text-[11px] tabular-nums text-today-muted">{clockRange(ghost.startMin, ghost.startMin + ghost.minutes)}</p>
+            </div>
+          )}
 
           {lanes !== 'planned' &&
             actualAll.map((b) => (

@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { useTodaySession } from '@/hooks/use-today-session'
+import { planMinutes, planTitle } from '@/lib/plan'
 
 export interface CatchupContentProps {
   tasks: Task[]
@@ -165,7 +166,7 @@ export function CatchupContent({
 
       {/* Today panel */}
       <TodayPanel tasks={todayTasks} categories={categories} session={session} onToggleTask={onToggleTask}>
-        <DayTimeline tasks={todayTasks} categories={categories} session={session} onOpenTimetable={onOpenTimetable} />
+        <DayTimeline tasks={todayTasks} categories={categories} session={session} onOpenTimetable={onOpenTimetable} taskMinutes={(id) => planMinutes(tasks, id)} taskTitle={(id) => planTitle(tasks, id)} />
       </TodayPanel>
     </div>
   )
