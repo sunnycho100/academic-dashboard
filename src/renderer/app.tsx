@@ -13,6 +13,7 @@ import { TimeRecordsDialog } from '@/components/time-records/time-records-dialog
 import { ColorSchemeDialog } from '@/components/settings/color-scheme-dialog'
 import { SettingsDialog } from '@/components/settings/settings-dialog'
 import { DisplayBar } from '@/components/settings/display-bar'
+import { addPlanned, dropStart, movePlanned, planMinutes } from '@/lib/plan'
 import { type WeeklyPlanEntry, DAY_LABELS } from '@/components/weekly-plan/weekly-plan'
 import { CatchupContent } from '@/components/layout/catchup-content'
 import { TimetableContent } from '@/components/timetable/timetable-content'
@@ -115,6 +116,7 @@ export default function Home() {
   const [colorSchemeOpen, setColorSchemeOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [displayOpen, setDisplayOpen] = useState(false)
+  const [overPlannedLane, setOverPlannedLane] = useState(false)
   const [weeklyPlanOpen, setWeeklyPlanOpen] = useState(false)
   const [weeklyEntries, setWeeklyEntries] = useState<WeeklyPlanEntry[]>([])
   const [weeklyRefreshKey, setWeeklyRefreshKey] = useState(0)
@@ -329,12 +331,29 @@ export default function Home() {
   const handleGlobalDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
     setActiveDragId(null)
+    setOverPlannedLane(false)
     if (!over) return
 
     const activeRaw = String(active.id)
     const overRaw = String(over.id)
     const isFromToday = activeRaw.startsWith('today-')
     const taskId = extractTaskId(activeRaw)
+
+    // Drop onto the timeline's Planned lane: plan the task there, or move a planned block
+    if (overRaw === 'planned-lane') {
+      const lane = document.querySelector('[data-planned-drop]')
+      const { startHour, date } = over.data.current as { startHour: number; date: string }
+      if (!lane) return
+      const startMin = dropStart(event, startHour, lane.getBoundingClientRect().top)
+      if (activeRaw.startsWith('planned-')) movePlanned(date, activeRaw.slice('planned-'.length), startMin)
+      else {
+        const task = tasks.find((t) => t.id === taskId)
+        if (task) addPlanned(date, task.title, startMin, planMinutes(tasks, taskId))
+      }
+      return
+    }
+    // A planned block dropped anywhere else stays where it was
+    if (activeRaw.startsWith('planned-')) return
 
     // Drop onto a weekly plan day column (from task list OR today panel)
     if (overRaw.startsWith('weekly-day-')) {
@@ -514,6 +533,9 @@ export default function Home() {
     <DndContext
       sensors={sensors}
       collisionDetection={pointerWithin}
+      // The timeline scrolling by itself under the pointer would move where a task lands
+      autoScroll={{ canScroll: (el) => !el.hasAttribute('data-timeline-scroll') }}
+      onDragOver={(e) => setOverPlannedLane(e.over?.id === 'planned-lane')}
       onDragStart={handleGlobalDragStart}
       onDragEnd={handleGlobalDragEnd}
     >
@@ -671,7 +693,8 @@ export default function Home() {
         duration: 250,
         easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
       }}>
-        {activeDragTask && (() => {
+        {/* Over the Planned lane the lane's own preview shows where it lands instead */}
+        {activeDragTask && !overPlannedLane && (() => {
           const dragCat = categories.find(c => c.id === activeDragTask.categoryId)
           return (
             <motion.div
