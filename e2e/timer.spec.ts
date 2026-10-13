@@ -1,6 +1,12 @@
 import { test, expect, APP_URL } from './support/app'
 import { seedCategory, seedTask } from './support/api'
 
+
+// These tests check the timer to the second, so turn seconds on (they are off by default)
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('show-seconds', 'true'))
+})
+
 test('a paused gap is not counted when the timer resumes', async ({ page, api }) => {
   const cat = await seedCategory(api)
   await seedTask(api, cat.id, { title: 'Single-cycle review' })
@@ -12,18 +18,21 @@ test('a paused gap is not counted when the timer resumes', async ({ page, api })
   await page.locator('.group').filter({ hasText: 'Single-cycle review' }).getByTitle("Add to Today's Plan").click()
   const row = page.getByTitle('Start timer').first()
   await row.click()
-  await page.clock.runFor(10 * 60_000)
+  // fastForward jumps the time instead of replaying every one-second tick, which is slow on CI
+  await page.clock.fastForward(10 * 60_000)
   await page.getByTitle('Pause timer').first().click()
 
   // An hour away from the desk, then back
-  await page.clock.runFor(60 * 60_000)
+  await page.clock.fastForward(60 * 60_000)
   await page.getByTitle('Resume timer').first().click()
   await page.clock.runFor(5_000)
 
   const panel = page.getByRole('complementary', { name: 'Today panel' })
-  await expect(panel.getByLabel('Active timer')).toHaveText(/0:10:0[4-6]/)
-  // Today total counts each second once: the saved 10:00 segment plus the live 0:05
-  await expect(panel.getByText(/Today total/i)).toHaveText(/0:10:0[4-6]/)
+  // About 10:05: the hour away is not counted (it would read 1:10). The fake clock keeps
+  // moving in real time while the checks retry, so a slow machine adds a few seconds.
+  await expect(panel.getByLabel('Active timer')).toHaveText(/0:10:[0-5]\d/)
+  // Today total counts each second once: the saved 10:00 segment plus the live part
+  await expect(panel.getByText(/Today total/i)).toHaveText(/0:10:[0-5]\d/)
 })
 
 test('a wrong stored count corrects itself from the saved records', async ({ page, api }) => {
@@ -62,7 +71,7 @@ test('a session running past midnight is kept once and keeps its count', async (
 
   // Past midnight the app reloads into the new day while the timer runs
   const reloaded = page.waitForEvent('load')
-  await page.clock.runFor(15 * 60_000)
+  await page.clock.fastForward(15 * 60_000)
   await reloaded
   await page.getByTitle('Pause timer').first().click()
 

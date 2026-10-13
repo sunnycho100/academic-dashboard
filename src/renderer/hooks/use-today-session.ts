@@ -25,6 +25,13 @@ export function logicalToday(now = new Date()): { date: string; startHour: numbe
   return { date, startHour, endHour }
 }
 
+/** Today's time records, honoring the day boundaries. */
+export function todayRecordsUrl(): string {
+  const { date, startHour, endHour } = logicalToday()
+  const endHourParam = endHour > 24 ? endHour - 24 : 0
+  return `/api/time-records?date=${date}&tz=${new Date().getTimezoneOffset()}&startHour=${startHour}&endHour=${endHourParam}`
+}
+
 /** Hour the day rolls over: midnight, or the day-end hour when the day runs past midnight. */
 export function rolloverHour(): number {
   const { endHour } = logicalToday()
@@ -59,10 +66,7 @@ export function useTodaySession(todayTasks: Task[], categories: Category[], user
   // Today's total from all time records, polled so it stays fresh
   useEffect(() => {
     const fetchStudyTime = () => {
-      const { date, startHour, endHour } = logicalToday()
-      const tz = new Date().getTimezoneOffset()
-      const endHourParam = endHour > 24 ? endHour - 24 : 0
-      fetch(`/api/time-records?date=${date}&tz=${tz}&startHour=${startHour}&endHour=${endHourParam}`)
+      fetch(todayRecordsUrl())
         .then((res) => res.json())
         .then((records: Array<{ duration: number }>) => {
           if (Array.isArray(records)) setDbStudySeconds(records.reduce((sum, r) => sum + r.duration, 0))

@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import '@fontsource/great-vibes'
 import { ThemeProvider } from '@/components/theme/theme-provider'
 import App from './app'
+import { DesktopWidget } from '@/components/widget/desktop-widget'
 import './globals.css'
 
 // Every write to /api/time-records (timers, Personal dev, Time Records edits) announces
@@ -17,12 +18,20 @@ window.fetch = async (input, init) => {
   return res
 }
 
+// The desktop widget window loads this same page with #widget
+const isWidget = location.hash === '#widget'
+if (isWidget) document.documentElement.classList.add('widget')
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-      <div className="mesh-gradient min-h-screen">
-        <App />
-      </div>
+      {isWidget ? (
+        <DesktopWidget />
+      ) : (
+        <div className="mesh-gradient min-h-screen">
+          <App />
+        </div>
+      )}
     </ThemeProvider>
   </StrictMode>,
 )

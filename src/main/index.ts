@@ -1,4 +1,5 @@
-import { app, BrowserWindow, net, powerMonitor, protocol, shell } from 'electron'
+import { app, BrowserWindow, net, powerMonitor, protocol, screen, shell } from 'electron'
+import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 
@@ -23,6 +24,7 @@ async function registerAppProtocol() {
 
   protocol.handle('app', async (req) => {
     const { pathname, search } = new URL(req.url)
+    if (pathname === '/api/widget') return widgetRoute(req)
     if (pathname.startsWith('/api/')) {
       try {
         return await handleApi(req)
@@ -37,6 +39,70 @@ async function registerAppProtocol() {
     const inside = file.startsWith(rendererDir + path.sep) && path.extname(file) !== ''
     return net.fetch(pathToFileURL(inside ? file : path.join(rendererDir, 'index.html')).toString())
   })
+}
+
+// ── Desktop widget ──────────────────────────────────────────────
+// A small frameless window that sits with the desktop (behind other windows, on every Space)
+// and shows the running timer. It loads the same app://local page with #widget, so it reads
+// the same localStorage timers and /api routes as the main window.
+
+const WIDGET_SIZE = 350 // three desktop icon cells: 64px icons with 54px grid spacing
+const widgetFile = () => path.join(app.getPath('userData'), 'widget.json')
+let widget: BrowserWindow | null = null
+let mainWin: BrowserWindow | null = null
+
+type WidgetState = { open: boolean; x?: number; y?: number }
+function readWidgetState(): WidgetState {
+  try {
+    return JSON.parse(fs.readFileSync(widgetFile(), 'utf8'))
+  } catch {
+    return { open: false }
+  }
+}
+function saveWidgetState(patch: Partial<WidgetState>) {
+  fs.writeFileSync(widgetFile(), JSON.stringify({ ...readWidgetState(), ...patch }))
+}
+
+function openWidget() {
+  if (widget && !widget.isDestroyed()) return
+  const { x, y } = readWidgetState()
+  const area = screen.getPrimaryDisplay().workArea
+  widget = new BrowserWindow({
+    width: WIDGET_SIZE,
+    height: WIDGET_SIZE,
+    x: x ?? area.x + area.width - WIDGET_SIZE - 24,
+    y: y ?? area.y + 24,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    minimizable: false,
+    hasShadow: false,
+    skipTaskbar: true,
+    title: 'Timer widget',
+    show: false,
+    webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: !hidden },
+  })
+  widget.setVisibleOnAllWorkspaces(true)
+  if (!hidden) widget.once('ready-to-show', () => widget?.showInactive())
+  widget.on('moved', () => {
+    if (!widget) return
+    const [wx, wy] = widget.getPosition()
+    saveWidgetState({ x: wx, y: wy })
+  })
+  widget.on('closed', () => (widget = null))
+  widget.loadURL('app://local/#widget')
+}
+
+async function widgetRoute(req: Request): Promise<Response> {
+  if (req.method === 'POST') {
+    const { open } = (await req.json()) as { open: boolean }
+    saveWidgetState({ open })
+    if (open) openWidget()
+    else widget?.close()
+  }
+  return Response.json({ open: readWidgetState().open })
 }
 
 function createWindow() {
@@ -65,13 +131,15 @@ function createWindow() {
     if (!url.startsWith('app://')) e.preventDefault()
   })
   win.loadURL('app://local/')
+  mainWin = win
+  win.on('closed', () => (mainWin = null))
 }
 
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
   app.on('second-instance', () => {
-    const [win] = BrowserWindow.getAllWindows()
+    const win = mainWin
     if (win) {
       if (win.isMinimized()) win.restore()
       win.focus()
@@ -82,8 +150,10 @@ if (!app.requestSingleInstanceLock()) {
     if (hidden) app.dock?.hide()
     await registerAppProtocol()
     createWindow()
+    if (readWidgetState().open) openWidget()
+    // The widget is a window too, so check for the main window itself
     app.on('activate', () => {
-      if (BrowserWindow.getAllWindows().length === 0) createWindow()
+      if (!mainWin) createWindow()
     })
     // Timers in a sleeping Mac don't fire on time, so on wake or unlock ask the page to
     // run its day check now (it listens for focus and reloads if the day has changed).

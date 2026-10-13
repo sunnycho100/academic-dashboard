@@ -1,11 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useReducer, useState } from 'react'
 import type { Task, Category } from '@/lib/types'
 import type { TodaySession } from '@/hooks/use-today-session'
 import { Maximize2, Pause, Play } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatClock } from '@/lib/task-format'
-import { PersonalDevTracker } from '@/components/today/personal-dev-tracker'
+import { PersonalDevTracker, runningPersonalDev } from '@/components/today/personal-dev-tracker'
 import { FocusModeOverlay } from '@/components/today/focus-mode-overlay'
+import { earned, formatMoney, showSeconds } from '@/lib/prefs'
 
 interface TodayPanelProps {
   tasks: Task[]
@@ -20,6 +21,17 @@ const DATE = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short'
 /** The dark green Today panel: focus timer on top, then the day timeline (children), then personal dev timers. */
 export function TodayPanel({ tasks, categories, session, onToggleTask, children }: TodayPanelProps) {
   const [focusMode, setFocusMode] = useState(false)
+  // Re-render when the seconds or hourly value settings change
+  const [, refresh] = useReducer((n: number) => n + 1, 0)
+  useEffect(() => {
+    window.addEventListener('prefs-changed', refresh)
+    window.addEventListener('storage', refresh)
+    return () => {
+      window.removeEventListener('prefs-changed', refresh)
+      window.removeEventListener('storage', refresh)
+    }
+  }, [])
+  const seconds = showSeconds()
   const { timerStates, getElapsedSeconds, formatTime, startTimer, pauseTimer, resumeTimer, stopTimer, totalStudySeconds } = session
 
   const running = tasks.find((t) => timerStates[t.id]?.isRunning && !timerStates[t.id]?.isPaused)
@@ -95,7 +107,7 @@ export function TodayPanel({ tasks, categories, session, onToggleTask, children 
         </p>
         <div className="mt-3 flex items-center gap-4">
           <span className="font-extralight text-[4.5rem] leading-none tracking-tight tabular-nums text-white" aria-label="Active timer">
-            {formatClock(elapsed)}
+            {formatClock(elapsed, seconds)}
           </span>
           {active && (
             <button
@@ -124,9 +136,7 @@ export function TodayPanel({ tasks, categories, session, onToggleTask, children 
             ))}
           </div>
         )}
-        <p className="mt-3 text-xs uppercase tracking-wider text-today-muted tabular-nums">
-          Today total {formatClock(totalStudySeconds)}
-        </p>
+        <TodayTotal saved={totalStudySeconds} seconds={seconds} />
       </div>
 
       <div className="flex-1 min-h-0 border-t border-white/10">{children}</div>
@@ -135,5 +145,29 @@ export function TodayPanel({ tasks, categories, session, onToggleTask, children 
         <PersonalDevTracker />
       </div>
     </aside>
+  )
+}
+
+/**
+ * Today's total and what it's worth. Ticks on its own each second, so the earned amount
+ * climbs while any timer runs without re-rendering the whole panel. A running Personal dev
+ * timer is only saved when it stops, so its live stretch is added here (as the widget does).
+ */
+function TodayTotal({ saved, seconds }: { saved: number; seconds: boolean }) {
+  const [, tick] = useReducer((n: number) => n + 1, 0)
+  useEffect(() => {
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [])
+  const devLive = runningPersonalDev().reduce(
+    (sum, d) => sum + Math.max(0, Math.floor((Date.now() - new Date(d.segmentStartedAt).getTime()) / 1000)),
+    0,
+  )
+  const total = saved + devLive
+  return (
+    <p className="mt-3 text-xs uppercase tracking-wider text-today-muted tabular-nums">
+      Today total {formatClock(total, seconds)}
+      <span className="ml-3 text-white" aria-label="Earned today">{formatMoney(earned(total), seconds)}</span>
+    </p>
   )
 }

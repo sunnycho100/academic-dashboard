@@ -12,6 +12,13 @@ html {
   font-size: 75%;
 }
 
+/* The desktop widget window is transparent outside its rounded card */
+html.widget,
+html.widget body {
+  background: transparent;
+  overflow: hidden;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
