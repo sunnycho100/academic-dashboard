@@ -18,11 +18,12 @@ test('a paused gap is not counted when the timer resumes', async ({ page, api })
   await page.locator('.group').filter({ hasText: 'Single-cycle review' }).getByTitle("Add to Today's Plan").click()
   const row = page.getByTitle('Start timer').first()
   await row.click()
-  await page.clock.runFor(10 * 60_000)
+  // fastForward jumps the time instead of replaying every one-second tick, which is slow on CI
+  await page.clock.fastForward(10 * 60_000)
   await page.getByTitle('Pause timer').first().click()
 
   // An hour away from the desk, then back
-  await page.clock.runFor(60 * 60_000)
+  await page.clock.fastForward(60 * 60_000)
   await page.getByTitle('Resume timer').first().click()
   await page.clock.runFor(5_000)
 
@@ -68,7 +69,7 @@ test('a session running past midnight is kept once and keeps its count', async (
 
   // Past midnight the app reloads into the new day while the timer runs
   const reloaded = page.waitForEvent('load')
-  await page.clock.runFor(15 * 60_000)
+  await page.clock.fastForward(15 * 60_000)
   await reloaded
   await page.getByTitle('Pause timer').first().click()
 
