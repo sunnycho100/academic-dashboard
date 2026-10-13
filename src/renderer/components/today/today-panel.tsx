@@ -6,7 +6,8 @@ import { cn } from '@/lib/utils'
 import { formatClock } from '@/lib/task-format'
 import { PersonalDevTracker, runningPersonalDev } from '@/components/today/personal-dev-tracker'
 import { FocusModeOverlay } from '@/components/today/focus-mode-overlay'
-import { earned, formatMoney, showSeconds } from '@/lib/prefs'
+import { earned, emptyPanel, formatMoney, previewing, showSeconds } from '@/lib/prefs'
+import { EmptyToday } from '@/components/today/empty-today'
 
 interface TodayPanelProps {
   tasks: Task[]
@@ -38,6 +39,10 @@ export function TodayPanel({ tasks, categories, session, onToggleTask, children 
   const paused = tasks.find((t) => timerStates[t.id]?.isRunning && timerStates[t.id]?.isPaused)
   const next = tasks.find((t) => t.status !== 'done')
   const active = running ?? paused ?? next
+  // Settings > Display: what fills the top when nothing is planned. While Edit display is
+  // trying a choice, show it even with tasks planned so the preview is visible.
+  const empty = emptyPanel()
+  const emptyView = empty !== 'now' && (!active || previewing('empty-panel')) ? empty : null
   const activeCategory = active && categories.find((c) => c.id === active.categoryId)
   const elapsed = active ? getElapsedSeconds(active.id) : 0
 
@@ -91,6 +96,10 @@ export function TodayPanel({ tasks, categories, session, onToggleTask, children 
           )}
         </div>
 
+        {emptyView ? (
+          <EmptyToday variant={emptyView} saved={totalStudySeconds} />
+        ) : (
+        <>
         {/* Focus timer */}
         <p className="mt-5 text-xs uppercase tracking-wider text-today-muted">
           {running ? 'Now working on' : paused ? 'Paused' : active ? 'Up next' : 'Nothing planned'}
@@ -137,6 +146,8 @@ export function TodayPanel({ tasks, categories, session, onToggleTask, children 
           </div>
         )}
         <TodayTotal saved={totalStudySeconds} seconds={seconds} />
+        </>
+        )}
       </div>
 
       <div className="flex-1 min-h-0 border-t border-white/10">{children}</div>

@@ -4,6 +4,8 @@ import '@fontsource/great-vibes'
 import { ThemeProvider } from '@/components/theme/theme-provider'
 import App from './app'
 import { DesktopWidget } from '@/components/widget/desktop-widget'
+import { applyTheme } from '@/lib/themes'
+import { palette } from '@/lib/prefs'
 import './globals.css'
 
 // Every write to /api/time-records (timers, Personal dev, Time Records edits) announces
@@ -21,6 +23,13 @@ window.fetch = async (input, init) => {
 // The desktop widget window loads this same page with #widget
 const isWidget = location.hash === '#widget'
 if (isWidget) document.documentElement.classList.add('widget')
+else {
+  // The chosen color theme, kept in step with Settings, Edit display and the other window
+  const syncTheme = () => applyTheme(palette())
+  syncTheme()
+  window.addEventListener('prefs-changed', syncTheme)
+  window.addEventListener('storage', syncTheme)
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
