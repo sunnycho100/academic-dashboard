@@ -5,7 +5,8 @@ import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
 import { TimerState } from '@/hooks/use-task-timer'
 import { CourseRing } from '@/components/tasks/course-ring'
-import { dueLabel, formatClock, formatMinutes } from '@/lib/task-format'
+import { currentDayStart, dueLabel, formatClock, formatMinutes, pausedSince } from '@/lib/task-format'
+import { rolloverHour } from '@/hooks/use-today-session'
 import { earned, formatMoney, showSeconds } from '@/lib/prefs'
 
 export interface FocusModeOverlayProps {
@@ -57,7 +58,8 @@ export function FocusModeOverlay({
   const isRunning = (t: Task) => !!timerStates[t.id]?.isRunning && !timerStates[t.id]?.isPaused
   const isPaused = (t: Task) => !!timerStates[t.id]?.isRunning && !!timerStates[t.id]?.isPaused
   const running = tasks.find(isRunning)
-  const paused = tasks.find(isPaused)
+  // Paused today only; a task paused on an earlier day waits its turn like the rest
+  const paused = tasks.find((t) => pausedSince(timerStates[t.id], currentDayStart(new Date(), rolloverHour())))
   const active = running ?? paused ?? tasks.find((t) => t.status !== 'done')
   const activeCategory = active && categories.find((c) => c.id === active.categoryId)
 

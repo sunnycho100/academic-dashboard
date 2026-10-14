@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { formatMinutes, dueLabel, formatClock, courseSummary, currentDayStart } from './task-format.ts'
+import { formatMinutes, dueLabel, formatClock, courseSummary, currentDayStart, pausedSince } from './task-format.ts'
 
 test('formatMinutes', () => {
   assert.equal(formatMinutes(25), '25m')
@@ -45,4 +45,13 @@ test('currentDayStart is the most recent rollover', () => {
   // Day ending at 2 AM: 1 AM is still yesterday, 3 AM is the new day
   assert.equal(at('2026-09-30T01:00:00', 2), iso('2026-09-29T02:00:00'))
   assert.equal(at('2026-09-30T03:00:00', 2), iso('2026-09-30T02:00:00'))
+})
+
+test('only a pause from the current day counts as paused', () => {
+  const dayStart = new Date(2026, 9, 13, 0, 0)
+  const paused = (at: string | null) => ({ isRunning: true, isPaused: true, lastTickAt: at })
+  assert.equal(pausedSince(paused(new Date(2026, 9, 13, 14, 0).toISOString()), dayStart), true)
+  assert.equal(pausedSince(paused(new Date(2026, 9, 12, 21, 0).toISOString()), dayStart), false) // yesterday evening
+  assert.equal(pausedSince(paused(null), dayStart), false)
+  assert.equal(pausedSince({ isRunning: true, isPaused: false, lastTickAt: new Date(2026, 9, 13, 14).toISOString() }, dayStart), false) // running, not paused
 })
