@@ -6,6 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Checkbox } from '@/components/ui/checkbox'
 import { MoreHorizontal } from 'lucide-react'
+import { earned, formatMoney, showEarnings } from '@/lib/prefs'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -177,7 +178,7 @@ function StatsRow({ records }: { records: CompletedTaskRecord[] }) {
   )
 
   return (
-    <div className="grid grid-cols-3 gap-4 border-y border-border py-4">
+    <div className={`grid gap-4 border-y border-border py-4 ${showEarnings() ? 'grid-cols-4' : 'grid-cols-3'}`}>
       <div>
         <div className={sectionLabel}>Completed</div>
         <div className="mt-1 font-serif text-2xl tabular-nums">{records.length}</div>
@@ -192,6 +193,12 @@ function StatsRow({ records }: { records: CompletedTaskRecord[] }) {
           {formatTimeSpent(totalTimeSaved)}
         </div>
       </div>
+      {showEarnings() && (
+        <div>
+          <div className={sectionLabel}>Earned</div>
+          <div className="mt-1 font-serif text-2xl tabular-nums">{formatMoney(earned(totalTimeSpent * 60))}</div>
+        </div>
+      )}
     </div>
   )
 }

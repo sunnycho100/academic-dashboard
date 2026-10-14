@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useState } from 'react'
 import { formatClock } from '@/lib/task-format'
-import { earned, formatMoney, showSeconds } from '@/lib/prefs'
-import { logicalToday } from '@/hooks/use-today-session'
+import { earned, formatMoney, showEarnings, showSeconds } from '@/lib/prefs'
+import { dayRecordsUrl } from '@/hooks/use-today-session'
 import { runningPersonalDev } from '@/components/today/personal-dev-tracker'
 import { cn } from '@/lib/utils'
 
@@ -39,24 +39,18 @@ function DaySoFar({ saved }: { saved: number }) {
           <p className={cn('font-extralight leading-none tracking-tight tabular-nums text-white whitespace-nowrap', size)}>{time}</p>
           <p className="mt-1.5 text-xs text-today-muted">tracked</p>
         </div>
-        <div>
-          <p className={cn('font-extralight leading-none tracking-tight tabular-nums text-white whitespace-nowrap', size)}>{money}</p>
-          <p className="mt-1.5 text-xs text-today-muted">earned</p>
-        </div>
+        {showEarnings() && (
+          <div>
+            <p className={cn('font-extralight leading-none tracking-tight tabular-nums text-white whitespace-nowrap', size)}>{money}</p>
+            <p className="mt-1.5 text-xs text-today-muted">earned</p>
+          </div>
+        )}
       </div>
     </div>
   )
 }
 
 // ── Last 7 days: a bar per day of tracked time, with the week's total and earnings ──
-
-function dayUrl(offset: number): string {
-  const { date, startHour, endHour } = logicalToday()
-  const d = new Date(`${date}T12:00:00`)
-  d.setDate(d.getDate() + offset)
-  const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  return `/api/time-records?date=${ds}&tz=${new Date().getTimezoneOffset()}&startHour=${startHour}&endHour=${endHour > 24 ? endHour - 24 : 0}`
-}
 
 const WEEKDAY = new Intl.DateTimeFormat('en-US', { weekday: 'narrow' })
 
@@ -67,7 +61,7 @@ function ThisWeek({ saved }: { saved: number }) {
     const load = () =>
       Promise.all(
         [-6, -5, -4, -3, -2, -1].map((o) =>
-          fetch(dayUrl(o))
+          fetch(dayRecordsUrl(o))
             .then((r) => r.json())
             .then((recs: { duration: number }[]) => (Array.isArray(recs) ? recs.reduce((s, r) => s + r.duration, 0) : 0))
             .catch(() => 0),
@@ -104,7 +98,7 @@ function ThisWeek({ saved }: { saved: number }) {
       </div>
       <p className="mt-3 text-xs uppercase tracking-wider text-today-muted tabular-nums">
         Week {formatClock(week, false)}
-        <span className="ml-3 text-white">{formatMoney(earned(week), showSeconds())}</span>
+        {showEarnings() && <span className="ml-3 text-white">{formatMoney(earned(week), showSeconds())}</span>}
         <span className="ml-3">Today {formatClock(today, false)}</span>
       </p>
     </div>
