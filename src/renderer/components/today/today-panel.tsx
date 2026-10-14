@@ -207,7 +207,11 @@ function TodayHero({ saved, seconds }: { saved: number; seconds: boolean }) {
         </div>
       </div>
       <p
-        className="mt-2 font-extralight text-[4.5rem] leading-none tracking-tight tabular-nums text-white"
+        className={cn(
+          'mt-2 font-extralight leading-none tracking-tight tabular-nums text-white whitespace-nowrap',
+          // Steps down once the number would outgrow the panel ($10,000.00 or 100:00:00)
+          (mode === 'time' ? time : money).length > 9 ? 'text-[3.4rem]' : 'text-[4.5rem]',
+        )}
         aria-label={mode === 'time' ? 'Today total' : 'Earned today'}
       >
         {mode === 'time' ? time : money}

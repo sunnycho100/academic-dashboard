@@ -97,14 +97,9 @@ export function SettingsDialog({ open, onOpenChange, onEditDisplay }: SettingsDi
             <Switch id="seconds-toggle" checked={seconds} onCheckedChange={handleSecondsChange} />
           </div>
           <div className="mt-3 flex items-center justify-between gap-6">
-            <div className="space-y-1">
-              <Label htmlFor="hourly-rate" className="text-sm font-normal">
-                Hourly value
-              </Label>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                Each hour you track counts as this much earned.
-              </p>
-            </div>
+            <Label htmlFor="hourly-rate" className="text-sm font-normal">
+              Hourly value
+            </Label>
             <div className="flex items-center gap-1 text-sm">
               <span className="text-muted-foreground">$</span>
               <Input
