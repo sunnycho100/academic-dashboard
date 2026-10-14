@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { emptyPanel, hourlyRate, palette, setPref, showSeconds } from '@/lib/prefs'
+import { logicalToday } from '@/hooks/use-today-session'
 import { THEMES } from '@/lib/themes'
 import { Button } from '@/components/ui/button'
 
@@ -21,6 +22,9 @@ export function SettingsDialog({ open, onOpenChange, onEditDisplay }: SettingsDi
   const [widgetOpen, setWidgetOpen] = useState(false)
   const [seconds, setSeconds] = useState(true)
   const [rate, setRate] = useState('20')
+  // When the day rolls over: totals, Done today, the timeline and the Today plan all follow it.
+  // Shared with the day boundaries in Time records (end past 24 means after midnight).
+  const [dayEnd, setDayEnd] = useState(24)
 
   useEffect(() => {
     if (open) {
@@ -29,6 +33,7 @@ export function SettingsDialog({ open, onOpenChange, onEditDisplay }: SettingsDi
       } catch {}
       setSeconds(showSeconds())
       setRate(String(hourlyRate()))
+      setDayEnd(Math.min(29, Math.max(24, logicalToday().endHour)))
       fetch('/api/widget')
         .then((r) => r.json())
         .then((w: { open: boolean }) => setWidgetOpen(w.open))
@@ -44,6 +49,17 @@ export function SettingsDialog({ open, onOpenChange, onEditDisplay }: SettingsDi
   const handleSecondsChange = (checked: boolean) => {
     setSeconds(checked)
     setPref('show-seconds', String(checked))
+  }
+
+  const handleDayEndChange = (end: number) => {
+    setDayEnd(end)
+    try {
+      // The day starts where the last one ended (3 AM to 3 AM), so no hour belongs to neither
+      localStorage.setItem('timeRecords-dayBoundaries', JSON.stringify({ start: end - 24, end }))
+    } catch {}
+    // Totals and the timeline reload for the new day
+    window.dispatchEvent(new Event('time-records-changed'))
+    window.dispatchEvent(new Event('prefs-changed'))
   }
 
   const handleRateChange = (value: string) => {
@@ -95,6 +111,23 @@ export function SettingsDialog({ open, onOpenChange, onEditDisplay }: SettingsDi
               Show seconds
             </Label>
             <Switch id="seconds-toggle" checked={seconds} onCheckedChange={handleSecondsChange} />
+          </div>
+          <div className="mt-3 flex items-center justify-between gap-6">
+            <Label htmlFor="day-end" className="text-sm font-normal">
+              Day ends at
+            </Label>
+            <select
+              id="day-end"
+              value={dayEnd}
+              onChange={(e) => handleDayEndChange(Number(e.target.value))}
+              className="h-8 w-20 rounded-md border border-input bg-transparent px-2 text-sm tabular-nums"
+            >
+              {[24, 25, 26, 27, 28, 29].map((h) => (
+                <option key={h} value={h}>
+                  {h === 24 ? '12 AM' : `${h - 24} AM`}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="mt-3 flex items-center justify-between gap-6">
             <Label htmlFor="hourly-rate" className="text-sm font-normal">

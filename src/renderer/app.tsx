@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Task, Category, SortOption, CompletedTask } from '@/lib/types'
 import { currentDayStart } from '@/lib/task-format'
-import { rolloverHour } from '@/hooks/use-today-session'
+import { logicalToday, rolloverHour } from '@/hooks/use-today-session'
 import { CategorySidebar } from '@/components/categories/category-sidebar'
 import { AddCategoryDialog } from '@/components/categories/add-category-dialog'
 import { AddTaskDialog } from '@/components/tasks/add-task-sheet'
@@ -70,9 +70,9 @@ function saveTodayIds(ids: string[], userId: string | null) {
   } catch {}
 }
 
+/** The day the Today plan belongs to; after midnight it is still yesterday until the day ends. */
 function getTodayDateKey(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return logicalToday().date
 }
 
 /** On day change, archive current today IDs as "previous day" */

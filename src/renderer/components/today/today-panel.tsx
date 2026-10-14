@@ -4,7 +4,7 @@ import type { TodaySession } from '@/hooks/use-today-session'
 import { Maximize2, Pause, Play } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { currentDayStart, formatClock, pausedSince } from '@/lib/task-format'
-import { rolloverHour } from '@/hooks/use-today-session'
+import { logicalToday, rolloverHour } from '@/hooks/use-today-session'
 import { PersonalDevTracker, runningPersonalDev } from '@/components/today/personal-dev-tracker'
 import { FocusModeOverlay } from '@/components/today/focus-mode-overlay'
 import { earned, emptyPanel, formatMoney, hero, previewing, setPref, showSeconds } from '@/lib/prefs'
@@ -19,6 +19,11 @@ interface TodayPanelProps {
 }
 
 const DATE = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+/** The day being worked on, which runs past midnight when the day ends later */
+const logicalDate = () => {
+  const [y, m, d] = logicalToday().date.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
 
 /** The dark green Today panel: focus timer on top, then the day timeline (children), then personal dev timers. */
 export function TodayPanel({ tasks, categories, session, onToggleTask, children }: TodayPanelProps) {
@@ -87,7 +92,7 @@ export function TodayPanel({ tasks, categories, session, onToggleTask, children 
       <div className="px-6 pt-5 pb-5 flex-shrink-0">
         <div className="flex items-baseline">
           <h2 className="font-serif text-2xl text-white">Today</h2>
-          <span className="ml-auto text-xs uppercase tracking-wider text-today-muted">{DATE.format(new Date())}</span>
+          <span className="ml-auto text-xs uppercase tracking-wider text-today-muted">{DATE.format(logicalDate())}</span>
           {tasks.length > 0 && (
             <button
               onClick={() => setFocusMode(true)}

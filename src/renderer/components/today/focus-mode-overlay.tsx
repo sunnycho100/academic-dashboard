@@ -6,7 +6,7 @@ import { motion } from 'framer-motion'
 import { TimerState } from '@/hooks/use-task-timer'
 import { CourseRing } from '@/components/tasks/course-ring'
 import { currentDayStart, dueLabel, formatClock, formatMinutes, pausedSince } from '@/lib/task-format'
-import { rolloverHour } from '@/hooks/use-today-session'
+import { logicalToday, rolloverHour } from '@/hooks/use-today-session'
 import { earned, formatMoney, showSeconds } from '@/lib/prefs'
 
 export interface FocusModeOverlayProps {
@@ -28,6 +28,11 @@ export interface FocusModeOverlayProps {
 }
 
 const DATE = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+/** The day being worked on, which runs past midnight when the day ends later */
+const logicalDate = () => {
+  const [y, m, d] = logicalToday().date.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
 
 /**
  * Focus mode: the Today panel opened to the whole window. One task large in the middle with
@@ -88,7 +93,7 @@ export function FocusModeOverlay({
     >
       {/* The traffic lights sit in this row, so it doubles as the window's drag area */}
       <div className="app-drag flex h-[52px] flex-shrink-0 items-center justify-end gap-4 px-7">
-        <span className="text-xs uppercase tracking-wider text-today-muted">{DATE.format(new Date())}</span>
+        <span className="text-xs uppercase tracking-wider text-today-muted">{DATE.format(logicalDate())}</span>
         <button
           type="button"
           onClick={onClose}
