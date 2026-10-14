@@ -27,20 +27,23 @@ export function EmptyToday({ variant, saved }: { variant: 'today' | 'week'; save
 
 function DaySoFar({ saved }: { saved: number }) {
   const total = useTodaySeconds(saved)
+  const time = formatClock(total, false)
+  const money = formatMoney(earned(total), false)
+  // Two numbers side by side: step down once either gets long ($10,000 or 100:00)
+  const size = Math.max(time.length, money.length) > 6 ? 'text-[2.6rem]' : 'text-[3.6rem]'
   return (
     <div className="mt-5">
       <p className="text-xs uppercase tracking-wider text-today-muted">Nothing planned · today so far</p>
       <div className="mt-3 grid grid-cols-2 gap-4">
         <div>
-          <p className="font-extralight text-[3.6rem] leading-none tracking-tight tabular-nums text-white">{formatClock(total, false)}</p>
+          <p className={cn('font-extralight leading-none tracking-tight tabular-nums text-white whitespace-nowrap', size)}>{time}</p>
           <p className="mt-1.5 text-xs text-today-muted">tracked</p>
         </div>
         <div>
-          <p className="font-extralight text-[3.6rem] leading-none tracking-tight tabular-nums text-white">{formatMoney(earned(total), false)}</p>
+          <p className={cn('font-extralight leading-none tracking-tight tabular-nums text-white whitespace-nowrap', size)}>{money}</p>
           <p className="mt-1.5 text-xs text-today-muted">earned</p>
         </div>
       </div>
-      <p className="mt-4 text-sm text-today-muted">Plan a task with its arrow to start a timer, or start a Personal dev timer below.</p>
     </div>
   )
 }
@@ -85,7 +88,7 @@ function ThisWeek({ saved }: { saved: number }) {
   return (
     <div className="mt-5">
       <p className="text-xs uppercase tracking-wider text-today-muted">Nothing planned · last 7 days</p>
-      <div className="mt-3 flex h-24 items-end gap-2" role="img" aria-label={`Tracked ${formatClock(week, false)} in the last 7 days`}>
+      <div className="mt-3 flex items-end gap-2" role="img" aria-label={`Tracked ${formatClock(week, false)} in the last 7 days`}>
         {days.map((s, i) => (
           <div key={i} className="flex flex-1 flex-col items-center gap-1.5">
             <div className="flex h-[76px] w-full items-end">
