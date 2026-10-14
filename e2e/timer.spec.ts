@@ -32,7 +32,7 @@ test('a paused gap is not counted when the timer resumes', async ({ page, api })
   // moving in real time while the checks retry, so a slow machine adds a few seconds.
   await expect(panel.getByLabel('Active timer')).toHaveText(/0:10:[0-5]\d/)
   // Today total counts each second once: the saved 10:00 segment plus the live part
-  await expect(panel.getByText(/Today total/i)).toHaveText(/0:10:[0-5]\d/)
+  await expect(panel.getByLabel('Today total')).toHaveText(/0:10:[0-5]\d/)
 })
 
 test('a wrong stored count corrects itself from the saved records', async ({ page, api }) => {

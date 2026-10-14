@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLiveWork, type LiveWork } from '@/hooks/use-live-work'
 import { formatClock } from '@/lib/task-format'
-import { formatMoney } from '@/lib/prefs'
+import { formatMoney, hero as savedHero, setPref, type Hero } from '@/lib/prefs'
 import { cn } from '@/lib/utils'
 
 const split = (s: number) => {
@@ -28,15 +28,6 @@ function fitSize(text: string, max: number): number {
   return Math.min(max, Math.floor(CONTENT_WIDTH / em))
 }
 
-type Hero = 'time' | 'money'
-function savedHero(): Hero {
-  try {
-    return localStorage.getItem('widget-hero') === 'money' ? 'money' : 'time'
-  } catch {
-    return 'time'
-  }
-}
-
 // Swiss railway clock (Hilfiker) and Braun: one neutral grotesque number set as large as the
 // square allows, minutes only, and a single yellow accent that sweeps a ruler once a minute so
 // the widget looks alive without ticking digits. The switch at the top right swaps the big
@@ -45,13 +36,18 @@ function savedHero(): Hero {
 /** The timer shown on the desktop, in its own small frameless window. */
 export function DesktopWidget() {
   const work = useLiveWork()
+  // Shared with the Today panel: choosing Earned in either shows it in both
   const [hero, setHero] = useState<Hero>(savedHero)
-  const choose = (h: Hero) => {
-    setHero(h)
-    try {
-      localStorage.setItem('widget-hero', h)
-    } catch {}
-  }
+  useEffect(() => {
+    const sync = () => setHero(savedHero())
+    window.addEventListener('storage', sync)
+    window.addEventListener('prefs-changed', sync)
+    return () => {
+      window.removeEventListener('storage', sync)
+      window.removeEventListener('prefs-changed', sync)
+    }
+  }, [])
+  const choose = (h: Hero) => setPref('widget-hero', h)
 
   const { h, m, s } = split(heroSeconds(work))
   const time = `${h}:${pad(m)}`

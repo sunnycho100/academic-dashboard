@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 import { formatClock } from '@/lib/task-format'
 import { PersonalDevTracker, runningPersonalDev } from '@/components/today/personal-dev-tracker'
 import { FocusModeOverlay } from '@/components/today/focus-mode-overlay'
-import { earned, emptyPanel, formatMoney, previewing, showSeconds } from '@/lib/prefs'
+import { earned, emptyPanel, formatMoney, hero, previewing, setPref, showSeconds } from '@/lib/prefs'
 import { EmptyToday } from '@/components/today/empty-today'
 
 interface TodayPanelProps {
@@ -100,40 +100,47 @@ export function TodayPanel({ tasks, categories, session, onToggleTask, children 
           <EmptyToday variant={emptyView} saved={totalStudySeconds} />
         ) : (
         <>
-        {/* Focus timer */}
-        <p className="mt-5 text-xs uppercase tracking-wider text-today-muted">
-          {running ? 'Now working on' : paused ? 'Paused' : active ? 'Up next' : 'Nothing planned'}
-        </p>
-        <p className="mt-1 text-sm text-white truncate">
-          {active ? (
-            <>
-              {active.title}
-              {activeCategory && <span className="text-today-muted"> · {activeCategory.name}</span>}
-            </>
-          ) : (
-            <span className="text-today-muted">Add tasks to Today to start a timer.</span>
-          )}
-        </p>
-        <div className="mt-3 flex items-center gap-4">
-          <span className="font-extralight text-[4.5rem] leading-none tracking-tight tabular-nums text-white" aria-label="Active timer">
-            {formatClock(elapsed, seconds)}
-          </span>
-          {active && (
-            <button
-              onClick={toggleActive}
-              className={cn(
-                'ml-auto h-12 w-12 flex-shrink-0 rounded-full flex items-center justify-center transition-transform active:scale-95',
-                running ? 'bg-coral text-white' : 'bg-today-foreground text-today',
+        {/* The big number is today, not one task: how long you've worked, or what it earned */}
+        <TodayHero saved={totalStudySeconds} seconds={seconds} />
+
+        {/* The task the play button acts on, with its own time */}
+        <div className="mt-4 flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs uppercase tracking-wider text-today-muted">
+              {running ? 'Now working on' : paused ? 'Paused' : active ? 'Up next' : 'Nothing planned'}
+            </p>
+            <p className="mt-0.5 truncate text-sm text-white">
+              {active ? (
+                <>
+                  {active.title}
+                  {activeCategory && <span className="text-today-muted"> · {activeCategory.name}</span>}
+                </>
+              ) : (
+                <span className="text-today-muted">Add tasks to Today to start a timer.</span>
               )}
-              title={running ? 'Pause timer' : paused ? 'Resume timer' : 'Start timer'}
-            >
-              {running ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current ml-0.5" />}
-            </button>
+            </p>
+          </div>
+          {active && (
+            <>
+              <span className={cn('flex-shrink-0 text-sm tabular-nums', running ? 'text-white' : 'text-today-muted')} aria-label="Active timer">
+                {formatClock(elapsed, seconds)}
+              </span>
+              <button
+                onClick={toggleActive}
+                className={cn(
+                  'h-10 w-10 flex-shrink-0 rounded-full flex items-center justify-center transition-transform active:scale-95',
+                  running ? 'bg-coral text-white' : 'bg-today-foreground text-today',
+                )}
+                title={running ? 'Pause timer' : paused ? 'Resume timer' : 'Start timer'}
+              >
+                {running ? <Pause className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 fill-current ml-0.5" />}
+              </button>
+            </>
           )}
         </div>
         {/* One dot per task in today's plan: done, current (pill), still to do */}
         {tasks.length > 0 && (
-          <div className="mt-4 flex items-center gap-1.5" aria-hidden>
+          <div className="mt-3 flex items-center gap-1.5" aria-hidden>
             {tasks.map((t) => (
               <span
                 key={t.id}
@@ -145,7 +152,6 @@ export function TodayPanel({ tasks, categories, session, onToggleTask, children 
             ))}
           </div>
         )}
-        <TodayTotal saved={totalStudySeconds} seconds={seconds} />
         </>
         )}
       </div>
@@ -160,11 +166,12 @@ export function TodayPanel({ tasks, categories, session, onToggleTask, children 
 }
 
 /**
- * Today's total and what it's worth. Ticks on its own each second, so the earned amount
- * climbs while any timer runs without re-rendering the whole panel. A running Personal dev
- * timer is only saved when it stops, so its live stretch is added here (as the widget does).
+ * Today so far, as the panel's big number: time worked or what it earned (the same choice as
+ * the desktop widget), with the other one underneath. Ticks on its own each second so it climbs
+ * while any timer runs without re-rendering the whole panel. A running Personal dev timer is only
+ * saved when it stops, so its live stretch is added here (as the widget does).
  */
-function TodayTotal({ saved, seconds }: { saved: number; seconds: boolean }) {
+function TodayHero({ saved, seconds }: { saved: number; seconds: boolean }) {
   const [, tick] = useReducer((n: number) => n + 1, 0)
   useEffect(() => {
     const id = setInterval(tick, 1000)
@@ -175,10 +182,39 @@ function TodayTotal({ saved, seconds }: { saved: number; seconds: boolean }) {
     0,
   )
   const total = saved + devLive
+  const mode = hero()
+  const time = formatClock(total, seconds)
+  const money = formatMoney(earned(total))
   return (
-    <p className="mt-3 text-xs uppercase tracking-wider text-today-muted tabular-nums">
-      Today total {formatClock(total, seconds)}
-      <span className="ml-3 text-white" aria-label="Earned today">{formatMoney(earned(total), seconds)}</span>
-    </p>
+    <>
+      <div className="mt-5 flex items-baseline">
+        <p className="text-xs uppercase tracking-wider text-today-muted">Today so far</p>
+        <div className="ml-auto flex gap-3 text-xs" role="group" aria-label="Big number shows">
+          {(['time', 'money'] as const).map((k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setPref('widget-hero', k)}
+              aria-pressed={mode === k}
+              className={cn(
+                'border-b pb-px transition-colors',
+                mode === k ? 'border-white text-white' : 'border-transparent text-today-muted hover:text-white',
+              )}
+            >
+              {k === 'time' ? 'Time' : 'Earned'}
+            </button>
+          ))}
+        </div>
+      </div>
+      <p
+        className="mt-2 font-extralight text-[4.5rem] leading-none tracking-tight tabular-nums text-white"
+        aria-label={mode === 'time' ? 'Today total' : 'Earned today'}
+      >
+        {mode === 'time' ? time : money}
+      </p>
+      <p className="mt-2 text-xs uppercase tracking-wider text-today-muted tabular-nums">
+        {mode === 'time' ? 'Earned' : 'Worked'} <span className="ml-1 text-white">{mode === 'time' ? money : time}</span>
+      </p>
+    </>
   )
 }
