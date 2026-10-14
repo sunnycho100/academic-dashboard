@@ -3,7 +3,8 @@ import type { Task, Category } from '@/lib/types'
 import type { TodaySession } from '@/hooks/use-today-session'
 import { Maximize2, Pause, Play } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { formatClock } from '@/lib/task-format'
+import { currentDayStart, formatClock, pausedSince } from '@/lib/task-format'
+import { rolloverHour } from '@/hooks/use-today-session'
 import { PersonalDevTracker, runningPersonalDev } from '@/components/today/personal-dev-tracker'
 import { FocusModeOverlay } from '@/components/today/focus-mode-overlay'
 import { earned, emptyPanel, formatMoney, hero, previewing, setPref, showSeconds } from '@/lib/prefs'
@@ -36,7 +37,9 @@ export function TodayPanel({ tasks, categories, session, onToggleTask, children 
   const { timerStates, getElapsedSeconds, formatTime, startTimer, pauseTimer, resumeTimer, stopTimer, totalStudySeconds } = session
 
   const running = tasks.find((t) => timerStates[t.id]?.isRunning && !timerStates[t.id]?.isPaused)
-  const paused = tasks.find((t) => timerStates[t.id]?.isRunning && timerStates[t.id]?.isPaused)
+  // Paused today only; a task paused on an earlier day waits its turn like the rest
+  const dayStart = currentDayStart(new Date(), rolloverHour())
+  const paused = tasks.find((t) => pausedSince(timerStates[t.id], dayStart))
   const next = tasks.find((t) => t.status !== 'done')
   const active = running ?? paused ?? next
   // Settings > Display: what fills the top when nothing is planned. While Edit display is
@@ -75,7 +78,7 @@ export function TodayPanel({ tasks, categories, session, onToggleTask, children 
   const toggleActive = () => {
     if (!active) return
     if (running) pauseTimer(active.id)
-    else if (paused) resumeTimer(active.id)
+    else if (timerStates[active.id]?.isPaused) resumeTimer(active.id) // includes a pause from an earlier day
     else startTimer(active.id)
   }
 

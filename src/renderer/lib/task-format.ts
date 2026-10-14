@@ -52,3 +52,13 @@ export function currentDayStart(now: Date, rolloverHour: number): Date {
   if (start > now) start.setDate(start.getDate() - 1)
   return start
 }
+
+/**
+ * Whether a paused timer was paused within the current day. Only those are shown as "Paused";
+ * a pause from an earlier day is just saved time, and the next task in the plan comes first.
+ * (lastTickAt is the timer's last running second, so it is when it was paused.)
+ */
+export function pausedSince(state: { isRunning?: boolean; isPaused?: boolean; lastTickAt?: string | null } | undefined, dayStart: Date): boolean {
+  if (!state?.isRunning || !state.isPaused || !state.lastTickAt) return false
+  return new Date(state.lastTickAt) >= dayStart
+}
