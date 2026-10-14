@@ -2,12 +2,11 @@ import { useEffect } from 'react'
 import { Task, Category } from '@/lib/types'
 import { Minimize2, Play, Pause } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { logicalToday } from '@/hooks/use-today-session'
 import { motion } from 'framer-motion'
 import { TimerState } from '@/hooks/use-task-timer'
 import { CourseRing } from '@/components/tasks/course-ring'
 import { currentDayStart, dueLabel, formatClock, formatMinutes, pausedSince } from '@/lib/task-format'
-import { rolloverHour } from '@/hooks/use-today-session'
+import { logicalToday, rolloverHour } from '@/hooks/use-today-session'
 import { earned, formatMoney, showSeconds } from '@/lib/prefs'
 
 export interface FocusModeOverlayProps {
