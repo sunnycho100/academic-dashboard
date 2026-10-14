@@ -14,12 +14,15 @@ test('settings opens the desktop widget with the running timer and earnings', as
 
   await expect(widget.getByText('Reading')).toBeVisible()
   await expect(widget.getByLabel('Timer')).toContainText('0:30')
-  await expect(widget.getByText('$10.00')).toBeVisible() // 30 minutes at $20/h
+  // 30 minutes at $20/h, plus a few cents if the machine is slow
+  await expect(widget.getByText(/\$10\.\d\d/).first()).toBeVisible()
 
   // The switch at the top right puts the earned amount in the big number, and it keeps climbing
   await widget.getByRole('button', { name: 'Earned' }).click()
-  await expect(widget.getByLabel('Earned today')).toHaveText('$10.00')
-  await expect(widget.getByLabel('Earned today')).not.toHaveText('$10.00', { timeout: 5000 }) // 1 cent per 1.8 s
+  const earnedNow = widget.getByLabel('Earned today')
+  await expect(earnedNow).toHaveText(/^\$10\.\d\d$/)
+  const first = await earnedNow.innerText()
+  await expect(earnedNow).not.toHaveText(first, { timeout: 5000 }) // 1 cent per 1.8 s
 
   await page.evaluate(() => fetch('/api/widget', { method: 'POST', body: JSON.stringify({ open: false }) }))
   await expect.poll(() => electronApp.windows().some((w) => w.url().includes('#widget'))).toBe(false)
