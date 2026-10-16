@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useLiveWork } from '@/hooks/use-live-work'
+import { showEarnings } from '@/lib/prefs'
 
 /**
  * Sends the macOS widget what it should show. Each status says where the numbers stood and
@@ -12,7 +13,8 @@ export function WidgetFeed() {
   const sent = useRef({ key: '', at: 0 })
   // Running means some timer (a task or Personal dev) is counting, so today's total grows too
   const running = work.state === 'running'
-  const key = JSON.stringify([work.title, work.state, work.since, work.rate, Math.round(work.todayTotal / 600)])
+  const earnings = showEarnings()
+  const key = JSON.stringify([work.title, work.state, work.since, work.rate, earnings, Math.round(work.todayTotal / 600)])
 
   useEffect(() => {
     const now = Date.now()
@@ -27,7 +29,7 @@ export function WidgetFeed() {
       today: work.todayTotal,
       todayRunning: running,
       rate: work.rate,
-      showEarnings: true,
+      showEarnings: earnings, // Settings > Timer > Show earnings
       at: now,
     }
     fetch('/api/widget-status', { method: 'POST', body: JSON.stringify(status) }).catch(() => {})
