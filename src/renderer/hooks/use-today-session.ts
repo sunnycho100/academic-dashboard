@@ -27,9 +27,16 @@ export function logicalToday(now = new Date()): { date: string; startHour: numbe
 
 /** Today's time records, honoring the day boundaries. */
 export function todayRecordsUrl(): string {
+  return dayRecordsUrl(0)
+}
+
+/** A day's time records, `offset` days from today (-1 is yesterday), with the same day boundaries. */
+export function dayRecordsUrl(offset: number): string {
   const { date, startHour, endHour } = logicalToday()
-  const endHourParam = endHour > 24 ? endHour - 24 : 0
-  return `/api/time-records?date=${date}&tz=${new Date().getTimezoneOffset()}&startHour=${startHour}&endHour=${endHourParam}`
+  const d = new Date(`${date}T12:00:00`)
+  d.setDate(d.getDate() + offset)
+  const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return `/api/time-records?date=${ds}&tz=${new Date().getTimezoneOffset()}&startHour=${startHour}&endHour=${endHour > 24 ? endHour - 24 : 0}`
 }
 
 /** Hour the day rolls over: midnight, or the day-end hour when the day runs past midnight. */

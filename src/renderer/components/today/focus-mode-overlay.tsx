@@ -7,7 +7,7 @@ import { TimerState } from '@/hooks/use-task-timer'
 import { CourseRing } from '@/components/tasks/course-ring'
 import { currentDayStart, dueLabel, formatClock, formatMinutes, pausedSince } from '@/lib/task-format'
 import { logicalToday, rolloverHour } from '@/hooks/use-today-session'
-import { earned, formatMoney, showSeconds } from '@/lib/prefs'
+import { earned, formatMoney, showEarnings, showSeconds } from '@/lib/prefs'
 
 export interface FocusModeOverlayProps {
   tasks: Task[]
@@ -137,7 +137,7 @@ export function FocusModeOverlay({
 
           <p className="mt-5 text-xs uppercase tracking-wider text-today-muted tabular-nums">
             Today total {formatClock(totalStudySeconds, seconds)}
-            <span className="ml-3 text-white">{formatMoney(earned(totalStudySeconds), seconds)}</span>
+            {showEarnings() && <span className="ml-3 text-white">{formatMoney(earned(totalStudySeconds), seconds)}</span>}
             {totalMinutes > 0 && (
               <span className="ml-6">{remainingMinutes > 0 ? `${formatMinutes(remainingMinutes)} of ${formatMinutes(totalMinutes)} planned left` : 'Plan done'}</span>
             )}

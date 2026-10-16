@@ -111,6 +111,10 @@ export function DayTimeline({ tasks, categories, session, onOpenTimetable, taskM
   }, [])
   // 0 is today, -1 yesterday; the arrows in the header move it
   const [dayOffset, setDayOffset] = useState(0)
+  // The Today panel's big number follows the day shown here
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('timeline-day', { detail: dayOffset }))
+  }, [dayOffset])
   const scrollRef = useRef<HTMLDivElement>(null)
   const scrolledRef = useRef(false)
 

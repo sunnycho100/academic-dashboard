@@ -4,10 +4,10 @@ import type { TodaySession } from '@/hooks/use-today-session'
 import { Maximize2, Pause, Play } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { currentDayStart, formatClock, pausedSince } from '@/lib/task-format'
-import { logicalToday, rolloverHour } from '@/hooks/use-today-session'
+import { dayRecordsUrl, logicalToday, rolloverHour } from '@/hooks/use-today-session'
 import { PersonalDevTracker, runningPersonalDev } from '@/components/today/personal-dev-tracker'
 import { FocusModeOverlay } from '@/components/today/focus-mode-overlay'
-import { earned, emptyPanel, formatMoney, hero, previewing, setPref, showSeconds } from '@/lib/prefs'
+import { earned, emptyPanel, formatMoney, hero, previewing, setPref, showEarnings, showSeconds } from '@/lib/prefs'
 import { EmptyToday } from '@/components/today/empty-today'
 
 interface TodayPanelProps {
@@ -185,34 +185,59 @@ function TodayHero({ saved, seconds }: { saved: number; seconds: boolean }) {
     const id = setInterval(tick, 1000)
     return () => clearInterval(id)
   }, [])
+  // Another day picked with the timeline's arrows: show that day's total instead
+  const [offset, setOffset] = useState(0)
+  const [pastTotal, setPastTotal] = useState<number | null>(null)
+  useEffect(() => {
+    const onDay = (e: Event) => setOffset((e as CustomEvent<number>).detail)
+    window.addEventListener('timeline-day', onDay)
+    return () => window.removeEventListener('timeline-day', onDay)
+  }, [])
+  useEffect(() => {
+    if (offset === 0) return setPastTotal(null)
+    let live = true
+    fetch(dayRecordsUrl(offset))
+      .then((r) => r.json())
+      .then((recs: { duration: number }[]) => live && Array.isArray(recs) && setPastTotal(recs.reduce((s, r) => s + r.duration, 0)))
+      .catch(() => {})
+    return () => {
+      live = false
+    }
+  }, [offset])
+
   const devLive = runningPersonalDev().reduce(
     (sum, d) => sum + Math.max(0, Math.floor((Date.now() - new Date(d.segmentStartedAt).getTime()) / 1000)),
     0,
   )
-  const total = saved + devLive
+  const total = offset !== 0 ? pastTotal ?? 0 : saved + devLive
+  const money$ = showEarnings()
   const mode = hero()
   const time = formatClock(total, seconds)
   const money = formatMoney(earned(total))
+  const [y, m, d] = logicalToday().date.split('-').map(Number)
+  const label = offset === 0 ? 'Today so far' : DATE.format(new Date(y, m - 1, d + offset))
   return (
     <>
       <div className="mt-5 flex items-baseline">
-        <p className="text-xs uppercase tracking-wider text-today-muted">Today so far</p>
-        <div className="ml-auto flex gap-3 text-xs" role="group" aria-label="Big number shows">
-          {(['time', 'money'] as const).map((k) => (
-            <button
-              key={k}
-              type="button"
-              onClick={() => setPref('widget-hero', k)}
-              aria-pressed={mode === k}
-              className={cn(
-                'border-b pb-px transition-colors',
-                mode === k ? 'border-white text-white' : 'border-transparent text-today-muted hover:text-white',
-              )}
-            >
-              {k === 'time' ? 'Time' : 'Earned'}
-            </button>
-          ))}
-        </div>
+        <p className="text-xs uppercase tracking-wider text-today-muted">{label}</p>
+        {money$ && (
+          <div className="ml-auto flex gap-3 text-xs" role="group" aria-label="Big number shows">
+            {(['time', 'money'] as const).map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setPref('widget-hero', k)}
+                aria-pressed={mode === k}
+                className={cn(
+                  'border-b pb-px transition-colors',
+                  mode === k ? 'border-white text-white' : 'border-transparent text-today-muted hover:text-white',
+                )}
+              >
+                {k === 'time' ? 'Time' : 'Earned'}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       <p
         className={cn(
@@ -224,9 +249,11 @@ function TodayHero({ saved, seconds }: { saved: number; seconds: boolean }) {
       >
         {mode === 'time' ? time : money}
       </p>
-      <p className="mt-2 text-xs uppercase tracking-wider text-today-muted tabular-nums">
-        {mode === 'time' ? 'Earned' : 'Worked'} <span className="ml-1 text-white">{mode === 'time' ? money : time}</span>
-      </p>
+      {money$ && (
+        <p className="mt-2 text-xs uppercase tracking-wider text-today-muted tabular-nums">
+          {mode === 'time' ? 'Earned' : 'Worked'} <span className="ml-1 text-white">{mode === 'time' ? money : time}</span>
+        </p>
+      )}
     </>
   )
 }

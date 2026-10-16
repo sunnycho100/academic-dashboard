@@ -5,6 +5,7 @@ import { format, addDays, subDays } from 'date-fns'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Switch } from '@/components/ui/switch'
+import { earned, formatMoney, showEarnings } from '@/lib/prefs'
 import {
   MetricCard,
   TimeBlock,
@@ -161,6 +162,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
     if (!Array.isArray(records) || records.length === 0) {
       return {
         totalFocus: '0m',
+        earned: formatMoney(0),
         longestSession: '0m',
         idleTime: '–',
         productivityRatio: '0%',
@@ -195,6 +197,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
 
     return {
       totalFocus: formatDurationShort(totalSeconds),
+      earned: formatMoney(earned(totalSeconds)),
       longestSession: formatDurationShort(longestSeconds),
       idleTime: formatDurationShort(idleSeconds),
       productivityRatio: `${ratio}%`,
@@ -524,6 +527,7 @@ export function TimeRecordsDialog({ open, onOpenChange }: TimeRecordsDialogProps
           <MetricCard label="longest" value={analytics.longestSession} />
           <MetricCard label="idle" value={analytics.idleTime} />
           <MetricCard label="productive" value={analytics.productivityRatio} />
+          {showEarnings() && <MetricCard label="earned" value={analytics.earned} />}
         </div>
 
         {/* Timeline or edit list */}

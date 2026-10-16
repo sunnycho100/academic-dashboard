@@ -1,7 +1,7 @@
 // Display preferences shared by the main window and the desktop widget. Both windows run on
 // app://local, so localStorage is shared and the 'storage' event tells the other window.
 
-type Key = 'hourly-rate' | 'show-seconds' | 'palette' | 'empty-panel' | 'widget-hero'
+type Key = 'hourly-rate' | 'show-seconds' | 'palette' | 'empty-panel' | 'widget-hero' | 'show-earnings'
 
 // While Edit display is open, choices are previewed here and only written on Save.
 let preview: Partial<Record<Key, string>> = {}
@@ -23,6 +23,11 @@ export function hourlyRate(): number {
   return raw !== null && Number.isFinite(v) && v >= 0 ? v : 20
 }
 
+/** Whether money earned is shown anywhere (on by default). */
+export function showEarnings(): boolean {
+  return read('show-earnings') !== 'false'
+}
+
 export function showSeconds(): boolean {
   return read('show-seconds') === 'true'
 }
@@ -35,7 +40,7 @@ export function palette(): string {
 export type Hero = 'time' | 'money'
 /** What the big number shows in the Today panel and the widget: time worked today, or what it earned. */
 export function hero(): Hero {
-  return read('widget-hero') === 'money' ? 'money' : 'time'
+  return showEarnings() && read('widget-hero') === 'money' ? 'money' : 'time'
 }
 
 export type EmptyPanel = 'now' | 'today' | 'week'

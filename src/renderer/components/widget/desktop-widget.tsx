@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLiveWork, type LiveWork } from '@/hooks/use-live-work'
 import { formatClock } from '@/lib/task-format'
-import { formatMoney, hero as savedHero, setPref, type Hero } from '@/lib/prefs'
+import { formatMoney, hero as savedHero, setPref, showEarnings, type Hero } from '@/lib/prefs'
 import { cn } from '@/lib/utils'
 
 const split = (s: number) => {
@@ -52,6 +52,7 @@ export function DesktopWidget() {
   const { h, m, s } = split(heroSeconds(work))
   const time = `${h}:${pad(m)}`
   const money = formatMoney(work.earnedToday)
+  const money$ = showEarnings() // Settings > Timer > Show earnings
   const big = hero === 'time' ? time : money
   // The sweep fills in 58.5 s and rests at the end, like the railway clock's red hand
   const p = work.state === 'running' ? Math.min(1, s / 58.5) : 0
@@ -65,6 +66,7 @@ export function DesktopWidget() {
             <p className="text-[15px] leading-[20px] font-medium truncate">{work.state === 'idle' ? 'Today' : work.title}</p>
             <p className={cn('text-[13px] leading-[18px]', muted)}>{status(work)}</p>
           </div>
+          {money$ && (
           <div className="ml-auto flex gap-[10px] text-[13px] leading-[20px]" role="group" aria-label="Big number shows">
             {(['time', 'money'] as const).map((k) => (
               <button
@@ -81,6 +83,7 @@ export function DesktopWidget() {
               </button>
             ))}
           </div>
+          )}
         </div>
 
         <p
@@ -108,7 +111,7 @@ export function DesktopWidget() {
             <p className="text-[22px] leading-[28px] font-medium tabular-nums">{formatClock(work.todayTotal, false)}</p>
           </div>
           {/* The other of the two big values: earned under the time, this session under the money */}
-          {(hero === 'time' || work.state !== 'idle') && (
+          {money$ && (hero === 'time' || work.state !== 'idle') && (
             <div>
               <p className={muted}>{hero === 'time' ? 'Earned' : 'This session'}</p>
               <p className="text-[22px] leading-[28px] font-medium tabular-nums">{hero === 'time' ? money : time}</p>

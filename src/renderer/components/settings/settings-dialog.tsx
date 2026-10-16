@@ -3,9 +3,10 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
-import { emptyPanel, hourlyRate, palette, setPref, showSeconds } from '@/lib/prefs'
+import { emptyPanel, hourlyRate, palette, setPref, showEarnings, showSeconds } from '@/lib/prefs'
 import { logicalToday } from '@/hooks/use-today-session'
 import { THEMES } from '@/lib/themes'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 
 interface SettingsDialogProps {
@@ -21,6 +22,7 @@ export function SettingsDialog({ open, onOpenChange, onEditDisplay }: SettingsDi
   const [powerSaveEnabled, setPowerSaveEnabled] = useState(false)
   const [widgetOpen, setWidgetOpen] = useState(false)
   const [seconds, setSeconds] = useState(true)
+  const [earnings, setEarnings] = useState(true)
   const [rate, setRate] = useState('20')
   // When the day rolls over: totals, Done today, the timeline and the Today plan all follow it.
   // Shared with the day boundaries in Time records (end past 24 means after midnight).
@@ -32,6 +34,7 @@ export function SettingsDialog({ open, onOpenChange, onEditDisplay }: SettingsDi
         setPowerSaveEnabled(localStorage.getItem('power-save-enabled') === 'true')
       } catch {}
       setSeconds(showSeconds())
+      setEarnings(showEarnings())
       setRate(String(hourlyRate()))
       setDayEnd(Math.min(29, Math.max(24, logicalToday().endHour)))
       fetch('/api/widget')
@@ -44,6 +47,11 @@ export function SettingsDialog({ open, onOpenChange, onEditDisplay }: SettingsDi
   const handleWidgetChange = (checked: boolean) => {
     setWidgetOpen(checked)
     fetch('/api/widget', { method: 'POST', body: JSON.stringify({ open: checked }) }).catch(() => {})
+  }
+
+  const handleEarningsChange = (checked: boolean) => {
+    setEarnings(checked)
+    setPref('show-earnings', String(checked))
   }
 
   const handleSecondsChange = (checked: boolean) => {
@@ -130,7 +138,13 @@ export function SettingsDialog({ open, onOpenChange, onEditDisplay }: SettingsDi
             </select>
           </div>
           <div className="mt-3 flex items-center justify-between gap-6">
-            <Label htmlFor="hourly-rate" className="text-sm font-normal">
+            <Label htmlFor="earnings-toggle" className="text-sm font-normal">
+              Show earnings
+            </Label>
+            <Switch id="earnings-toggle" checked={earnings} onCheckedChange={handleEarningsChange} />
+          </div>
+          <div className="mt-3 flex items-center justify-between gap-6">
+            <Label htmlFor="hourly-rate" className={cn('text-sm font-normal', !earnings && 'text-muted-foreground')}>
               Hourly value
             </Label>
             <div className="flex items-center gap-1 text-sm">
