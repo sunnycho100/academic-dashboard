@@ -1,4 +1,5 @@
 import { app, BrowserWindow, net, powerMonitor, protocol, screen, shell } from 'electron'
+import { execFile } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -25,6 +26,7 @@ async function registerAppProtocol() {
   protocol.handle('app', async (req) => {
     const { pathname, search } = new URL(req.url)
     if (pathname === '/api/widget') return widgetRoute(req)
+    if (pathname === '/api/widget-status') return widgetStatusRoute(req)
     if (pathname.startsWith('/api/')) {
       try {
         return await handleApi(req)
@@ -93,6 +95,18 @@ function openWidget() {
   })
   widget.on('closed', () => (widget = null))
   widget.loadURL('app://local/#widget')
+}
+
+// ── macOS widget (WidgetKit, native/widget) ─────────────────────
+// The window posts what the widget should show; it is written next to the database, where the
+// widget reads it, and the bundled widget-reload helper asks macOS to redraw. In dev and tests
+// the helper is not there, so only the file is written.
+async function widgetStatusRoute(req: Request): Promise<Response> {
+  const status = await req.text()
+  fs.writeFileSync(path.join(app.getPath('userData'), 'widget-status.json'), status)
+  const helper = path.join(path.dirname(process.execPath), 'widget-reload')
+  if (fs.existsSync(helper)) execFile(helper, () => {})
+  return Response.json({ ok: true })
 }
 
 async function widgetRoute(req: Request): Promise<Response> {
