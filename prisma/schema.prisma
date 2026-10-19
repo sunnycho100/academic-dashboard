@@ -87,6 +87,8 @@ model TimeRecord {
   duration      Int      // in seconds
   createdAt     DateTime @default(now())
 
+  // One record per segment: saving it again extends it (see POST /api/time-records)
+  @@unique([userId, startTime, taskTitle, categoryName])
   @@index([userId])
   @@index([startTime])
   @@index([taskId])

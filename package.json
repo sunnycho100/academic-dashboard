@@ -11,10 +11,10 @@
     "build": "prisma generate && electron-vite build",
     "start": "electron-vite preview",
     "dist": "pnpm build && electron-builder --mac --dir",
-    "app": "pnpm dist && ditto \"release/mac-arm64/Academic Dashboard.app\" \"/Applications/Academic Dashboard.app\"",
+    "app": "pnpm dist && scripts/install-app.sh",
     "db:migrate": "prisma migrate dev",
     "typecheck": "tsc --noEmit",
-    "test": "node --test 'src/**/*.test.ts'",
+    "test": "ELECTRON_RUN_AS_NODE=1 electron --test 'src/**/*.test.ts'",
     "test:e2e": "electron-vite build && playwright test -c e2e"
   },
   "dependencies": {
@@ -28,7 +28,6 @@
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^9.0.0",
     "@dnd-kit/utilities": "^3.2.2",
-    "@fontsource/great-vibes": "^5.3.0",
     "@playwright/test": "^1.61.1",
     "@radix-ui/react-alert-dialog": "1.1.4",
     "@radix-ui/react-checkbox": "1.1.3",

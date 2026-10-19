@@ -43,7 +43,10 @@ In dev, non-API paths are proxied to the Vite dev server.
   Dev runs (`pnpm dev`, unpackaged) use `academic-dashboard-dev.db` so they never touch real data.
 - `ACADEMIC_DASHBOARD_USER_DATA` overrides the folder (the e2e suite uses a temp dir per test).
 - Migrations: `lib/db.ts` applies `prisma/migrations/*/migration.sql` in order, tracked by
-  `PRAGMA user_version`. Never edit an applied migration; run `pnpm db:migrate` to add one.
+  `PRAGMA user_version`, with foreign keys off and a `foreign_key_check` before each commit.
+  Pending migrations first copy the DB to `academic-dashboard.pre-migrate-<version>.db`.
+  Never edit an applied migration; run `pnpm db:migrate` to add one.
+- Backups: on start, a daily copy goes to `backups/` in the same folder (last 7 kept).
 - All models keep a `userId` column (always `'local'`); handlers still scope by it.
 - CompletedTask and TimeRecord are intentionally denormalized so history survives deletion. Do not normalize.
 
@@ -62,9 +65,9 @@ In dev, non-API paths are proxied to the Vite dev server.
 ## Running
 ```bash
 pnpm dev          # hot reload
-pnpm app          # build + package + install to /Applications
+pnpm app          # build + package + install to /Applications, restarting the app if it runs
 pnpm typecheck    # tsc
-pnpm test         # unit tests (node --test)
+pnpm test         # unit tests (node --test under Electron, for better-sqlite3)
 pnpm test:e2e     # build, then Playwright against the Electron app
 ```
 

@@ -19,16 +19,25 @@ interface ApiResponse {
   json(): Promise<any> // eslint-disable-line @typescript-eslint/no-explicit-any -- mirrors Playwright's APIResponse.json()
 }
 
-export const test = base.extend<{ electronApp: ElectronApplication; page: Page; api: ApiClient }>({
-  electronApp: async ({}, use) => {
-    const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'academic-dashboard-e2e-'))
-    const app = await electron.launch({
-      args: [path.resolve(__dirname, '..', '..')],
-      env: { ...process.env, ACADEMIC_DASHBOARD_USER_DATA: userData, ACADEMIC_DASHBOARD_HIDDEN: '1' },
-    })
-    await use(app)
+/** Launches the built app on its own empty temp database. `close` also deletes that folder. */
+export async function launchApp() {
+  const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'academic-dashboard-e2e-'))
+  const app = await electron.launch({
+    args: [path.resolve(__dirname, '..', '..')],
+    env: { ...process.env, ACADEMIC_DASHBOARD_USER_DATA: userData, ACADEMIC_DASHBOARD_HIDDEN: '1' },
+  })
+  const close = async () => {
     await app.close()
     fs.rmSync(userData, { recursive: true, force: true })
+  }
+  return { app, close }
+}
+
+export const test = base.extend<{ electronApp: ElectronApplication; page: Page; api: ApiClient }>({
+  electronApp: async ({}, use) => {
+    const { app, close } = await launchApp()
+    await use(app)
+    await close()
   },
   page: async ({ electronApp }, use) => {
     const page = await electronApp.firstWindow()

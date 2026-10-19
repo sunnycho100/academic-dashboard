@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { Task, TaskType, CompletedTask } from '@/lib/types'
+import { timeRecordSavesSettled } from '@/lib/save-time-record'
 
 interface UseTasksOptions {
   tasks: Task[]
@@ -60,7 +61,7 @@ export function useTasks({
       // Optimistic: remove from UI immediately
       setTasks((prev) => prev.filter((t) => t.id !== id))
       setTodayTaskIds((prev) => prev.filter((tid) => tid !== id))
-      // Archive to CompletedTask table
+      // Shown in Done today right away; replaced by the saved record below
       const category = categories.find((c) => c.id === task.categoryId)
       const archived = {
         taskTitle: task.title,
@@ -76,24 +77,19 @@ export function useTasks({
       const localId = `local-${id}`
       setCompletedToday((prev) => [...prev, { id: localId, completedAt: new Date().toISOString(), ...archived }])
       try {
-        const res = await fetch('/api/completed-tasks', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(archived),
-        })
-        if (res.ok) {
-          const saved: CompletedTask = await res.json()
-          setCompletedToday((prev) => prev.map((c) => (c.id === localId ? saved : c)))
-        }
+        // A timer stopped just now is still saving its last segment; the server sums the
+        // task's records, so let that land first.
+        await timeRecordSavesSettled()
+        // Archives and deletes in one transaction, with the time taken from saved records
+        const res = await fetch(`/api/tasks/${id}/complete`, { method: 'POST' })
+        if (!res.ok) throw new Error(`Complete failed: ${res.status}`)
+        const saved: CompletedTask = await res.json()
+        setCompletedToday((prev) => prev.map((c) => (c.id === localId ? saved : c)))
       } catch (err) {
-        console.error('Failed to archive completed task:', err)
-      }
-
-      // Delete from active Task table
-      try {
-        await fetch(`/api/tasks/${id}`, { method: 'DELETE' })
-      } catch (err) {
-        console.error('Failed to delete completed task from active table:', err)
+        console.error('Failed to complete task:', err)
+        // Nothing was saved, so put the task back where it was
+        setCompletedToday((prev) => prev.filter((c) => c.id !== localId))
+        setTasks((prev) => (prev.some((t) => t.id === id) ? prev : [...prev, task]))
       }
 
       completingRef.current.delete(id)

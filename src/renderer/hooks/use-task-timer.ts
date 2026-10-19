@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { currentDayStart } from '@/lib/task-format'
 import { rolloverHour } from '@/hooks/use-today-session'
+import { saveTimeRecord, STALE_TICK_MS } from '@/lib/save-time-record'
 
 export interface TimerState {
   isRunning: boolean
@@ -55,34 +56,10 @@ function saveTimerData(data: TaskTimerData, userId?: string) {
 }
 
 /** Persist a time record segment to the backend */
-async function saveTimeRecord(
-  meta: TaskMeta,
-  startTime: string,
-  endTime: string,
-  durationSeconds: number,
-  continues = false,
-) {
-  try {
-    await fetch('/api/time-records', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-          taskId: meta.taskId,
-          taskTitle: meta.taskTitle,
-          categoryName: meta.categoryName,
-          categoryColor: meta.categoryColor,
-          taskType: meta.taskType,
-          startTime,
-          endTime,
-          duration: durationSeconds,
-          continues,
-        }),
-      })
-    } catch (err) {
-      console.error('Failed to save time record:', err)
-    }
-  }
-  
+function saveSegment(meta: TaskMeta, startTime: string, endTime: string, durationSeconds: number, continues = false) {
+  return saveTimeRecord({ ...meta, startTime, endTime, duration: durationSeconds, continues })
+}
+
   export function useTaskTimers(taskIds: string[], userId?: string) {
     const [timerStates, setTimerStates] = useState<TaskTimerData>({})
     const intervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -96,6 +73,16 @@ async function saveTimeRecord(
     // Track userId in a ref for beforeunload handler
     const userIdRef = useRef(userId)
     useEffect(() => { userIdRef.current = userId }, [userId])
+    // Segments cut short on load, saved once their task's metadata is registered
+    const pendingSegmentsRef = useRef<Record<string, { startTime: string; endTime: string; duration: number }>>({})
+    const flushPendingSegments = useCallback(() => {
+      for (const [taskId, seg] of Object.entries(pendingSegmentsRef.current)) {
+        const meta = taskMetaRef.current[taskId]
+        if (!meta) continue
+        delete pendingSegmentsRef.current[taskId]
+        saveSegment(meta, seg.startTime, seg.endTime, seg.duration)
+      }
+    }, [])
   
     // Load timer states on mount — reconcile elapsed for any running timers
     // that accumulated time while the component was unmounted (idle mode, tab close, etc.)
@@ -108,6 +95,16 @@ async function saveTimeRecord(
         if (state.isRunning && !state.isPaused && state.lastTickAt) {
           const lastTick = new Date(state.lastTickAt).getTime()
           const missedSeconds = Math.max(0, Math.floor((now - lastTick) / 1000))
+          if (now - lastTick > STALE_TICK_MS) {
+            // The app was closed (or crashed) with this timer running. The time since the
+            // last tick was not worked, so end the segment there and pause.
+            if (state.segmentStartedAt) {
+              const duration = Math.round((lastTick - new Date(state.segmentStartedAt).getTime()) / 1000)
+              if (duration > 0) pendingSegmentsRef.current[taskId] = { startTime: state.segmentStartedAt, endTime: state.lastTickAt, duration }
+            }
+            reconciled[taskId] = { ...state, isPaused: true, segmentStartedAt: null }
+            continue
+          }
           if (missedSeconds > 2) {
             // Timer was running during a gap — add the missed time
             reconciled[taskId] = {
@@ -122,6 +119,7 @@ async function saveTimeRecord(
       }
       loadedRef.current = true
       setTimerStates(reconciled)
+      flushPendingSegments()
     }, [userId])
   
     // Save timer states whenever they change — but only after initial load
@@ -279,7 +277,8 @@ async function saveTimeRecord(
   /** Register metadata for a task so time records can include it */
   const registerTaskMeta = useCallback((meta: TaskMeta) => {
     taskMetaRef.current[meta.taskId] = meta
-  }, [])
+    if (pendingSegmentsRef.current[meta.taskId]) flushPendingSegments()
+  }, [flushPendingSegments])
 
   const getElapsedSeconds = useCallback(
     (taskId: string): number => {
@@ -324,7 +323,7 @@ async function saveTimeRecord(
       )
       const meta = taskMetaRef.current[taskId]
       if (meta && segmentDuration > 0) {
-        saveTimeRecord(meta, state.segmentStartedAt, endTime, segmentDuration, state.continues)
+        saveSegment(meta, state.segmentStartedAt, endTime, segmentDuration, state.continues)
       }
     }
 
@@ -369,7 +368,7 @@ async function saveTimeRecord(
       )
       const meta = taskMetaRef.current[taskId]
       if (meta && segmentDuration > 0) {
-        saveTimeRecord(meta, state.segmentStartedAt, endTime, segmentDuration, state.continues)
+        saveSegment(meta, state.segmentStartedAt, endTime, segmentDuration, state.continues)
       }
     }
 
