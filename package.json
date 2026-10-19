@@ -11,7 +11,7 @@
     "build": "prisma generate && electron-vite build",
     "start": "electron-vite preview",
     "dist": "pnpm build && electron-builder --mac --dir",
-    "app": "pnpm dist && ditto \"release/mac-arm64/Academic Dashboard.app\" \"/Applications/Academic Dashboard.app\"",
+    "app": "pnpm dist && rm -rf \"/Applications/Academic Dashboard.app\" && ditto \"release/mac-arm64/Academic Dashboard.app\" \"/Applications/Academic Dashboard.app\"",
     "db:migrate": "prisma migrate dev",
     "typecheck": "tsc --noEmit",
     "test": "node --test 'src/**/*.test.ts'",
