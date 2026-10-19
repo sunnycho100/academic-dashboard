@@ -3,6 +3,7 @@ import { execFile } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { startBridge } from './bridge'
 
 // The renderer is served from app://local/, so its existing fetch('/api/...')
 // calls land here and are answered by the handlers in ./api, no HTTP server.
@@ -22,6 +23,8 @@ const rendererDir = path.join(__dirname, '../renderer')
 async function registerAppProtocol() {
   const { dbPath, handleApi } = await import('./routes')
   console.log(`[db] ${dbPath}`)
+  // The Claude connector (mcp/) reaches the same handlers through a local bridge
+  startBridge(handleApi, () => mainWin)
 
   protocol.handle('app', async (req) => {
     const { pathname, search } = new URL(req.url)
