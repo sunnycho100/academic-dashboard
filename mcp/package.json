@@ -3,9 +3,15 @@
   "private": true,
   "type": "module",
   "description": "Claude connector (MCP) for Academic Dashboard: talks to the running app through its local bridge",
-  "bin": { "academic-dashboard-mcp": "server.mjs" },
+  "bin": {
+    "academic-dashboard-mcp": "server.mjs"
+  },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.12.0",
+    "@modelcontextprotocol/sdk": "1.32.1",
     "zod": "3.25.76"
+  },
+  "scripts": {
+    "bundle": "pnpm dlx esbuild@0.25.10 server.mjs --bundle --platform=node --format=esm --target=node18 --outfile=dist/server.mjs \"--banner:js=import { createRequire } from 'module'; const require = createRequire(import.meta.url);\"",
+    "pack": "pnpm bundle && pnpm dlx @anthropic-ai/mcpb@2.1.2 pack . academic-dashboard.mcpb"
   }
 }
