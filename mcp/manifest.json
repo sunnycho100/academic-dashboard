@@ -1,0 +1,59 @@
+{
+  "manifest_version": "0.2",
+  "name": "academic-dashboard",
+  "display_name": "Academic Dashboard",
+  "version": "1.0.1",
+  "description": "Add tasks, put them in Today, plan time blocks and see today's study time in the Academic Dashboard app.",
+  "author": {
+    "name": "Sunghwan Cho"
+  },
+  "server": {
+    "type": "node",
+    "entry_point": "dist/server.mjs",
+    "mcp_config": {
+      "command": "node",
+      "args": [
+        "${__dirname}/dist/server.mjs"
+      ]
+    }
+  },
+  "tools": [
+    {
+      "name": "list_tasks",
+      "description": "Open tasks by Today's plan, Overdue and Upcoming"
+    },
+    {
+      "name": "list_courses",
+      "description": "The courses"
+    },
+    {
+      "name": "add_task",
+      "description": "Add a task, optionally into Today's plan"
+    },
+    {
+      "name": "add_to_today",
+      "description": "Put a task into Today's plan"
+    },
+    {
+      "name": "complete_task",
+      "description": "Mark a task done"
+    },
+    {
+      "name": "plan_time_block",
+      "description": "Plan a time block on the day's timeline"
+    },
+    {
+      "name": "list_time_blocks",
+      "description": "The day's planned time blocks"
+    },
+    {
+      "name": "today_summary",
+      "description": "Today's tracked time and earnings"
+    }
+  ],
+  "compatibility": {
+    "platforms": [
+      "darwin"
+    ]
+  }
+}
