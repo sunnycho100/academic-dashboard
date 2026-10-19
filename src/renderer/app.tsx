@@ -216,6 +216,24 @@ export default function Home() {
       setMounted(true)
     }
     loadData()
+    // The Claude connector changed something: show it now, and refresh the timeline and totals
+    const onBridge = () => {
+      loadData()
+      window.dispatchEvent(new Event('time-records-changed'))
+      window.dispatchEvent(new Event('timetable-changed'))
+    }
+    window.addEventListener('bridge-changed', onBridge)
+    return () => window.removeEventListener('bridge-changed', onBridge)
+  }, [])
+
+  // The Claude connector asked to put a task in Today's plan
+  useEffect(() => {
+    const onAddToday = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail
+      setTodayTaskIds((ids) => (ids.includes(id) ? ids : [...ids, id]))
+    }
+    window.addEventListener('bridge-add-today', onAddToday)
+    return () => window.removeEventListener('bridge-add-today', onAddToday)
   }, [])
 
   // Load today IDs once user is available & archive previous day if date changed

@@ -1,0 +1,11 @@
+{
+  "name": "academic-dashboard-mcp",
+  "private": true,
+  "type": "module",
+  "description": "Claude connector (MCP) for Academic Dashboard: talks to the running app through its local bridge",
+  "bin": { "academic-dashboard-mcp": "server.mjs" },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.12.0",
+    "zod": "3.25.76"
+  }
+}

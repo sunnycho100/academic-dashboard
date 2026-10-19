@@ -22,6 +22,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # The Claude connector (mcp/) has its own small package
+      - run: pnpm install --frozen-lockfile --ignore-workspace --dir mcp
       - run: pnpm exec prisma generate
       - run: pnpm typecheck
       # Fetch the Electron binary once, so parallel workers don't race to download it.
