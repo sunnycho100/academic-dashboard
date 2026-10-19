@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { currentDayStart } from '@/lib/task-format'
+import { rolloverHour } from '@/hooks/use-today-session'
 
 export interface TimerState {
   isRunning: boolean
@@ -11,6 +13,8 @@ export interface TimerState {
   lastTickAt?: string | null
   /** Persisted task title for display during idle / power-save mode */
   taskTitle?: string
+  /** This stretch carries on the record saved when the app closed, so it extends that record */
+  continues?: boolean
 }
 
 interface TaskTimerData {
@@ -55,7 +59,8 @@ async function saveTimeRecord(
   meta: TaskMeta,
   startTime: string,
   endTime: string,
-  durationSeconds: number
+  durationSeconds: number,
+  continues = false,
 ) {
   try {
     await fetch('/api/time-records', {
@@ -70,6 +75,7 @@ async function saveTimeRecord(
           startTime,
           endTime,
           duration: durationSeconds,
+          continues,
         }),
       })
     } catch (err) {
@@ -153,15 +159,20 @@ async function saveTimeRecord(
                 startTime: state.segmentStartedAt,
                 endTime,
                 duration: dur,
+                continues: state.continues, // a second reopen extends the same record again
               }),
             }).catch(() => {})
             // Update localStorage so the timer starts a fresh segment on reload
-            // instead of double-counting this segment
+            // instead of double-counting this segment. That segment continues this record
+            // (one session, not a new piece each time the app opens), unless the day
+            // rolled over in between, which is where a session is meant to split.
+            const dayOf = (iso: string) => currentDayStart(new Date(iso), rolloverHour()).getTime()
             const updated = { ...states }
             updated[taskId] = {
               ...state,
               segmentStartedAt: endTime,
               lastTickAt: endTime,
+              continues: dayOf(state.segmentStartedAt) === dayOf(endTime),
             }
             saveTimerData(updated, userIdRef.current)
           }
@@ -313,7 +324,7 @@ async function saveTimeRecord(
       )
       const meta = taskMetaRef.current[taskId]
       if (meta && segmentDuration > 0) {
-        saveTimeRecord(meta, state.segmentStartedAt, endTime, segmentDuration)
+        saveTimeRecord(meta, state.segmentStartedAt, endTime, segmentDuration, state.continues)
       }
     }
 
@@ -323,6 +334,7 @@ async function saveTimeRecord(
         ...prev[taskId],
         isPaused: true,
         segmentStartedAt: null,
+        continues: false,
       },
     }))
   }, [])
@@ -341,6 +353,7 @@ async function saveTimeRecord(
           isPaused: false,
           segmentStartedAt: now,
           lastTickAt: now,
+          continues: false, // a resume after a pause is a new stretch
         },
       }
     })
@@ -356,7 +369,7 @@ async function saveTimeRecord(
       )
       const meta = taskMetaRef.current[taskId]
       if (meta && segmentDuration > 0) {
-        saveTimeRecord(meta, state.segmentStartedAt, endTime, segmentDuration)
+        saveTimeRecord(meta, state.segmentStartedAt, endTime, segmentDuration, state.continues)
       }
     }
 

@@ -11,6 +11,8 @@ const CreateTimeRecordSchema = z.object({
   startTime: z.string().min(1),
   endTime: z.string().min(1),
   duration: z.number().int().min(0).max(86400),
+  /** Carries on the record that ended where this one starts (the app was closed and reopened) */
+  continues: z.boolean().optional(),
 })
 
 const QueryParamsSchema = z.object({
@@ -131,6 +133,27 @@ export async function POST(request: Request) {
           ? await prisma.timeRecord.update({ where: { id: existing.id }, data: { endTime, duration: body.duration } })
           : existing
       return Response.json(record, { status: 200 })
+    }
+
+    // Reopening the app mid-session: extend the record this stretch carries on (it ended,
+    // within a couple of seconds, where this one starts) instead of storing a second piece
+    if (body.continues) {
+      const previous = await prisma.timeRecord.findFirst({
+        where: {
+          userId,
+          taskTitle: body.taskTitle,
+          categoryName: body.categoryName,
+          endTime: { gte: new Date(startTime.getTime() - 2000), lte: new Date(startTime.getTime() + 2000) },
+        },
+        orderBy: { endTime: 'desc' },
+      })
+      if (previous) {
+        const record = await prisma.timeRecord.update({
+          where: { id: previous.id },
+          data: { endTime, duration: Math.round((endTime.getTime() - previous.startTime.getTime()) / 1000) },
+        })
+        return Response.json(record, { status: 200 })
+      }
     }
 
     const record = await prisma.timeRecord.create({
