@@ -2,7 +2,7 @@
   "manifest_version": "0.2",
   "name": "academic-dashboard",
   "display_name": "Academic Dashboard",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Add tasks, put them in Today, plan time blocks and see today's study time in the Academic Dashboard app.",
   "author": {
     "name": "Sunghwan Cho"
