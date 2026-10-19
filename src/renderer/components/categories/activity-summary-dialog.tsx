@@ -2,8 +2,6 @@ import { useState, useEffect, useMemo } from 'react'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Checkbox } from '@/components/ui/checkbox'
 import { MoreHorizontal } from 'lucide-react'
 import { earned, formatMoney, showEarnings } from '@/lib/prefs'
@@ -120,49 +118,28 @@ function TaskCard({
 
   return (
     <div
-      className={`rounded-lg border bg-card p-4 transition-colors hover:bg-accent/50 ${selected ? 'border-foreground' : 'border-border'} ${!deleteMode && onEdit ? 'cursor-pointer' : ''}`}
+      className={`group flex items-center gap-3 border-b border-border py-2.5 text-sm transition-colors ${selected ? 'bg-secondary' : 'hover:bg-secondary/50'} ${!deleteMode && onEdit ? 'cursor-pointer' : ''}`}
       onClick={() => {
         if (!deleteMode && onEdit) onEdit(record)
       }}
     >
-      <div className="flex items-start gap-3">
-        {deleteMode && (
-          <Checkbox
-            checked={selected}
-            onCheckedChange={() => onToggleSelect?.(record.id)}
-            className="mt-1"
-            onClick={(e) => e.stopPropagation()}
-          />
-        )}
-        <div className="flex-1 space-y-1">
-          <h4 className="font-medium">{record.taskTitle}</h4>
-          <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: record.categoryColor }} />
-              {record.categoryName}
-            </span>
-            <span>&middot;</span>
-            <span>{record.taskType}</span>
-            <span>&middot;</span>
-            <span className="tabular-nums">{format(parseISO(record.completedAt), 'h:mm a')}</span>
-            {diffInfo && (
-              <>
-                <span>&middot;</span>
-                <span className={diffInfo.color}>{diffInfo.text}</span>
-              </>
-            )}
-          </div>
-        </div>
-
-        <div className="flex-shrink-0 text-right tabular-nums">
-          {timeSpent > 0 && <div className="text-base">{formatTimeSpent(timeSpent)}</div>}
-          {record.estimatedDuration && (
-            <div className="mt-1 text-xs text-muted-foreground">
-              Est. {formatTimeSpent(record.estimatedDuration)}
-            </div>
-          )}
-        </div>
-      </div>
+      {deleteMode ? (
+        <Checkbox checked={selected} onCheckedChange={() => onToggleSelect?.(record.id)} onClick={(e) => e.stopPropagation()} />
+      ) : (
+        // The course ring, as in the task list
+        <svg viewBox="0 0 20 20" className="h-4 w-4 flex-shrink-0" aria-hidden>
+          <circle cx="10" cy="10" r="7.5" fill="none" stroke={record.categoryColor} strokeWidth="2" />
+        </svg>
+      )}
+      <span className="min-w-0 flex-1 truncate">{record.taskTitle}</span>
+      <span className="w-24 flex-shrink-0 truncate text-xs text-muted-foreground" title={`${record.categoryName} · ${record.taskType}`}>
+        {record.categoryName}
+      </span>
+      <span className="w-14 flex-shrink-0 text-right text-xs tabular-nums">{timeSpent > 0 ? formatTimeSpent(timeSpent) : ''}</span>
+      <span className={`w-20 flex-shrink-0 text-right text-xs ${diffInfo ? diffInfo.color : ''}`}>{diffInfo?.text}</span>
+      <span className="w-16 flex-shrink-0 text-right text-xs tabular-nums text-muted-foreground">
+        {format(parseISO(record.completedAt), 'h:mm a')}
+      </span>
     </div>
   )
 }
@@ -177,28 +154,19 @@ function StatsRow({ records }: { records: CompletedTaskRecord[] }) {
     0
   )
 
+  const stat = (value: string, label: string) => (
+    <div className="flex items-baseline gap-2">
+      <span className="font-serif text-2xl tabular-nums">{value}</span>
+      <span className={sectionLabel}>{label}</span>
+    </div>
+  )
   return (
-    <div className={`grid gap-4 border-y border-border py-4 ${showEarnings() ? 'grid-cols-4' : 'grid-cols-3'}`}>
-      <div>
-        <div className={sectionLabel}>Completed</div>
-        <div className="mt-1 font-serif text-2xl tabular-nums">{records.length}</div>
-      </div>
-      <div>
-        <div className={sectionLabel}>Study time</div>
-        <div className="mt-1 font-serif text-2xl tabular-nums">{formatTimeSpent(totalTimeSpent)}</div>
-      </div>
-      <div>
-        <div className={sectionLabel}>Time saved</div>
-        <div className="mt-1 font-serif text-2xl tabular-nums">
-          {formatTimeSpent(totalTimeSaved)}
-        </div>
-      </div>
-      {showEarnings() && (
-        <div>
-          <div className={sectionLabel}>Earned</div>
-          <div className="mt-1 font-serif text-2xl tabular-nums">{formatMoney(earned(totalTimeSpent * 60))}</div>
-        </div>
-      )}
+    <div className="flex flex-wrap items-baseline gap-x-7 gap-y-2 border-b border-border pb-4">
+      {stat(String(records.length), 'completed')}
+      {stat(formatTimeSpent(totalTimeSpent), 'studied')}
+      {totalTimeSaved > 0 && stat(formatTimeSpent(totalTimeSaved), 'saved')}
+      {/* Only the time on completed tasks; today's total earnings are in the Today panel */}
+      {showEarnings() && stat(formatMoney(earned(totalTimeSpent * 60)), 'earned')}
     </div>
   )
 }
@@ -470,7 +438,7 @@ export function ActivitySummaryDialog({
 
         <div className="space-y-4 px-6 py-5">
           {deleteMode && (
-            <div className="flex items-center justify-between gap-4 rounded-lg border border-border p-3">
+            <div className="flex items-center justify-between gap-4">
               <p className="text-sm text-muted-foreground">
                 {selectedIds.size} selected. Deleted tasks can be restored within 3 days.
               </p>
@@ -496,41 +464,37 @@ export function ActivitySummaryDialog({
             </div>
           )}
 
-          <Tabs value={tab} onValueChange={(v) => setTab(v as 'today' | 'all')}>
-            <TabsList className="w-full">
-              <TabsTrigger value="today" className="flex-1 gap-1.5">
-                Today
-                {todayRecords.length > 0 && (
-                  <span className="tabular-nums text-muted-foreground">{todayRecords.length}</span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="all" className="flex-1 gap-1.5">
-                All
-                {records.length > 0 && (
-                  <span className="tabular-nums text-muted-foreground">{records.length}</span>
-                )}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex gap-5 text-sm" role="tablist" aria-label="Show">
+            {([
+              ['today', 'Today', todayRecords.length],
+              ['all', 'All', records.length],
+            ] as const).map(([key, label, count]) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={tab === key}
+                onClick={() => setTab(key)}
+                className={`border-b-[1.5px] pb-0.5 transition-colors ${tab === key ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+              >
+                {label} <span className="tabular-nums text-muted-foreground">{count}</span>
+              </button>
+            ))}
+          </div>
 
           {!deleteMode && <StatsRow records={activeRecords} />}
 
-          <ScrollArea className="h-[400px] pr-4">
+          <div className="max-h-[55vh] overflow-y-auto pr-1">
             {loading ? (
-              <div className="flex h-full items-center justify-center">
-                <p className="text-muted-foreground">Loading</p>
+              <div className="py-10 text-center">
+                <p className="text-sm text-muted-foreground">Loading</p>
               </div>
             ) : activeRecords.length === 0 ? (
-              <div className="flex h-full flex-col items-center justify-center p-8 text-center">
-                <p className="text-muted-foreground">
-                  {tab === 'today' ? 'Nothing completed today.' : 'No completed tasks yet.'}
-                </p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Start the timer on a task in Today&apos;s plan to track study time.
-                </p>
-              </div>
+              <p className="py-10 text-center text-sm text-muted-foreground">
+                {tab === 'today' ? 'Nothing completed today.' : 'No completed tasks yet.'}
+              </p>
             ) : tab === 'today' ? (
-              <div className="space-y-3">
+              <div>
                 {todayRecords.map((record) => (
                   <TaskCard
                     key={record.id}
@@ -546,13 +510,13 @@ export function ActivitySummaryDialog({
               <div className="space-y-6">
                 {groupedByDay.map((group) => (
                   <div key={group.date.toISOString()}>
-                    <div className="mb-3 flex items-baseline gap-2">
+                    <div className="mb-1 flex items-baseline gap-2">
                       <h3 className={sectionLabel}>{group.label}</h3>
                       <span className="text-xs tabular-nums text-muted-foreground">
                         {group.records.length} task{group.records.length !== 1 ? 's' : ''}
                       </span>
                     </div>
-                    <div className="space-y-3">
+                    <div>
                       {group.records.map((record) => (
                         <TaskCard
                           key={record.id}
@@ -568,7 +532,7 @@ export function ActivitySummaryDialog({
                 ))}
               </div>
             )}
-          </ScrollArea>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
