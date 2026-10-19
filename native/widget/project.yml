@@ -1,0 +1,37 @@
+# The macOS desktop widget (WidgetKit), built and embedded into Academic Dashboard.app by
+# scripts/embed-widget.cjs when the app is packaged. Generate with `xcodegen generate`.
+name: AcademicWidget
+options:
+  deploymentTarget:
+    macOS: "14.0"
+settings:
+  base:
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-" # signed locally; no Apple ID needed
+    DEVELOPMENT_TEAM: ""
+    ENABLE_HARDENED_RUNTIME: NO
+targets:
+  AcademicWidget:
+    type: app-extension
+    platform: macOS
+    sources: [Widget]
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.sunnycho.academic-dashboard.widget
+    entitlements:
+      path: Widget/Widget.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        # Reads the status file the app writes next to its database
+        com.apple.security.temporary-exception.files.home-relative-path.read-only:
+          - /Library/Application Support/Academic Dashboard/
+    info:
+      path: Widget/Info.plist
+      properties:
+        CFBundleDisplayName: Academic Dashboard
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+  # Asks macOS to redraw the widget; the app runs it after writing a new status
+  widget-reload:
+    type: tool
+    platform: macOS
+    sources: [Reload]

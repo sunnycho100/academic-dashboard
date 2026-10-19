@@ -4,6 +4,7 @@ import '@fontsource/great-vibes'
 import { ThemeProvider } from '@/components/theme/theme-provider'
 import App from './app'
 import { DesktopWidget } from '@/components/widget/desktop-widget'
+import { WidgetFeed } from '@/components/widget/widget-feed'
 import { applyTheme } from '@/lib/themes'
 import { palette } from '@/lib/prefs'
 import './globals.css'
@@ -39,6 +40,7 @@ createRoot(document.getElementById('root')!).render(
       ) : (
         <div className="mesh-gradient min-h-screen">
           <App />
+          <WidgetFeed />
         </div>
       )}
     </ThemeProvider>
