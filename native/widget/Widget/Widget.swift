@@ -43,8 +43,7 @@ struct ShowBigNumber: AppIntent {
   }
 }
 
-// ── Timeline: an entry every 15 seconds, so the minutes count up without seconds and the
-// muted desktop bar (drawn by hand, see below) steps through each minute ──
+// ── Timeline: one entry a minute, so the minutes count up without seconds ──
 
 struct Entry: TimelineEntry {
   let date: Date
@@ -61,7 +60,7 @@ struct Provider: TimelineProvider {
     let status = loadStatus()
     let hero = UserDefaults.standard.string(forKey: heroKey) ?? "time"
     let start = Calendar.current.dateInterval(of: .minute, for: .now)?.start ?? .now
-    let entries = (0..<240).map { Entry(date: start.addingTimeInterval(Double($0) * 15), status: status, hero: hero) }
+    let entries = (0..<60).map { Entry(date: start.addingTimeInterval(Double($0) * 60), status: status, hero: hero) }
     // The app asks for a redraw whenever a timer starts, pauses or switches
     completion(Timeline(entries: entries, policy: .atEnd))
   }
@@ -140,25 +139,21 @@ struct WidgetView: View {
         .minimumScaleFactor(0.3)
         .foregroundStyle(s?.state == "paused" && hero == "time" ? muted : Color.primary)
 
-      // The yellow sweep fills once a minute while a timer runs
-      if s?.state == "running" && renderingMode != .fullColor {
-        // The desktop greys widgets out when another window is in front, and that draws a
-        // ProgressView's track as bright as its fill; opacity is what survives
-        let into = entry.date.timeIntervalSince(Calendar.current.dateInterval(of: .minute, for: entry.date)?.start ?? entry.date)
-        GeometryReader { g in
-          ZStack(alignment: .leading) {
-            Capsule().fill(Color.primary.opacity(0.2))
-            Capsule().fill(Color.primary).frame(width: max(3, g.size.width * into / 60))
+      // The bar fills over each hour of this session (0 to 60 minutes, then again to 120...).
+      // Drawn by hand: when the desktop greys widgets out, a ProgressView's track turns as
+      // bright as its fill, and opacity is what survives
+      let hourDone = idle ? 0 : elapsed.truncatingRemainder(dividingBy: 3600) / 3600
+      let colored = renderingMode == .fullColor && s?.state == "running"
+      GeometryReader { g in
+        ZStack(alignment: .leading) {
+          Capsule().fill(Color.primary.opacity(0.2))
+          if hourDone > 0 {
+            Capsule().fill(colored ? yellow : Color.primary.opacity(s?.state == "running" ? 1 : 0.5))
+              .frame(width: max(4, g.size.width * hourDone))
           }
         }
-        .frame(height: 4).padding(.top, large ? 12 : 6)
-      } else if s?.state == "running" {
-        let minute = Calendar.current.dateInterval(of: .minute, for: entry.date) ?? DateInterval(start: entry.date, duration: 60)
-        ProgressView(timerInterval: minute.start...minute.end, countsDown: false) { EmptyView() } currentValueLabel: { EmptyView() }
-          .progressViewStyle(.linear).tint(yellow).padding(.top, large ? 12 : 6)
-      } else {
-        Rectangle().fill(muted.opacity(0.2)).frame(height: 3).padding(.top, large ? 12 : 6)
       }
+      .frame(height: 4).padding(.top, large ? 12 : 6)
 
       if large {
         HStack(alignment: .top) {
