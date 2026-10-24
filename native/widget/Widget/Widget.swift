@@ -75,11 +75,12 @@ func clock(_ seconds: Double) -> String {
   return "\(s / 3600):" + String(format: "%02d", (s % 3600) / 60)
 }
 
-func money(_ dollars: Double) -> String {
+func money(_ dollars: Double, cents: Bool = true) -> String {
   let f = NumberFormatter()
   f.numberStyle = .currency
   f.currencyCode = "USD"
-  return f.string(from: NSNumber(value: (dollars * 100).rounded(.down) / 100)) ?? "$0.00"
+  if !cents { f.maximumFractionDigits = 0 }
+  return f.string(from: NSNumber(value: cents ? (dollars * 100).rounded(.down) / 100 : dollars.rounded(.down))) ?? "$0"
 }
 
 struct WidgetView: View {
@@ -95,7 +96,7 @@ struct WidgetView: View {
     let elapsed = idle ? (s?.today(at: entry.date) ?? 0) : (s?.elapsed(at: entry.date) ?? 0)
     let today = s?.today(at: entry.date) ?? 0
     let earned = today / 3600 * (s?.rate ?? 20)
-    let big = hero == "money" ? money(earned) : clock(elapsed)
+    let big = hero == "money" ? money(earned, cents: false) : clock(elapsed)
     let muted = Color.secondary
     let large = family != .systemSmall
 
