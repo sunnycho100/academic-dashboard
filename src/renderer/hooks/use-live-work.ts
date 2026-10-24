@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { todayRecordsUrl } from '@/hooks/use-today-session'
+import { rolloverHour, todayRecordsUrl } from '@/hooks/use-today-session'
+import { currentDayStart, pausedSince } from '@/lib/task-format'
 import { runningPersonalDev } from '@/components/today/personal-dev-tracker'
 import { earned, hourlyRate, showSeconds } from '@/lib/prefs'
 
@@ -16,16 +17,19 @@ interface Live {
 /** Timers running or paused right now, read from the same localStorage the main window writes. */
 function readLive(): Live[] {
   const live: Live[] = []
+  const dayStart = currentDayStart(new Date(), rolloverHour())
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i)
       if (!key?.startsWith('class-catchup-timers')) continue
       const data = JSON.parse(localStorage.getItem(key) || '{}') as Record<
         string,
-        { isRunning?: boolean; isPaused?: boolean; segmentStartedAt?: string | null; taskTitle?: string }
+        { isRunning?: boolean; isPaused?: boolean; segmentStartedAt?: string | null; lastTickAt?: string | null; taskTitle?: string }
       >
       for (const [id, s] of Object.entries(data)) {
         if (!s.isRunning) continue
+        // Paused today only, like the Today panel; an older pause is usually a finished task
+        if (s.isPaused && !pausedSince(s, dayStart)) continue
         live.push({ kind: 'task', id, title: s.taskTitle || 'Task', segmentStartedAt: s.isPaused ? null : s.segmentStartedAt ?? null })
       }
     }

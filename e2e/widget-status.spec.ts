@@ -15,3 +15,14 @@ test('the window writes the status the macOS widget reads', async ({ page, elect
   expect(s.elapsed).toBeGreaterThanOrEqual(599)
   expect(s.rate).toBe(20)
 })
+
+test('the widget ignores a timer left paused on an earlier day', async ({ page, electronApp }) => {
+  const dir = await electronApp.evaluate(({ app }) => app.getPath('userData'))
+  const file = path.join(dir, 'widget-status.json')
+  const old = new Date(Date.now() - 5 * 86_400_000).toISOString()
+  await page.evaluate((old) => localStorage.setItem('class-catchup-timers-local', JSON.stringify({ gone: { isRunning: true, isPaused: true, elapsedSeconds: 2590, segmentStartedAt: null, lastTickAt: old, taskTitle: 'Finished days ago' } })), old)
+  await page.reload()
+
+  await expect.poll(() => (fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')).state : null)).toBe('idle')
+  expect(JSON.parse(fs.readFileSync(file, 'utf8')).title).toBeNull()
+})
