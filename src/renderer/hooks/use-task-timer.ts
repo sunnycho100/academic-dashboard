@@ -135,6 +135,7 @@ function saveSegment(meta: TaskMeta, startTime: string, endTime: string, duratio
       const handleBeforeUnload = () => {
         const states = timerStatesRef.current
         const metas = taskMetaRef.current
+        const updated = { ...states }
         for (const [taskId, state] of Object.entries(states)) {
           if (state.isRunning && !state.isPaused && state.segmentStartedAt) {
             const endTime = new Date().toISOString()
@@ -165,16 +166,19 @@ function saveSegment(meta: TaskMeta, startTime: string, endTime: string, duratio
             // (one session, not a new piece each time the app opens), unless the day
             // rolled over in between, which is where a session is meant to split.
             const dayOf = (iso: string) => currentDayStart(new Date(iso), rolloverHour()).getTime()
-            const updated = { ...states }
             updated[taskId] = {
               ...state,
               segmentStartedAt: endTime,
               lastTickAt: endTime,
               continues: dayOf(state.segmentStartedAt) === dayOf(endTime),
             }
-            saveTimerData(updated, userIdRef.current)
           }
         }
+        saveTimerData(updated, userIdRef.current)
+        // The window can still tick before it closes; ticking the old state would save the
+        // flushed segment back and count it twice after reopening
+        timerStatesRef.current = updated
+        setTimerStates(updated)
       }
     }
 
