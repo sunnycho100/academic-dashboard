@@ -43,7 +43,8 @@ struct ShowBigNumber: AppIntent {
   }
 }
 
-// ── Timeline: one entry a minute, so the minutes count up without seconds ──
+// ── Timeline: an entry every 15 seconds, so the minutes count up without seconds and the
+// muted desktop bar (drawn by hand, see below) steps through each minute ──
 
 struct Entry: TimelineEntry {
   let date: Date
@@ -60,7 +61,7 @@ struct Provider: TimelineProvider {
     let status = loadStatus()
     let hero = UserDefaults.standard.string(forKey: heroKey) ?? "time"
     let start = Calendar.current.dateInterval(of: .minute, for: .now)?.start ?? .now
-    let entries = (0..<60).map { Entry(date: start.addingTimeInterval(Double($0) * 60), status: status, hero: hero) }
+    let entries = (0..<240).map { Entry(date: start.addingTimeInterval(Double($0) * 15), status: status, hero: hero) }
     // The app asks for a redraw whenever a timer starts, pauses or switches
     completion(Timeline(entries: entries, policy: .atEnd))
   }
@@ -87,6 +88,7 @@ struct WidgetView: View {
   let entry: Entry
   @Environment(\.widgetFamily) var family
   @Environment(\.colorScheme) var scheme
+  @Environment(\.widgetRenderingMode) var renderingMode
 
   var body: some View {
     let s = entry.status
@@ -139,7 +141,18 @@ struct WidgetView: View {
         .foregroundStyle(s?.state == "paused" && hero == "time" ? muted : Color.primary)
 
       // The yellow sweep fills once a minute while a timer runs
-      if s?.state == "running" {
+      if s?.state == "running" && renderingMode != .fullColor {
+        // The desktop greys widgets out when another window is in front, and that draws a
+        // ProgressView's track as bright as its fill; opacity is what survives
+        let into = entry.date.timeIntervalSince(Calendar.current.dateInterval(of: .minute, for: entry.date)?.start ?? entry.date)
+        GeometryReader { g in
+          ZStack(alignment: .leading) {
+            Capsule().fill(Color.primary.opacity(0.2))
+            Capsule().fill(Color.primary).frame(width: max(3, g.size.width * into / 60))
+          }
+        }
+        .frame(height: 4).padding(.top, large ? 12 : 6)
+      } else if s?.state == "running" {
         let minute = Calendar.current.dateInterval(of: .minute, for: entry.date) ?? DateInterval(start: entry.date, duration: 60)
         ProgressView(timerInterval: minute.start...minute.end, countsDown: false) { EmptyView() } currentValueLabel: { EmptyView() }
           .progressViewStyle(.linear).tint(yellow).padding(.top, large ? 12 : 6)
