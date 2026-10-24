@@ -1,5 +1,4 @@
 import { app, BrowserWindow, net, powerMonitor, protocol, screen, shell } from 'electron'
-import { execFile } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -102,13 +101,30 @@ function openWidget() {
 
 // ── macOS widget (WidgetKit, native/widget) ─────────────────────
 // The window posts what the widget should show; it is written next to the database, where the
-// widget reads it, and the bundled widget-reload helper asks macOS to redraw. In dev and tests
-// the helper is not there, so only the file is written.
+// widget reads it, and the bundled widget_reload.node asks macOS to redraw. macOS only takes that
+// request from the app's own process. In dev and tests the module is not there, so only the file
+// is written.
+let reloadWidget: (() => void) | null | undefined
+function widgetReloader(): (() => void) | null {
+  if (reloadWidget !== undefined) return reloadWidget
+  const file = path.join(process.resourcesPath, 'widget_reload.node')
+  reloadWidget = null
+  if (fs.existsSync(file)) {
+    try {
+      const mod = { exports: {} as { reload?: () => void } }
+      process.dlopen(mod, file)
+      reloadWidget = mod.exports.reload ?? null
+    } catch (e) {
+      console.error('Widget reload module failed to load:', e)
+    }
+  }
+  return reloadWidget
+}
+
 async function widgetStatusRoute(req: Request): Promise<Response> {
   const status = await req.text()
   fs.writeFileSync(path.join(app.getPath('userData'), 'widget-status.json'), status)
-  const helper = path.join(path.dirname(process.execPath), 'widget-reload')
-  if (fs.existsSync(helper)) execFile(helper, () => {})
+  widgetReloader()?.()
   return Response.json({ ok: true })
 }
 
