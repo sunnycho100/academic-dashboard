@@ -90,7 +90,15 @@ export function useLiveWork(): LiveWork {
       load()
     }
     load()
-    const tick = setInterval(() => setNow(Date.now()), 1000)
+    // Storage events only reach other windows, and the feed runs in the main window itself,
+    // so re-read the timers each second; keep the old array when nothing changed
+    const tick = setInterval(() => {
+      setNow(Date.now())
+      setLive((prev) => {
+        const next = readLive()
+        return JSON.stringify(next) === JSON.stringify(prev) ? prev : next
+      })
+    }, 1000)
     const poll = setInterval(load, 30000)
     window.addEventListener('storage', reread)
     window.addEventListener('prefs-changed', reread)
