@@ -77,3 +77,9 @@ pnpm test:e2e     # build, then Playwright against the Electron app
 - Tests launch the app with `ACADEMIC_DASHBOARD_HIDDEN=1`: no window, no Dock icon, nothing on screen.
 - CI (`.github/workflows/ci.yml`) runs typecheck, unit tests and e2e (under xvfb) on every PR and push to main.
 - The e2e suite is the regression gate. Keep it green.
+
+## Shipping
+- After opening a PR, do not ask before merging. Check CI every 3 minutes
+  (`gh pr checks <n> --watch --interval 180`); when it passes, merge, pull main and run
+  `pnpm app` to install, then verify the installed app. If CI fails, fix, push and wait again.
+- Never merge while CI is red.
