@@ -30,8 +30,3 @@ targets:
         CFBundleDisplayName: Academic Dashboard
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
-  # Asks macOS to redraw the widget; the app runs it after writing a new status
-  widget-reload:
-    type: tool
-    platform: macOS
-    sources: [Reload]
