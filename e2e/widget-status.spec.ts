@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { test, expect } from './support/app'
+import { test, expect, APP_URL } from './support/app'
+import { seedCategory, seedTask } from './support/api'
 
 test('the window writes the status the macOS widget reads', async ({ page, electronApp }) => {
   const dir = await electronApp.evaluate(({ app }) => app.getPath('userData'))
@@ -25,4 +26,18 @@ test('the widget ignores a timer left paused on an earlier day', async ({ page, 
 
   await expect.poll(() => (fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')).state : null)).toBe('idle')
   expect(JSON.parse(fs.readFileSync(file, 'utf8')).title).toBeNull()
+})
+
+test('pausing in the main window updates the widget status', async ({ page, api, electronApp }) => {
+  const dir = await electronApp.evaluate(({ app }) => app.getPath('userData'))
+  const file = path.join(dir, 'widget-status.json')
+  const state = () => (fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')).state : null)
+  const cat = await seedCategory(api)
+  await seedTask(api, cat.id, { title: 'Pipelining review' })
+  await page.goto(APP_URL)
+  await page.locator('.group').filter({ hasText: 'Pipelining review' }).getByTitle("Add to Today's Plan").click()
+  await page.getByTitle('Start timer').first().click()
+  await expect.poll(state).toBe('running')
+  await page.getByTitle('Pause timer').first().click()
+  await expect.poll(state).toBe('paused')
 })
