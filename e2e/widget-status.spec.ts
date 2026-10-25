@@ -41,3 +41,24 @@ test('pausing in the main window updates the widget status', async ({ page, api,
   await page.getByTitle('Pause timer').first().click()
   await expect.poll(state).toBe('paused')
 })
+
+test('pausing a long session does not count it twice in the widget', async ({ page, api, electronApp }) => {
+  const dir = await electronApp.evaluate(({ app }) => app.getPath('userData'))
+  const file = path.join(dir, 'widget-status.json')
+  const cat = await seedCategory(api)
+  await seedTask(api, cat.id, { title: 'Metrics review' })
+  await page.clock.install()
+  await page.goto(APP_URL)
+  await page.locator('.group').filter({ hasText: 'Metrics review' }).getByTitle("Add to Today's Plan").click()
+  await page.getByTitle('Start timer').first().click()
+  await page.clock.fastForward('40:00')
+  await page.getByTitle('Pause timer').first().click()
+
+  // Every status the window sends while the pause settles
+  const seen: number[] = []
+  for (let i = 0; i < 20; i++) {
+    if (fs.existsSync(file)) seen.push(JSON.parse(fs.readFileSync(file, 'utf8')).today)
+    await page.waitForTimeout(100)
+  }
+  expect(Math.max(...seen)).toBeLessThan(45 * 60)
+})
