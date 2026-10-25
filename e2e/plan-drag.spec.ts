@@ -36,9 +36,12 @@ test('dragging a Today task onto the Planned lane plans it where the preview say
 })
 
 test('a planned block drags an hour later, and × removes it', async ({ page, api }) => {
-  // Planned near the current hour, so it sits next to "now" where the timeline opens, but early
-  // enough that an hour later is still inside the day (6 AM to midnight)
-  const hour = Math.min(Math.max(new Date().getHours(), 6), 22)
+  // At a fixed noon, so the block sits mid-timeline where it opens and an hour later is still
+  // in view whenever the suite runs
+  const noon = new Date()
+  noon.setHours(12, 0, 0, 0)
+  await page.clock.install({ time: noon })
+  const hour = 12
   const at = (h: number) => `${String(h % 24).padStart(2, '0')}:00`
   await api.put('/api/timetable', {
     data: { date: today(), entries: [{ order: 0, plannedStart: at(hour), plannedEnd: at(hour + 1), expectedMinutes: 60, activityName: 'Review notes', actualStart: null, actualEnd: null, actualMinutes: null, notes: '' }] },

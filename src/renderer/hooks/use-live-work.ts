@@ -61,7 +61,9 @@ export interface LiveWork {
  * timer (storage event) or saves a record.
  */
 export function useLiveWork(): LiveWork {
-  const [live, setLive] = useState(readLive)
+  // Read on every render, not kept in state: right after a pause the saved record can land
+  // before a stored copy would refresh, and the segment would count twice
+  const live = readLive()
   const [today, setToday] = useState<Rec[]>([])
   const [taskSaved, setTaskSaved] = useState<Record<string, number>>({})
   const [prefs, setPrefs] = useState(() => ({ rate: hourlyRate(), showSeconds: showSeconds() }))
@@ -85,20 +87,11 @@ export function useLiveWork(): LiveWork {
       }
     }
     const reread = () => {
-      setLive(readLive())
       setPrefs({ rate: hourlyRate(), showSeconds: showSeconds() })
       load()
     }
     load()
-    // Storage events only reach other windows, and the feed runs in the main window itself,
-    // so re-read the timers each second; keep the old array when nothing changed
-    const tick = setInterval(() => {
-      setNow(Date.now())
-      setLive((prev) => {
-        const next = readLive()
-        return JSON.stringify(next) === JSON.stringify(prev) ? prev : next
-      })
-    }, 1000)
+    const tick = setInterval(() => setNow(Date.now()), 1000)
     const poll = setInterval(load, 30000)
     window.addEventListener('storage', reread)
     window.addEventListener('prefs-changed', reread)
