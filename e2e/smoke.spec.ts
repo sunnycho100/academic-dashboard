@@ -21,3 +21,9 @@ test.describe('app shell', () => {
     await expect(page.locator('html')).not.toHaveClass(/dark/)
   })
 })
+
+test('the + beside Courses opens New course', async ({ page }) => {
+  await page.goto(APP_URL)
+  await page.getByTitle('New course').click()
+  await expect(page.getByRole('dialog').getByText('New course')).toBeVisible()
+})
