@@ -4,7 +4,7 @@ import { courseSummary } from '@/lib/task-format'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Search, ChevronUp, ChevronDown, Trash2 } from 'lucide-react'
+import { Search, ChevronUp, ChevronDown, Trash2, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ActivitySummaryDialog } from './activity-summary-dialog'
@@ -80,27 +80,10 @@ export function CategorySidebar({
       {/* Compact title-bar row for the macOS traffic lights, like Claude and Chrome */}
       <div className="app-drag h-[52px] flex-shrink-0" />
       <div className="px-4 pt-1 pb-4 border-b border-border">
-        <h2 className="font-medium text-xs mb-3 text-muted-foreground uppercase tracking-widest">
-          Courses
-        </h2>
-        <div className="relative mb-3">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground/50" />
-          <Input
-            placeholder="Search"
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-8 h-9 rounded-lg bg-secondary border-border text-sm placeholder:text-muted-foreground/40"
-          />
-        </div>
-        <div className="flex gap-1 -mx-2">
-          <Button
-            onClick={onAddCategory}
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground hover:text-foreground"
-          >
-            New course
-          </Button>
+        <div className="flex items-center mb-3 -mr-2">
+          <h2 className="font-medium text-xs text-muted-foreground uppercase tracking-widest">
+            Courses
+          </h2>
           {categories.length > 0 && (
             <Button
               onClick={() => {
@@ -112,11 +95,30 @@ export function CategorySidebar({
               }}
               variant="ghost"
               size="sm"
-              className={cn('ml-auto', editMode ? 'text-foreground' : 'text-muted-foreground hover:text-foreground')}
+              className={cn('ml-auto h-7 px-2', editMode ? 'text-foreground' : 'text-muted-foreground hover:text-foreground')}
             >
               {editMode ? 'Done' : 'Edit'}
             </Button>
           )}
+          <Button
+            onClick={onAddCategory}
+            variant="ghost"
+            size="icon"
+            className={cn('h-7 w-7 text-muted-foreground hover:text-foreground', categories.length === 0 && 'ml-auto')}
+            aria-label="New course"
+            title="New course"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground/50" />
+          <Input
+            placeholder="Search"
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="pl-8 h-9 rounded-lg bg-secondary border-border text-sm placeholder:text-muted-foreground/40"
+          />
         </div>
       </div>
       <ScrollArea className="flex-1">
