@@ -10,6 +10,7 @@ exports.default = async function embedWidget(context) {
   if (context.electronPlatformName !== 'darwin') return
   const dir = path.join(__dirname, '..', 'native', 'widget')
   const run = (cmd, args) => execFileSync(cmd, args, { cwd: dir, stdio: 'inherit' })
+  const app = path.join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`)
   try {
     run('xcodegen', ['generate', '--quiet'])
     run('xcodebuild', ['-project', 'AcademicWidget.xcodeproj', '-scheme', 'AcademicWidget', '-configuration', 'Release', '-derivedDataPath', 'build', '-quiet'])
@@ -18,10 +19,11 @@ exports.default = async function embedWidget(context) {
     run('xcrun', ['swiftc', '-emit-library', 'Addon/reload.swift', 'build/addon.o', '-o', 'build/widget_reload.node', '-target', 'arm64-apple-macos14.0', '-Xlinker', '-undefined', '-Xlinker', 'dynamic_lookup', '-framework', 'WidgetKit'])
   } catch (e) {
     console.warn('  • macOS widget not built (needs Xcode and XcodeGen):', e.message)
+    // Still sign the app, or its unsealed bundle fails codesign and the install
+    execFileSync('codesign', ['--force', '--deep', '--sign', '-', app], { stdio: 'inherit' })
     return
   }
   const built = path.join(dir, 'build', 'Build', 'Products', 'Release')
-  const app = path.join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`)
   const plugins = path.join(app, 'Contents', 'PlugIns')
   fs.mkdirSync(plugins, { recursive: true })
   fs.cpSync(path.join(built, 'AcademicWidget.appex'), path.join(plugins, 'AcademicWidget.appex'), { recursive: true })
