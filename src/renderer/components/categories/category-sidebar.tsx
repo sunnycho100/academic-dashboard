@@ -76,7 +76,7 @@ export function CategorySidebar({
   )
 
   return (
-    <div className="w-64 border-r border-border bg-sidebar flex flex-col h-full">
+    <div className="w-52 flex-shrink-0 border-r border-border bg-sidebar flex flex-col h-full">
       {/* Compact title-bar row for the macOS traffic lights, like Claude and Chrome */}
       <div className="app-drag h-[52px] flex-shrink-0" />
       <div className="px-4 pt-1 pb-4 border-b border-border">
