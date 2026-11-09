@@ -6,6 +6,8 @@ export interface TimelineBlock {
   endMin: number
   color?: string
   live?: boolean
+  /** Not work (meals, travel): drawn muted, never counted */
+  life?: boolean
 }
 
 const toMin = (hhmm: string) => {
@@ -29,7 +31,7 @@ export function plannedBlocks(
 
 /** Actual lane: time records, positioned relative to the local midnight of `day`. */
 export function actualBlocks(
-  records: { id: string; taskTitle: string; categoryColor: string; startTime: string; endTime: string }[],
+  records: { id: string; taskTitle: string; categoryName?: string; categoryColor: string; startTime: string; endTime: string }[],
   day: Date,
 ): TimelineBlock[] {
   const midnight = new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime()
@@ -40,6 +42,7 @@ export function actualBlocks(
     startMin: minutes(r.startTime),
     endMin: minutes(r.endTime),
     color: r.categoryColor,
+    ...(r.categoryName === 'Life' ? { life: true } : {}),
   }))
 }
 
