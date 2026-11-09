@@ -137,7 +137,7 @@ export function DayTimeline({ tasks, categories, session, onOpenTimetable, taskM
         .then((r) => r.json())
         .then((rows) => Array.isArray(rows) && setPlanned(plannedBlocks(rows)))
         .catch(() => {})
-      fetch(`/api/time-records?date=${date}&tz=${tz}&startHour=${startHour}&endHour=${endHourParam}`)
+      fetch(`/api/time-records?date=${date}&tz=${tz}&startHour=${startHour}&endHour=${endHourParam}&life=1`)
         .then((r) => r.json())
         .then((rows) => Array.isArray(rows) && setActual(actualBlocks(rows, new Date(y, m - 1, d))))
         .catch(() => {})
@@ -335,23 +335,24 @@ export function DayTimeline({ tasks, categories, session, onOpenTimetable, taskM
                 key={b.id}
                 data-lane="actual"
                 data-live={b.live || undefined}
+                data-life={b.life || undefined}
                 className={cn(
                   'absolute rounded-md px-2 py-1 leading-tight overflow-hidden',
-                  b.live ? 'bg-coral text-white' : 'bg-today-foreground text-today',
+                  b.live ? 'bg-coral text-white' : b.life ? 'border border-dashed border-white/25 text-today-muted' : 'bg-today-foreground text-today',
                 )}
                 // A pale block washed with the course color, so it stays light against the green
                 style={{
                   ...laneStyle('actual'),
                   top: top(b.startMin) + 1,
                   height: Math.max(18, top(b.endMin) - top(b.startMin) - 2),
-                  ...(!b.live && b.color
+                  ...(!b.live && !b.life && b.color
                     ? { backgroundColor: `color-mix(in srgb, ${b.color} 22%, hsl(var(--today-foreground)))` }
                     : {}),
                 }}
               >
                 <p className="truncate text-[12px] font-medium">{b.label}</p>
                 {top(b.endMin) - top(b.startMin) >= 36 && (
-                  <p className={cn('truncate text-[11px] tabular-nums', b.live ? 'text-white/80' : 'text-today/70')}>
+                  <p className={cn('truncate text-[11px] tabular-nums', b.live ? 'text-white/80' : b.life ? 'text-today-muted/70' : 'text-today/70')}>
                     {/* Coral already says it is running; "since" says it is still open */}
                     {b.live ? `since ${clock(b.startMin)}` : clockRange(b.startMin, b.endMin)}
                   </p>

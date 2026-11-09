@@ -2,6 +2,9 @@ import { z } from 'zod'
 import { prisma } from '@main/lib/db'
 import { getAuthenticatedUser } from '@main/lib/auth'
 
+// ponytail: a reserved category name, a kind column if life blocks ever need more than this
+const LIFE = 'Life'
+
 const CreateTimeRecordSchema = z.object({
   taskId: z.string().max(255).nullable().optional(),
   taskTitle: z.string().min(1).max(255),
@@ -35,6 +38,9 @@ export async function GET(request: Request) {
       endHour: searchParams.get('endHour') ?? undefined,
       taskIds: searchParams.get('taskIds') ?? undefined,
     })
+    // Life blocks (meals, travel) are not work: only the timeline asks for them, with life=1,
+    // so every total and earnings figure leaves them out
+    const life = searchParams.get('life') === '1'
     if (!paramsParsed.success) {
       return Response.json({ error: paramsParsed.error.flatten() }, { status: 400 })
     }
@@ -82,6 +88,7 @@ export async function GET(request: Request) {
           gte: startOfDay,
           lte: endOfDay,
         },
+        ...(life ? {} : { categoryName: { not: LIFE } }),
       },
       orderBy: { startTime: 'asc' },
     })
