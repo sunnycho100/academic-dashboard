@@ -40,3 +40,24 @@ test('turning off Show earnings hides the money', async ({ page, api }) => {
   await expect(panel).not.toContainText('$')
   await expect(panel.getByRole('group', { name: 'Big number shows' })).toHaveCount(0)
 })
+
+test("a record added to the day being viewed updates that day's total", async ({ page, api }) => {
+  await seedCategory(api)
+  const afternoon = new Date()
+  afternoon.setHours(15, 0, 0, 0)
+  await page.clock.install({ time: afternoon })
+  await page.goto(APP_URL)
+  const panel = page.getByRole('complementary', { name: 'Today panel' })
+  await panel.getByRole('button', { name: 'Previous day' }).click()
+  await expect(panel.getByLabel('Today total')).toHaveText('0:00')
+
+  const y = new Date(afternoon)
+  y.setDate(y.getDate() - 1)
+  y.setHours(13, 0, 0, 0)
+  // Posted from the page, as the app's own writes are, so the change is announced
+  await page.evaluate((start) => fetch('/api/time-records', {
+    method: 'POST',
+    body: JSON.stringify({ taskId: null, taskTitle: 'Reading', categoryName: 'Personal Dev', categoryColor: '#81b29a', taskType: 'Reading', startTime: start, endTime: new Date(new Date(start).getTime() + 3600e3).toISOString(), duration: 3600 }),
+  }), y.toISOString())
+  await expect(panel.getByLabel('Today total')).toHaveText('1:00')
+})
