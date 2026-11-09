@@ -196,12 +196,17 @@ function TodayHero({ saved, seconds }: { saved: number; seconds: boolean }) {
   useEffect(() => {
     if (offset === 0) return setPastTotal(null)
     let live = true
-    fetch(dayRecordsUrl(offset))
-      .then((r) => r.json())
-      .then((recs: { duration: number }[]) => live && Array.isArray(recs) && setPastTotal(recs.reduce((s, r) => s + r.duration, 0)))
-      .catch(() => {})
+    const load = () =>
+      fetch(dayRecordsUrl(offset))
+        .then((r) => r.json())
+        .then((recs: { duration: number }[]) => live && Array.isArray(recs) && setPastTotal(recs.reduce((s, r) => s + r.duration, 0)))
+        .catch(() => {})
+    load()
+    // A record added to that day (an edit, the Claude connector) updates it too
+    window.addEventListener('time-records-changed', load)
     return () => {
       live = false
+      window.removeEventListener('time-records-changed', load)
     }
   }, [offset])
 
