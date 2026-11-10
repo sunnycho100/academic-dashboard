@@ -156,6 +156,7 @@ export async function PUT(request: Request) {
       })
       created.push(entry)
     }
+    await syncTimeRecords(userId, date, created)
 
     return Response.json(created)
   } catch (error) {
@@ -165,5 +166,39 @@ export async function PUT(request: Request) {
       { error: 'Failed to update timetable entries' },
       { status: 500 },
     )
+  }
+}
+
+/**
+ * Keeps one time record per row that has both actual times, rebuilt on every save so an edit
+ * (or a value caught mid-typing) can never leave a wrong record behind. The day's records are
+ * linked by taskId `timetable:<date>`, since rows are recreated with new ids on each save.
+ */
+async function syncTimeRecords(
+  userId: string,
+  date: string,
+  entries: { activityName: string; actualStart: string | null; actualEnd: string | null }[],
+) {
+  const link = `timetable:${date}`
+  await prisma.timeRecord.deleteMany({ where: { userId, taskId: link } })
+  const hhmm = /^\d{1,2}:\d{2}$/
+  for (const e of entries) {
+    if (!e.activityName || !e.actualStart || !e.actualEnd || !hhmm.test(e.actualStart) || !hhmm.test(e.actualEnd)) continue
+    const start = new Date(`${date}T${e.actualStart.padStart(5, '0')}:00`) // local time, like the rows
+    const end = new Date(`${date}T${e.actualEnd.padStart(5, '0')}:00`)
+    if (end <= start) end.setDate(end.getDate() + 1) // runs past midnight
+    await prisma.timeRecord.create({
+      data: {
+        userId,
+        taskId: link,
+        taskTitle: e.activityName,
+        categoryName: 'Timetable',
+        categoryColor: '#6366f1',
+        taskType: 'Timetable',
+        startTime: start,
+        endTime: end,
+        duration: Math.round((end.getTime() - start.getTime()) / 1000),
+      },
+    })
   }
 }
